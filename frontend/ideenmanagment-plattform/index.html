@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de" class="">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ideenmanagement-Plattform</title>
+    <script>
+      // Pre-paint theme to avoid FOUC
+      (function () {
+        try {
+          const t = localStorage.getItem('idea.theme');
+          const sys = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          const dark = t === 'dark' || (t === 'system' && sys) || (!t && sys);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-background text-foreground antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

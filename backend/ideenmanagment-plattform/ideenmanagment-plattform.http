@@ -1,6 +1,170 @@
-@ideenmanagment_plattform_HostAddress = http://localhost:5164
+@baseUrl = http://localhost:8080
+@email = admin@local
+@password = Admin#12345
 
-GET {{ideenmanagment_plattform_HostAddress}}/weatherforecast/
-Accept: application/json
+### Health
+GET {{baseUrl}}/health
+
+### Login (Admin)
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "emailOrUserName": "{{email}}",
+  "password": "{{password}}"
+}
 
 ###
+@accessToken = {{login.response.body.data.accessToken}}
+@refreshToken = {{login.response.body.data.refreshToken}}
+
+### Register
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "userName": "alice",
+  "password": "Alice#12345",
+  "firstName": "Alice",
+  "lastName": "Wonderland"
+}
+
+### Refresh
+POST {{baseUrl}}/api/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshToken}}" }
+
+### Logout
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "refreshToken": "{{refreshToken}}" }
+
+### Change password
+POST {{baseUrl}}/api/auth/change-password
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "currentPassword": "Admin#12345", "newPassword": "Admin#54321!" }
+
+### Profil ich
+GET {{baseUrl}}/api/users/me
+Authorization: Bearer {{accessToken}}
+
+### Profil aktualisieren
+PUT {{baseUrl}}/api/users/me
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "firstName": "Admin", "lastName": "Root" }
+
+### Benutzerliste (Admin)
+GET {{baseUrl}}/api/users?page=1&pageSize=20&search=admin
+Authorization: Bearer {{accessToken}}
+
+### Rollen
+GET {{baseUrl}}/api/roles
+Authorization: Bearer {{accessToken}}
+
+### Permissions
+GET {{baseUrl}}/api/roles/permissions
+Authorization: Bearer {{accessToken}}
+
+### Kategorien
+GET {{baseUrl}}/api/categories
+Authorization: Bearer {{accessToken}}
+
+### Kategorie anlegen
+POST {{baseUrl}}/api/categories
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "name": "DevOps", "description": "DevOps-bezogene Ideen" }
+
+### Ideen Liste
+GET {{baseUrl}}/api/ideas?page=1&pageSize=10&sortBy=createdAt&sortDir=desc
+Authorization: Bearer {{accessToken}}
+
+### Idee anlegen
+# @name createIdea
+POST {{baseUrl}}/api/ideas
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "title": "Wöchentliche Innovations-Stunde",
+  "description": "Einführung einer wöchentlichen 1h-Innovationszeit pro Mitarbeiter.",
+  "categoryId": "PUT-EXISTING-CATEGORY-GUID-HERE"
+}
+
+###
+@ideaId = {{createIdea.response.body.data.id}}
+
+### Idee einreichen
+POST {{baseUrl}}/api/ideas/{{ideaId}}/submit
+Authorization: Bearer {{accessToken}}
+
+### Kommentar hinzufügen
+POST {{baseUrl}}/api/ideas/{{ideaId}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "content": "Großartige Idee!", "parentCommentId": null }
+
+### Voten (Up)
+POST {{baseUrl}}/api/ideas/{{ideaId}}/votes
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "voteType": 1 }
+
+### Vote-Zusammenfassung
+GET {{baseUrl}}/api/ideas/{{ideaId}}/votes/summary
+Authorization: Bearer {{accessToken}}
+
+### Moderation: Warteschlange
+GET {{baseUrl}}/api/moderation/queue
+Authorization: Bearer {{accessToken}}
+
+### Moderation: Idee freigeben
+POST {{baseUrl}}/api/moderation/ideas/{{ideaId}}/approve
+Authorization: Bearer {{accessToken}}
+
+### Moderation: Idee ablehnen
+POST {{baseUrl}}/api/moderation/ideas/{{ideaId}}/reject
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{ "reason": "Bereits umgesetzt." }
+
+### Moderation: Idee archivieren
+POST {{baseUrl}}/api/moderation/ideas/{{ideaId}}/archive
+Authorization: Bearer {{accessToken}}
+
+### Benachrichtigungen
+GET {{baseUrl}}/api/notifications
+Authorization: Bearer {{accessToken}}
+
+### Ungelesene Anzahl
+GET {{baseUrl}}/api/notifications/unread-count
+Authorization: Bearer {{accessToken}}
+
+### Audit-Logs (Admin)
+GET {{baseUrl}}/api/audit-logs?page=1&pageSize=50
+Authorization: Bearer {{accessToken}}
+
+### Attachment Upload (multipart)
+POST {{baseUrl}}/api/ideas/{{ideaId}}/attachments
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----Boundary
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="readme.txt"
+Content-Type: text/plain
+
+Beispielinhalt für ein hochgeladenes Attachment.
+------Boundary--

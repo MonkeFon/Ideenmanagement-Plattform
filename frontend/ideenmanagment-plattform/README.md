@@ -1,70 +1,86 @@
-# Getting Started with Create React App
+# Ideenmanagement-Plattform – Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Produktionsreifes React 18 + TypeScript SPA für die ASP.NET Core 8 REST-API der Ideenmanagement-Plattform.
 
-## Available Scripts
+## Tech-Stack
+- React 18 + TypeScript (strict) + Vite 5
+- React Router v6 (Data Routers), TanStack Query v5, Zustand
+- React Hook Form + Zod
+- Axios (JWT Interceptor + Single-Flight Refresh)
+- TailwindCSS + shadcn/ui (Radix) + lucide-react
+- date-fns (de), sonner, react-markdown + rehype-sanitize
+- Vitest + Testing-Library + MSW
 
-In the project directory, you can run:
+## Setup
+```bash
+npm install
+cp .env.local .env
+# Optional, für Offline-Entwicklung mit MSW:
+npm run msw:init
+npm run dev
+```
 
-### `npm start`
+App: http://localhost:3000  
+Backend erwartet auf http://localhost:8080 (`VITE_API_BASE_URL`).
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Scripts
+| Script | Zweck |
+|---|---|
+| `npm run dev` | Vite Dev-Server |
+| `npm run build` | Type-Check + Production-Build (`dist/`) |
+| `npm run preview` | Build lokal servieren |
+| `npm test` | Vitest (CI-Mode) |
+| `npm run test:watch` | Vitest Watch |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TS-Check |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## MSW (Mock Service Worker)
+Offline gegen mock-Backend entwickeln:
+```bash
+npm run msw:init     # einmalig: Worker nach public/ kopieren
+echo "VITE_ENABLE_MSW=true" >> .env.local
+npm run dev
+```
 
-### `npm test`
+## Docker
+```bash
+docker build -t idea-frontend .
+docker run -p 3000:80 idea-frontend
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Architektur
+```
+src/
+  api/            Axios-Instanz + Endpoint-Module (Envelope-Unwrap, Refresh)
+  components/     ui/, layout/, auth/, common/, ideas/, admin/, ...
+  hooks/          queries/, mutations/, useAuth, usePermissions, ...
+  lib/            permissions, validation/zod-schemas, format, utils
+  mocks/          MSW handlers + db
+  pages/          Eine Datei pro Route
+  router/         createBrowserRouter
+  stores/         authStore, themeStore, uiStore
+  test/           setup
+  types/          1:1 Backend-Modelle
+```
 
-### `npm run build`
+### Auth-Flow
+- Tokens in `localStorage` Key `idea.auth` (Zustand persist).
+- Request-Interceptor hängt `Authorization: Bearer` an.
+- 401 → **Single-Flight** Refresh: parallele Requests werden ge-queued; Misserfolg → Hard-Redirect `/login?expired=1`.
+- Envelope `{ success, data, message }` wird im Response-Interceptor ausgepackt.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### RBAC
+`<RequirePermission permission="ideas.create">`, `<RequireRole role="Administrator">`, `<RequireAuth>` – plus `useHasPermission()`-Hook und `<PermissionGate>`.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Tests
+```bash
+npm test
+```
+Enthält u.a.:
+- Axios Envelope-Unwrap & Single-Flight Refresh
+- Zod-Validierung
+- `<RequirePermission>` Allow/Deny
+- `<VoteButtons>` optimistic update
+- Login-Form ProblemDetails-Mapping
+- Pagination-Komponente
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)

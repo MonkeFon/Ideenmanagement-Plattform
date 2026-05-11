@@ -1,0 +1,36 @@
+﻿## Build outputs
+bin/
+obj/
+out/
+publish/
+
+## IDE
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.swp
+
+## Logs & uploads
+logs/
+uploads/
+*.log
+
+## Env / Secrets
+.env
+.env.*
+!.env.example
+appsettings.Local.json
+
+## OS
+.DS_Store
+Thumbs.db
+
+## EF
+*.db
+*.db-*
+
+## NuGet
+*.nupkg
+

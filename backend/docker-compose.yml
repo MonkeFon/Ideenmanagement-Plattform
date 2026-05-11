@@ -1,0 +1,70 @@
+﻿services:
+  db:
+    image: postgres:16-alpine
+    container_name: ideaplatform-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ideaplatform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ideaplatform}
+      POSTGRES_DB: ${POSTGRES_DB:-ideaplatform}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ideaplatform} -d ${POSTGRES_DB:-ideaplatform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [idea-net]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ideaplatform-api:latest
+    container_name: ideaplatform-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB:-ideaplatform};Username=${POSTGRES_USER:-ideaplatform};Password=${POSTGRES_PASSWORD:-ideaplatform}"
+      Jwt__Issuer: ${JWT_ISSUER:-IdeaPlatform}
+      Jwt__Audience: ${JWT_AUDIENCE:-IdeaPlatform.Clients}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY required}
+      Jwt__AccessTokenMinutes: ${JWT_ACCESS_MIN:-15}
+      Jwt__RefreshTokenDays: ${JWT_REFRESH_DAYS:-7}
+      Seed__AdminEmail: ${ADMIN_EMAIL:-admin@local}
+      Seed__AdminUserName: ${ADMIN_USERNAME:-admin}
+      Seed__AdminPassword: ${ADMIN_PASSWORD:-Admin#12345}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - uploads:/app/uploads
+      - logs:/app/logs
+    networks: [idea-net]
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ideaplatform-pgadmin
+    restart: unless-stopped
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@local}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on: [db]
+    networks: [idea-net]
+
+volumes:
+  pgdata:
+  uploads:
+  logs:
+
+networks:
+  idea-net:
+    driver: bridge
+

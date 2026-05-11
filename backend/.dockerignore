@@ -1,0 +1,16 @@
+﻿**/bin
+**/obj
+**/.vs
+**/.idea
+**/logs
+**/uploads
+**/*.user
+**/*.suo
+.git
+.gitignore
+README.md
+docker-compose*.yml
+.env
+.env.*
+build.log
+
