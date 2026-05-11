@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "1+cDk5oUP6k=",
+  "success": true,
+  "projectFilePath": "C:\\Dev\\Ideenmanagement-Plattform\\backend\\ideenmanagment-plattform\\ideenmanagment-plattform.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\MAdler\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.11\\microsoft.aspnetcore.openapi.9.0.11.nupkg.sha512",
+    "C:\\Users\\MAdler\\.nuget\\packages\\microsoft.openapi\\1.6.17\\microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
