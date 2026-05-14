@@ -1,0 +1,70 @@
+package com.ideaplatform.api.dto;
+
+import com.ideaplatform.api.domain.Stage;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
+
+public final class IdeaDtos {
+
+    public record CreateIdeaRequest(
+            @NotBlank @Size(max = 200) String title,
+            @NotBlank @Size(max = 8000) String description,
+            @Size(max = 64) String category) {}
+
+    public record UpdateIdeaRequest(
+            @Size(max = 200) String title,
+            @Size(max = 8000) String description,
+            @Size(max = 64) String category) {}
+
+    public record IdeaResponse(
+            UUID id,
+            UUID authorId,
+            String authorName,
+            String title,
+            String description,
+            String category,
+            Stage stage,
+            boolean sponsorBoost,
+            Double priorityScore,
+            int netVotes,
+            int commentCount,
+            int evaluationCount,
+            OffsetDateTime submittedAt,
+            OffsetDateTime createdAt) {}
+
+    public record StageTransitionRequest(Stage to, String reason) {}
+
+    public record EvaluationRequest(
+            short impact,
+            short feasibility,
+            short strategicFit,
+            String notes) {}
+
+    public record EvaluationResponse(
+            UUID id,
+            UUID reviewerId,
+            String reviewerName,
+            short impact,
+            short feasibility,
+            short strategicFit,
+            double average,
+            String notes,
+            OffsetDateTime createdAt) {}
+
+    public record VoteRequest(short value) {}
+
+    public record CommentRequest(@NotBlank @Size(max = 4000) String body) {}
+
+    public record CommentResponse(UUID id, UUID userId, String userName, String body, OffsetDateTime createdAt) {}
+
+    public record SimilarIdeaResponse(UUID id, String title, String snippet, String stage, String category, double similarity) {}
+
+    public record RefineResponse(List<String> suggestions, List<SimilarIdeaResponse> related, String rationale) {}
+
+    public record WorkflowEventResponse(UUID id, Stage fromStage, Stage toStage, UUID actorId, String actorName,
+                                        String reason, OffsetDateTime createdAt) {}
+}

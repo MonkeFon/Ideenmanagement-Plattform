@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: ideaplatform-api
+  profiles:
+    active: postgres
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: 8080
+  error:
+    include-message: always
+
+ideaplatform:
+  security:
+    jwt:
+      secret: "change-me-change-me-change-me-change-me-change-me-32+chars"
+      issuer: "geistesblitz-mock-keycloak"
+      ttl-minutes: 480
+    keycloak-mock:
+      enabled: true
+      realm: "geistesblitz"
+      audience: "geistesblitz-api"
+  embedding:
+    provider: ollama          # ollama | openai | mock
+    dimensions: 768            # nomic-embed-text=768, openai text-embedding-3-small=1536
+    ollama:
+      base-url: "http://127.0.0.1:11434"
+      model: "nomic-embed-text"
+      chat-model: "qwen3.5:2b"
+    openai:
+      base-url: "https://api.openai.com/v1"
+      api-key: "${OPENAI_API_KEY:}"
+      model: "text-embedding-3-small"
+      chat-model: "gpt-4o-mini"
+  scoring:
+    weight-votes: 0.40
+    weight-reviewer: 0.35
+    weight-recency: 0.15
+    weight-sponsor-boost: 0.10
+    recency-half-life-days: 30
+  rag:
+    top-k: 5
+    similarity-threshold: 0.55
+
+logging:
+  level:
+    com.ideaplatform: INFO
+    org.hibernate.SQL: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics

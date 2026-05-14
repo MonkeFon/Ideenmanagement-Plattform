@@ -1,0 +1,22 @@
+# Copy to application-supabase.yml and fill in real values, then run with
+#   --spring.profiles.active=supabase
+spring:
+  datasource:
+    # Optional: direct Postgres URL for Flyway migrations against Supabase
+    url: jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres
+    username: postgres
+    password: "${SUPABASE_DB_PASSWORD:}"
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+
+ideaplatform:
+  datastore:
+    impl: supabase
+  supabase:
+    url: "https://<project-ref>.supabase.co"
+    service-role-key: "${SUPABASE_SERVICE_ROLE_KEY:}"
+    anon-key: "${SUPABASE_ANON_KEY:}"
+    schema: "public"
