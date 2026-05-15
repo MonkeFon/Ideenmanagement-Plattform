@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: geistesblitz-postgres
+    environment:
+      POSTGRES_USER: geistesblitz
+      POSTGRES_PASSWORD: geistesblitz
+      POSTGRES_DB: geistesblitz
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U geistesblitz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: geistesblitz-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    # The entrypoint warms the embedding + chat models on first start.
+    entrypoint: >
+      sh -c "ollama serve &
+             sleep 5 &&
+             ollama pull nomic-embed-text &&
+             ollama pull llama3.1:8b || true &&
+             wait"
+
+volumes:
+  pgdata:
+  ollama:

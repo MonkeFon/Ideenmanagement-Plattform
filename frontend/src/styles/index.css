@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+  body { background-color: #fafbfc; }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition; }
+  .btn-primary { @apply btn bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 disabled:opacity-50; }
+  .btn-secondary { @apply btn border border-surface-border bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50; }
+  .btn-ghost { @apply btn text-slate-600 hover:bg-slate-100; }
+  .btn-danger { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
+  .card { @apply rounded-xl border border-surface-border bg-white shadow-card; }
+  .input { @apply w-full rounded-md border border-surface-border bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none; }
+  .label { @apply text-xs font-semibold uppercase tracking-wide text-slate-500; }
+  .badge { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium; }
+  .badge-blue { @apply badge bg-brand-50 text-brand-700; }
+  .badge-gray { @apply badge bg-slate-100 text-slate-700; }
+  .badge-green { @apply badge bg-emerald-50 text-emerald-700; }
+  .badge-amber { @apply badge bg-amber-50 text-amber-700; }
+  .badge-red { @apply badge bg-rose-50 text-rose-700; }
+}

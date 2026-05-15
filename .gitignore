@@ -1,0 +1,23 @@
+# Java / Maven
+target/
+*.class
+*.log
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local config / secrets
+backend/src/main/resources/application-supabase.yml
+.env
+.env.*
