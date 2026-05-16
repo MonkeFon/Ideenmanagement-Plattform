@@ -37,6 +37,15 @@ public class IdeaController {
         return ideas.list(stage, SecurityUtil.current());
     }
 
+    @GetMapping("/graph")
+    public IdeaGraphResponse graph(@RequestParam(required = false) Double threshold) {
+        double t = threshold != null ? threshold : 0.55;
+        // Clamp to a sane range so a malformed query doesn't kill perf or yield garbage.
+        if (t < 0.30) t = 0.30;
+        if (t > 0.99) t = 0.99;
+        return recs.graph(t, SecurityUtil.current());
+    }
+
     @GetMapping("/{id}")
     public IdeaResponse get(@PathVariable UUID id) {
         return ideas.get(id, SecurityUtil.current());

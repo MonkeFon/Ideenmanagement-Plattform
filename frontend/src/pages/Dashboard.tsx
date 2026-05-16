@@ -18,7 +18,7 @@ export default function Dashboard() {
   const trending = [...open].sort((a, b) => b.netVotes - a.netVotes).slice(0, 3)
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl">
+    <div className="p-4 md:p-8 space-y-8 max-w-7xl">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Welcome back, {user.displayName.split(' ')[0]}</h1>
         <p className="text-slate-500 mt-1">Here's what's happening across {user.tenantName}.</p>

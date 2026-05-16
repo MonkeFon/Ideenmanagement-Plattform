@@ -1,6 +1,7 @@
 package com.ideaplatform.api.repo;
 
 import com.ideaplatform.api.dto.SimilarIdeaRow;
+import com.ideaplatform.api.dto.SimilarPairRow;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,6 +37,32 @@ public class IdeaEmbeddingRepository {
                   model     = EXCLUDED.model,
                   tenant_id = EXCLUDED.tenant_id
             """, ideaId, tenantId, vec, model);
+    }
+
+    /**
+     * All similar pairs in a tenant above the threshold. Each unordered pair appears once
+     * (idea_id ordered ascending) so the caller doesn't have to dedupe.
+     */
+    public List<SimilarPairRow> findAllSimilarPairs(UUID tenantId, double threshold, int maxPairs) {
+        return jdbc.query("""
+            SELECT e1.idea_id AS a_id,
+                   e2.idea_id AS b_id,
+                   1 - (e1.embedding <=> e2.embedding) AS similarity
+              FROM idea_embeddings e1
+              JOIN idea_embeddings e2
+                ON e2.tenant_id = e1.tenant_id
+               AND e2.idea_id  > e1.idea_id
+             WHERE e1.tenant_id = ?
+               AND 1 - (e1.embedding <=> e2.embedding) >= ?
+             ORDER BY similarity DESC
+             LIMIT ?
+            """,
+            (rs, rowNum) -> new SimilarPairRow(
+                UUID.fromString(rs.getString("a_id")),
+                UUID.fromString(rs.getString("b_id")),
+                rs.getDouble("similarity")
+            ),
+            tenantId, threshold, maxPairs);
     }
 
     /** Top-k most similar ideas to the supplied vector, excluding the source idea itself. */

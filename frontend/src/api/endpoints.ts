@@ -1,6 +1,6 @@
 import { api } from './client'
 import type {
-  Comment, Evaluation, Idea, LoginResponse, MeResponse,
+  Comment, Evaluation, Idea, IdeaGraph, LoginResponse, MeResponse,
   RefineResponse, SimilarIdea, Stage, TenantUsage, WorkflowEvent,
 } from '@/types/api'
 
@@ -32,6 +32,9 @@ export const IdeaApi = {
     api.patch<Idea>(`/ideas/${id}/sponsor-boost`, null, { params: { on } }).then((r) => r.data),
   similar: (id: string) => api.get<SimilarIdea[]>(`/ideas/${id}/similar`).then((r) => r.data),
   refine: (id: string) => api.post<RefineResponse>(`/ideas/${id}/refine`).then((r) => r.data),
+  graph: (threshold?: number) =>
+    api.get<IdeaGraph>('/ideas/graph', { params: threshold !== undefined ? { threshold } : {} })
+       .then((r) => r.data),
 }
 
 export const SearchApi = {

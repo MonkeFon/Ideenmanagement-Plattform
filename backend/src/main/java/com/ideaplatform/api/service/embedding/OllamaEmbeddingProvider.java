@@ -70,6 +70,15 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                 .bodyValue(Map.of(
                         "model", chatModel,
                         "stream", false,
+                        // Disable Qwen-3 style reasoning mode — refine produces structured bullets,
+                        // not a chain-of-thought, and "thinking" tokens otherwise eat the num_predict budget.
+                        "think", false,
+                        // Cap generation: 3 short suggestions + a one-line rationale fits well under 256 tokens.
+                        // Lower temperature reduces rambling on small models.
+                        "options", Map.of(
+                                "num_predict", 256,
+                                "temperature", 0.5,
+                                "top_p", 0.9),
                         "messages", List.of(
                                 Map.of("role", "system", "content", systemPrompt),
                                 Map.of("role", "user",
@@ -77,7 +86,7 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                                                 + "\n\nTask:\n" + userPrompt))))
                 .retrieve()
                 .bodyToMono(Map.class)
-                .block(Duration.ofSeconds(60));
+                .block(Duration.ofSeconds(180));
         if (resp == null) return "";
         Object m = resp.get("message");
         if (m instanceof Map<?, ?> mm) {

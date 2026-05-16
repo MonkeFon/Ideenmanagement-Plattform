@@ -91,6 +91,26 @@ export interface WorkflowEvent {
   createdAt: string
 }
 
+export interface GraphNode {
+  id: string
+  title: string
+  stage: Stage
+  category: string | null
+  netVotes: number
+}
+
+export interface GraphEdge {
+  source: string
+  target: string
+  similarity: number
+}
+
+export interface IdeaGraph {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+  threshold: number
+}
+
 export interface TenantUsage {
   tenantName: string
   planCode: string

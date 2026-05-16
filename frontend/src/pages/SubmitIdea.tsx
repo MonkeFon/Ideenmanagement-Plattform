@@ -30,7 +30,7 @@ export default function SubmitIdea() {
   }
 
   return (
-    <div className="p-8 max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl">
       <header className="mb-6">
         <h1 className="text-2xl font-semibold text-slate-900">Submit an idea</h1>
         <p className="text-slate-500 mt-1">Describe the problem, the proposed change, and the expected impact.</p>

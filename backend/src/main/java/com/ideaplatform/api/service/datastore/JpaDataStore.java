@@ -46,7 +46,12 @@ public class JpaDataStore implements DataStore {
         return users.findByTenantId(tenantId);
     }
 
-    @Override public Idea saveIdea(Idea i) { return ideas.save(i); }
+    @Override public Idea saveIdea(Idea i) {
+        // saveAndFlush — the embedding indexer that runs immediately after uses raw JDBC
+        // and would otherwise hit a FK violation on idea_embeddings.idea_id because Hibernate
+        // hasn't flushed the parent INSERT yet.
+        return ideas.saveAndFlush(i);
+    }
     @Override public Optional<Idea> findIdea(UUID id) { return ideas.findById(id); }
     @Override public List<Idea> listIdeas(UUID tenantId, Stage stage) {
         return stage == null

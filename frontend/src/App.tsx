@@ -4,6 +4,7 @@ import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import IdeaList from './pages/IdeaList'
 import IdeaDetail from './pages/IdeaDetail'
+import IdeaGraph from './pages/IdeaGraph'
 import SubmitIdea from './pages/SubmitIdea'
 import Admin from './pages/Admin'
 import Workflow from './pages/Workflow'
@@ -30,6 +31,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="ideas" element={<IdeaList />} />
         <Route path="ideas/:id" element={<IdeaDetail />} />
+        <Route path="graph" element={<IdeaGraph />} />
         <Route path="submit" element={<SubmitIdea />} />
         <Route path="workflow" element={<Workflow />} />
         <Route path="admin" element={<Admin />} />

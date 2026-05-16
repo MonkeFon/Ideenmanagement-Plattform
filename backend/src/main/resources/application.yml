@@ -28,7 +28,7 @@ ideaplatform:
     ollama:
       base-url: "http://127.0.0.1:11434"
       model: "nomic-embed-text"
-      chat-model: "qwen3.5:2b"
+      chat-model: "qwen3.5:2b-q4_K_M"
     openai:
       base-url: "https://api.openai.com/v1"
       api-key: "${OPENAI_API_KEY:}"

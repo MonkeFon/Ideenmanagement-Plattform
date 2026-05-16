@@ -81,20 +81,20 @@ export default function IdeaDetail() {
   const reachable = stagesQ.data?.[idea.stage] ?? []
 
   return (
-    <div className="p-8 max-w-6xl">
-      <div className="flex items-start justify-between gap-6">
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
+    <div className="p-4 md:p-8 max-w-6xl">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
             <StageBadge stage={idea.stage} />
             {idea.sponsorBoost && <span className="badge-blue flex items-center gap-1"><Sparkles size={12} /> Sponsor boost</span>}
             {idea.priorityScore != null && <span className="badge-gray">Priority {idea.priorityScore.toFixed(2)}</span>}
             {idea.category && <span className="badge-gray">{idea.category}</span>}
           </div>
-          <h1 className="mt-3 text-3xl font-semibold text-slate-900 leading-tight">{idea.title}</h1>
+          <h1 className="mt-3 text-2xl md:text-3xl font-semibold text-slate-900 leading-tight break-words">{idea.title}</h1>
           <div className="mt-1 text-sm text-slate-500">by {idea.authorName} · {new Date(idea.createdAt).toLocaleDateString()}</div>
         </div>
 
-        <div className="card p-4 flex flex-col items-center gap-1">
+        <div className="card p-3 sm:p-4 flex sm:flex-col items-center justify-center gap-1 self-start">
           <button className="btn-ghost" onClick={() => voteM.mutate(1)}><ArrowUp size={20} /></button>
           <div className="text-2xl font-semibold text-slate-900">{idea.netVotes}</div>
           <button className="btn-ghost" onClick={() => voteM.mutate(-1)}><ArrowDown size={20} /></button>
@@ -139,6 +139,33 @@ export default function IdeaDetail() {
             )}
           </section>
 
+          {/* Discussion sits above Evaluation so the comment input is at a predictable position
+              for every role and isn't visually confused with the reviewer notes textarea. */}
+          <section className="card p-5">
+            <h2 className="font-semibold text-slate-900 flex items-center gap-2"><MessageSquare size={16} /> Discussion</h2>
+            <div className="mt-3 space-y-3">
+              {commentsQ.data?.map((c) => (
+                <div key={c.id} className="text-sm">
+                  <div className="font-medium text-slate-900">{c.userName} <span className="text-slate-400 font-normal">· {new Date(c.createdAt).toLocaleString()}</span></div>
+                  <div className="text-slate-700 whitespace-pre-wrap">{c.body}</div>
+                </div>
+              ))}
+              {(commentsQ.data?.length ?? 0) === 0 && <div className="text-sm text-slate-500">Be the first to comment.</div>}
+            </div>
+            <div className="mt-4 flex gap-2">
+              <input
+                className="input flex-1"
+                placeholder="Add a comment — visible to everyone in your tenant…"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && comment.trim()) commentM.mutate() }}
+              />
+              <button className="btn-primary" disabled={!comment.trim() || commentM.isPending} onClick={() => commentM.mutate()}>
+                {commentM.isPending ? 'Posting…' : 'Post'}
+              </button>
+            </div>
+          </section>
+
           <RoleGate allow={['REVIEWER', 'INNOVATION_MANAGER', 'ADMIN']}>
             <section className="card p-5">
               <h2 className="font-semibold text-slate-900 flex items-center gap-2"><Star size={16} /> Reviewer evaluation</h2>
@@ -160,7 +187,7 @@ export default function IdeaDetail() {
               </div>
               <textarea
                 className="input mt-3 min-h-[80px]"
-                placeholder="Optional notes…"
+                placeholder="Reviewer notes — attached to your score, not posted as a comment…"
                 value={rating.notes}
                 onChange={(e) => setRating({ ...rating, notes: e.target.value })}
               />
@@ -181,28 +208,6 @@ export default function IdeaDetail() {
               )}
             </section>
           </RoleGate>
-
-          <section className="card p-5">
-            <h2 className="font-semibold text-slate-900 flex items-center gap-2"><MessageSquare size={16} /> Discussion</h2>
-            <div className="mt-3 space-y-3">
-              {commentsQ.data?.map((c) => (
-                <div key={c.id} className="text-sm">
-                  <div className="font-medium text-slate-900">{c.userName} <span className="text-slate-400 font-normal">· {new Date(c.createdAt).toLocaleString()}</span></div>
-                  <div className="text-slate-700 whitespace-pre-wrap">{c.body}</div>
-                </div>
-              ))}
-              {(commentsQ.data?.length ?? 0) === 0 && <div className="text-sm text-slate-500">Be the first to comment.</div>}
-            </div>
-            <div className="mt-4 flex gap-2">
-              <input
-                className="input flex-1"
-                placeholder="Add a comment…"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-              />
-              <button className="btn-primary" disabled={!comment.trim()} onClick={() => commentM.mutate()}>Post</button>
-            </div>
-          </section>
         </div>
 
         <aside className="space-y-6">

@@ -67,4 +67,10 @@ public final class IdeaDtos {
 
     public record WorkflowEventResponse(UUID id, Stage fromStage, Stage toStage, UUID actorId, String actorName,
                                         String reason, OffsetDateTime createdAt) {}
+
+    public record GraphNode(UUID id, String title, Stage stage, String category, int netVotes) {}
+
+    public record GraphEdge(UUID source, UUID target, double similarity) {}
+
+    public record IdeaGraphResponse(List<GraphNode> nodes, List<GraphEdge> edges, double threshold) {}
 }

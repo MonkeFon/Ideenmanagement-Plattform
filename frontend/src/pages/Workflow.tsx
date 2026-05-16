@@ -16,7 +16,7 @@ export default function Workflow() {
       .sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0))
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-4 md:p-8 space-y-6">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Workflow board</h1>
         <p className="text-slate-500 mt-1">Kanban view of every active idea, sorted by priority score within each stage.</p>

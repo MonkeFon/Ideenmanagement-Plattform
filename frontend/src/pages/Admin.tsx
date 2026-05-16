@@ -32,7 +32,7 @@ export default function Admin() {
   const usage = usageQ.data
 
   return (
-    <div className="p-8 space-y-6 max-w-6xl">
+    <div className="p-4 md:p-8 space-y-6 max-w-6xl">
       <header>
         <h1 className="text-2xl font-semibold text-slate-900">Admin</h1>
         <p className="text-slate-500 mt-1">Manage users, see plan usage, and verify license limits.</p>
@@ -76,8 +76,8 @@ export default function Admin() {
         </button>
       </section>
 
-      <section className="card overflow-hidden">
-        <table className="w-full text-sm">
+      <section className="card overflow-x-auto">
+        <table className="w-full min-w-[36rem] text-sm">
           <thead className="bg-surface-subtle text-slate-500 uppercase text-xs">
             <tr>
               <th className="text-left px-5 py-3 font-semibold">Name</th>

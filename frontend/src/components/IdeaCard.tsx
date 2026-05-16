@@ -13,7 +13,7 @@ export default function IdeaCard({ idea }: { idea: Idea }) {
         </div>
         <StageBadge stage={idea.stage} />
       </div>
-      <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500">
         <span className="flex items-center gap-1"><ArrowUp size={14} /> {idea.netVotes}</span>
         <span className="flex items-center gap-1"><MessageSquare size={14} /> {idea.commentCount}</span>
         {idea.evaluationCount > 0 && (
@@ -25,12 +25,12 @@ export default function IdeaCard({ idea }: { idea: Idea }) {
           </span>
         )}
         {idea.category && (
-          <span className="ml-auto badge-gray">{idea.category}</span>
+          <span className="badge-gray">{idea.category}</span>
         )}
         {idea.priorityScore != null && (
           <span className="badge-blue">Priority {idea.priorityScore.toFixed(2)}</span>
         )}
-        <span className="text-slate-400">· by {idea.authorName}</span>
+        <span className="text-slate-400 truncate">· by {idea.authorName}</span>
       </div>
     </Link>
   )

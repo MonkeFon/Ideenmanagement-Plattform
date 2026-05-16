@@ -27,8 +27,8 @@ export default function IdeaList() {
   }
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl">
-      <header className="flex items-center justify-between">
+    <div className="p-4 md:p-8 space-y-6 max-w-7xl">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">All ideas</h1>
           <p className="text-slate-500 mt-1">Browse, filter, or search semantically.</p>
@@ -36,11 +36,11 @@ export default function IdeaList() {
         <Link to="/submit" className="btn-primary">+ Submit an idea</Link>
       </header>
 
-      <form onSubmit={runSearch} className="card p-4 flex items-center gap-3">
-        <Search className="text-slate-400" size={18} />
+      <form onSubmit={runSearch} className="card p-3 md:p-4 flex flex-wrap items-center gap-2 md:gap-3">
+        <Search className="text-slate-400 hidden sm:block" size={18} />
         <input
-          className="input flex-1 border-none focus:ring-0 px-0"
-          placeholder="Semantic search — describe a concept, not just keywords…"
+          className="input flex-1 min-w-[12rem] border-none focus:ring-0 px-0"
+          placeholder="Semantic search…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
