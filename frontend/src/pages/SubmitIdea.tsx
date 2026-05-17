@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CampaignApi, IdeaApi } from '@/api/endpoints'
 import { asLicenseViolation } from '@/api/client'
+import Spinner from '@/components/Spinner'
 
 export default function SubmitIdea() {
   const navigate = useNavigate()
@@ -101,7 +102,7 @@ export default function SubmitIdea() {
         </div>
         {error && <div className="text-[13px] text-rose-600 dark:text-rose-400">{error}</div>}
         <div className="flex items-center gap-2 pt-1">
-          <button className="btn-primary" disabled={busy}>{busy ? 'Wird gesendet…' : 'Idee einreichen'}</button>
+          <button className="btn-primary" disabled={busy}>{busy ? <><Spinner size={12} className="text-current" /> Wird gesendet…</> : 'Idee einreichen'}</button>
           <button type="button" className="btn-ghost" onClick={() => navigate(-1)}>Abbrechen</button>
         </div>
       </form>

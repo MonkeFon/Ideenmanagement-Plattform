@@ -6,6 +6,7 @@ import com.ideaplatform.api.license.LicenseService;
 import com.ideaplatform.api.repo.CampaignRepository;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
+import com.ideaplatform.api.tenant.LocaleContext;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -117,15 +118,21 @@ public class IdeaService {
 
     public IdeaResponse toResponse(Idea i, String authorName) {
         int net = store.netVotes(i.getId());
+        boolean de = LocaleContext.isGerman();
+        String title       = de && i.getTitleDe()       != null ? i.getTitleDe()       : i.getTitle();
+        String description = de && i.getDescriptionDe() != null ? i.getDescriptionDe() : i.getDescription();
         UUID campaignId = i.getCampaignId();
         String campaignName = null, campaignColor = null;
         if (campaignId != null) {
             Optional<Campaign> c = campaigns.findById(campaignId);
-            if (c.isPresent()) { campaignName = c.get().getName(); campaignColor = c.get().getColor(); }
+            if (c.isPresent()) {
+                campaignName = de && c.get().getNameDe() != null ? c.get().getNameDe() : c.get().getName();
+                campaignColor = c.get().getColor();
+            }
         }
         return new IdeaResponse(
                 i.getId(), i.getAuthorId(), authorName,
-                i.getTitle(), i.getDescription(), i.getCategory(),
+                title, description, i.getCategory(),
                 i.getStage(), i.isSponsorBoost(), i.getPriorityScore(),
                 net, store.listComments(i.getId()).size(), store.listEvaluations(i.getId()).size(),
                 i.getSubmittedAt(), i.getCreatedAt(),

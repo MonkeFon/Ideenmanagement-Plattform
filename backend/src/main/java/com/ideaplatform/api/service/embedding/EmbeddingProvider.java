@@ -11,8 +11,19 @@ public interface EmbeddingProvider {
     /** Output dimensionality of {@link #embed(String)}. Must match the pgvector column. */
     int dimensions();
 
-    /** Returns a single embedding vector. */
+    /**
+     * Embed a document — text that will be stored in the index and matched against future queries.
+     * Implementations may prepend a task-specific prefix (e.g. nomic's {@code search_document: })
+     * so the vector lives in the right region of the semantic space.
+     */
     float[] embed(String text);
+
+    /**
+     * Embed a search query. Default delegates to {@link #embed(String)} for providers where the
+     * distinction does not matter (mock, OpenAI); the Ollama provider overrides this to prepend
+     * the {@code search_query: } prefix that nomic-embed-text expects.
+     */
+    default float[] embedQuery(String text) { return embed(text); }
 
     /**
      * Completion call used for "refine my idea" — best-effort. Implementations may return

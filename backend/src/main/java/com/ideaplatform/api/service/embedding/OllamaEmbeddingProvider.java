@@ -39,10 +39,22 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
 
     @Override
     public float[] embed(String text) {
+        // nomic-embed-text uses task prefixes to place query/document vectors in different
+        // regions of the space. Without them, queries match generic noise (e.g. 4-char "Test"
+        // ideas) almost as well as relevant ideas.
+        return rawEmbed("search_document: " + text);
+    }
+
+    @Override
+    public float[] embedQuery(String text) {
+        return rawEmbed("search_query: " + text);
+    }
+
+    private float[] rawEmbed(String prefixedText) {
         @SuppressWarnings("unchecked")
         Map<String, Object> resp = client.post()
                 .uri("/api/embed")
-                .bodyValue(Map.of("model", embedModel, "input", text))
+                .bodyValue(Map.of("model", embedModel, "input", prefixedText))
                 .retrieve()
                 .bodyToMono(Map.class)
                 .block(Duration.ofSeconds(30));

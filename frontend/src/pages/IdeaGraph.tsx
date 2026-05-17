@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { IdeaApi } from '@/api/endpoints'
 import StageBadge, { stageLabels } from '@/components/StageBadge'
+import Spinner from '@/components/Spinner'
 import type { GraphEdge, GraphNode, Stage } from '@/types/api'
 import { Network, RefreshCw } from 'lucide-react'
 
@@ -348,7 +349,7 @@ export default function IdeaGraph() {
       </div>
 
       <div className="card overflow-hidden">
-        {graphQ.isLoading && <div className="p-8 text-sm text-slate-500 dark:text-slate-400">Graph wird geladen…</div>}
+        {graphQ.isLoading && <div className="p-8"><Spinner label="Graph wird geladen…" /></div>}
         {graphQ.error && <div className="p-8 text-sm text-rose-600 dark:text-rose-400">Graph konnte nicht geladen werden.</div>}
         {sim && sim.nodes.length === 0 && (
           <div className="p-8 text-sm text-slate-500 dark:text-slate-400 text-center">

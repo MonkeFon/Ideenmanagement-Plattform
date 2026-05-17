@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { IdeaApi, SearchApi } from '@/api/endpoints'
 import IdeaCard from '@/components/IdeaCard'
 import StageBadge, { stageLabels } from '@/components/StageBadge'
+import Spinner from '@/components/Spinner'
 import { Search } from 'lucide-react'
 import type { Stage, SimilarIdea } from '@/types/api'
 import { Link } from 'react-router-dom'
@@ -98,7 +99,7 @@ export default function IdeaList() {
       </div>
 
       <section>
-        {ideasQ.isLoading && <div className="text-[13px] text-slate-500 dark:text-slate-400">Wird geladen…</div>}
+        {ideasQ.isLoading && <Spinner label="Wird geladen…" />}
         {ideasQ.data && ideasQ.data.length === 0 && (
           <div className="card p-8 text-center text-[13px] text-slate-500 dark:text-slate-400">Noch keine Ideen in diesem Status.</div>
         )}

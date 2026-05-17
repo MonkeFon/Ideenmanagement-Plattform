@@ -5,6 +5,7 @@ import { IdeaApi, WorkflowApi } from '@/api/endpoints'
 import { asLicenseViolation } from '@/api/client'
 import StageBadge, { stageLabels } from '@/components/StageBadge'
 import RoleGate from '@/components/RoleGate'
+import Spinner, { PageSpinner } from '@/components/Spinner'
 import { useAuth } from '@/store/auth'
 import { ArrowUp, ArrowDown, MessageSquare, Send, Wand2, Star, RotateCcw } from 'lucide-react'
 import type { ChatMessage, Stage } from '@/types/api'
@@ -121,7 +122,7 @@ export default function IdeaDetail() {
     setAiMessages([]); setAiInput(''); setAiError(null); setAiOpen(false)
   }
 
-  if (ideaQ.isLoading || !ideaQ.data) return <div className="p-8 text-sm text-slate-500 dark:text-slate-400">Wird geladen…</div>
+  if (ideaQ.isLoading || !ideaQ.data) return <PageSpinner />
   const idea = ideaQ.data
   const reachable = stagesQ.data?.[idea.stage] ?? []
 
@@ -224,7 +225,7 @@ export default function IdeaDetail() {
                 onKeyDown={(e) => { if (e.key === 'Enter' && comment.trim()) commentM.mutate() }}
               />
               <button className="btn-primary" disabled={!comment.trim() || commentM.isPending} onClick={() => commentM.mutate()}>
-                {commentM.isPending ? 'Wird gesendet…' : 'Senden'}
+                {commentM.isPending ? <><Spinner size={12} className="text-current" /> Wird gesendet…</> : 'Senden'}
               </button>
             </div>
           </section>
@@ -306,7 +307,7 @@ export default function IdeaDetail() {
                     onClick={startAiChat}
                     disabled={aiBusy}
                   >
-                    {aiBusy ? 'Wird gestartet…' : 'Diese Idee verfeinern'}
+                    {aiBusy ? <><Spinner size={12} className="text-current" /> Wird gestartet…</> : 'Diese Idee verfeinern'}
                   </button>
                 </>
               )}
@@ -336,7 +337,7 @@ export default function IdeaDetail() {
                       </div>
                     ))}
                     {aiBusy && (
-                      <div className="text-[12px] text-slate-500 dark:text-slate-400 italic">Denkt nach…</div>
+                      <Spinner label="Denkt nach…" className="text-[12px] italic px-2 py-1" />
                     )}
                     {aiError && (
                       <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-200 rounded p-2 dark:text-rose-300 dark:bg-rose-950/40 dark:border-rose-900">{aiError}</div>

@@ -43,8 +43,10 @@ public class RecommendationService {
 
     public List<SimilarIdeaResponse> searchByText(String query, AuthPrincipal me) {
         if (query == null || query.isBlank()) return List.of();
-        // pseudo-source id 00000000-... so the exclude filter is a no-op
-        return embeddings.findSimilar(me.tenantId(), new UUID(0, 0), query);
+        // pseudo-source id 00000000-... so the exclude filter is a no-op.
+        // 0.45 is the sweet spot for query-prefixed nomic embeddings: low enough that real
+        // matches surface even for short queries, high enough to keep unrelated noise out.
+        return embeddings.findSimilar(me.tenantId(), new UUID(0, 0), query, 0.45);
     }
 
     public IdeaGraphResponse graph(double threshold, AuthPrincipal me) {

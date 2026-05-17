@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthApi } from '@/api/endpoints'
 import { useAuth } from '@/store/auth'
+import Spinner from '@/components/Spinner'
 
 const DEMO = [
   { email: 'admin@acme.test',    role: 'Administrator' },
@@ -80,7 +81,7 @@ export default function Login() {
             {error && <div className="text-[13px] text-rose-600 dark:text-rose-400">{error}</div>}
 
             <button className="btn-primary w-full" disabled={busy}>
-              {busy ? 'Anmeldung läuft…' : 'Anmelden'}
+              {busy ? <><Spinner size={12} className="text-current" /> Anmeldung läuft…</> : 'Anmelden'}
             </button>
 
             <div className="border-t border-slate-200 dark:border-slate-800 pt-4">
