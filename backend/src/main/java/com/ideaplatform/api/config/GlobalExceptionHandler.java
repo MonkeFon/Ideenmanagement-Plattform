@@ -2,6 +2,8 @@ package com.ideaplatform.api.config;
 
 import com.ideaplatform.api.license.LicenseException;
 import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -14,6 +16,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(LicenseException.class)
     public ResponseEntity<Map<String, Object>> license(LicenseException ex) {
@@ -53,5 +57,17 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
         return ResponseEntity.badRequest()
                 .body(Map.of("error", "validation_failed", "message", details));
+    }
+
+    /**
+     * Catch-all so unhandled server errors return 500 rather than being escalated to 403 by
+     * Spring Security's ExceptionTranslationFilter (which is what happens when an authenticated
+     * request throws an unknown exception). The full stack is logged here, not returned.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> unhandled(Exception ex) {
+        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "internal_error", "message", ex.getMessage() == null ? "Server error" : ex.getMessage()));
     }
 }

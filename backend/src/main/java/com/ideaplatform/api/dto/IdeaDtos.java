@@ -13,12 +13,14 @@ public final class IdeaDtos {
     public record CreateIdeaRequest(
             @NotBlank @Size(max = 200) String title,
             @NotBlank @Size(max = 8000) String description,
-            @Size(max = 64) String category) {}
+            @Size(max = 64) String category,
+            UUID campaignId) {}
 
     public record UpdateIdeaRequest(
             @Size(max = 200) String title,
             @Size(max = 8000) String description,
-            @Size(max = 64) String category) {}
+            @Size(max = 64) String category,
+            UUID campaignId) {}
 
     public record IdeaResponse(
             UUID id,
@@ -34,7 +36,10 @@ public final class IdeaDtos {
             int commentCount,
             int evaluationCount,
             OffsetDateTime submittedAt,
-            OffsetDateTime createdAt) {}
+            OffsetDateTime createdAt,
+            UUID campaignId,
+            String campaignName,
+            String campaignColor) {}
 
     public record StageTransitionRequest(Stage to, String reason) {}
 
@@ -65,6 +70,27 @@ public final class IdeaDtos {
 
     public record RefineResponse(List<String> suggestions, List<SimilarIdeaResponse> related, String rationale) {}
 
+    public record ChatMessage(@NotBlank String role, @NotBlank @Size(max = 8000) String content) {}
+
+    public record ChatRequest(@jakarta.validation.constraints.NotEmpty List<ChatMessage> messages) {}
+
+    public record ChatResponse(String reply) {}
+
+    public record TopIdea(UUID id, String title, String authorName, Stage stage, String category,
+                          int netVotes, Double priorityScore, int commentCount, int rank) {}
+
+    public record TopContributor(UUID userId, String displayName, String role,
+                                 int ideasSubmitted, int votesReceived, int commentsPosted,
+                                 int evaluationsGiven, int score, int rank) {}
+
+    public record LeaderboardResponse(List<TopIdea> topIdeas, List<TopContributor> topContributors) {}
+
     public record WorkflowEventResponse(UUID id, Stage fromStage, Stage toStage, UUID actorId, String actorName,
                                         String reason, OffsetDateTime createdAt) {}
+
+    public record GraphNode(UUID id, String title, Stage stage, String category, int netVotes) {}
+
+    public record GraphEdge(UUID source, UUID target, double similarity) {}
+
+    public record IdeaGraphResponse(List<GraphNode> nodes, List<GraphEdge> edges, double threshold) {}
 }

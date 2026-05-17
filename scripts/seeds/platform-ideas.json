@@ -1,0 +1,49 @@
+{
+  "_comment": "Mirror of backend/src/main/resources/db/migration/V6__platform_ideas.sql. Four platform-self-improvement ideas, all in the Acme tenant, sharing enough phrasing to form their own cluster in the /graph view once embeddings are indexed.",
+  "tenantId": "11111111-1111-1111-1111-111111111111",
+  "tenantSlug": "acme",
+  "users": {
+    "admin":    "aaaaaaaa-0000-0000-0000-000000000001",
+    "manager":  "aaaaaaaa-0000-0000-0000-000000000003",
+    "alice":    "aaaaaaaa-0000-0000-0000-000000000005",
+    "bob":      "aaaaaaaa-0000-0000-0000-000000000006"
+  },
+  "ideas": [
+    {
+      "id": "ccccccc3-0000-0000-0000-000000000001",
+      "authorKey": "alice",
+      "title": "Idea DNA — semantic clustering visualization",
+      "description": "Show how every idea in the platform relates to, descends from, and bridges between thematic clusters. Built on the existing pgvector embeddings: each idea is a node, edges link semantic neighbours, and connected components surface as colored clusters. Helps leadership see where innovation is concentrating and where the gaps are without reading every submission.",
+      "category": "Platform",
+      "stage": "SUBMITTED",
+      "submittedDaysAgo": 2
+    },
+    {
+      "id": "ccccccc3-0000-0000-0000-000000000002",
+      "authorKey": "manager",
+      "title": "AI Devil's Advocate at the Prioritization gate",
+      "description": "Before an idea moves from UNDER_REVIEW into PRIORITIZATION, surface three auto-generated counter-arguments grounded in similar past ideas from the same tenant. RAG over the pgvector index keeps the critiques specific and prevents the LLM from hallucinating drawbacks that don't apply. Reviewers can dismiss each point or attach it as a formal risk.",
+      "category": "Platform",
+      "stage": "UNDER_REVIEW",
+      "submittedDaysAgo": 9
+    },
+    {
+      "id": "ccccccc3-0000-0000-0000-000000000003",
+      "authorKey": "bob",
+      "title": "Innovation Pulse — submission heatmap by team",
+      "description": "A team × month heatmap of idea submissions surfaced on the admin dashboard. Teams that go three months without a submission are highlighted in amber as a signal — not as a target — so leadership can ask whether the channel is broken, the team is overloaded, or the topic just hasn't hit them yet.",
+      "category": "Platform",
+      "stage": "SUBMITTED",
+      "submittedDaysAgo": 5
+    },
+    {
+      "id": "ccccccc3-0000-0000-0000-000000000004",
+      "authorKey": "admin",
+      "title": "Idea Bounties — reverse the funnel",
+      "description": "Today employees post problems they've identified. Bounties invert that: leaders post a problem statement with a reward (training budget, conference ticket, an afternoon with the sponsor), and employees submit targeted proposals against it. The standard workflow + scoring still applies; the bounty just narrows the call for solutions.",
+      "category": "Platform",
+      "stage": "PRIORITIZATION",
+      "submittedDaysAgo": 17
+    }
+  ]
+}

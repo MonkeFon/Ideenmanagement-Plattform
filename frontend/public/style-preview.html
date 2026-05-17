@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Geistesblitz — Style options</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+Pro:wght@600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .serif { font-family: 'Source Serif Pro', Georgia, serif; }
+  /* tabular numbers for stats */
+  .tnum { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+
+<header class="bg-white border-b border-slate-200">
+  <div class="max-w-[1600px] mx-auto px-6 py-6">
+    <h1 class="text-2xl font-semibold tracking-tight">Geistesblitz · style options</h1>
+    <p class="text-sm text-slate-500 mt-1">
+      Same four widgets — sidebar nav, page heading, idea card, AI assistant — rendered in four distinct aesthetics.
+      Pick the column you like best.
+    </p>
+  </div>
+</header>
+
+<main class="max-w-[1600px] mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+
+  <!-- ============================================================ -->
+  <!-- OPTION 1: Linear / Vercel — quiet & dense                    -->
+  <!-- ============================================================ -->
+  <section class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+    <div class="px-4 py-3 border-b border-slate-200 bg-slate-50">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Option 1</div>
+      <div class="text-base font-semibold tracking-tight text-slate-900">Linear / Vercel</div>
+      <div class="text-xs text-slate-500 mt-0.5">Quiet, dense, near-black primary, hairline borders</div>
+    </div>
+    <div class="p-4 space-y-4 bg-white">
+      <!-- sidebar -->
+      <div class="rounded-md border border-slate-200 bg-white">
+        <div class="px-3 py-2 border-b border-slate-200 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Workspace</div>
+        <nav class="py-1 text-sm">
+          <a class="flex items-center gap-2 px-3 py-1.5 text-slate-900 bg-slate-100 font-medium">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            Dashboard
+          </a>
+          <a class="flex items-center gap-2 px-3 py-1.5 text-slate-600 hover:bg-slate-50">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            All ideas <span class="ml-auto mono text-[11px] text-slate-400 tnum">19</span>
+          </a>
+          <a class="flex items-center gap-2 px-3 py-1.5 text-slate-600 hover:bg-slate-50">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+            Graph
+          </a>
+        </nav>
+      </div>
+
+      <!-- heading -->
+      <div>
+        <h2 class="text-xl font-semibold tracking-tight text-slate-900">Welcome back, Alice</h2>
+        <p class="text-sm text-slate-500 mt-1">19 open ideas · 4 in implementation</p>
+      </div>
+
+      <!-- idea card -->
+      <div class="rounded-md border border-slate-200 bg-white">
+        <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <span class="text-[11px] font-semibold tracking-wide text-slate-500 uppercase">Submitted</span>
+          <span class="mono text-[11px] text-slate-400 tnum">2.4d ago</span>
+        </div>
+        <div class="px-4 py-3">
+          <div class="text-sm font-semibold text-slate-900">Interactive onboarding playbooks for new hires</div>
+          <div class="text-xs text-slate-500 mt-1 line-clamp-2">New engineers spend their first two weeks reading scattered Confluence pages...</div>
+          <div class="mt-3 flex items-center gap-3 text-[11px] mono text-slate-500 tnum">
+            <span>+12</span><span>·</span><span>3 comments</span><span>·</span><span>2 reviews</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- button -->
+      <button class="w-full rounded-md bg-slate-900 text-white text-sm font-medium py-2 hover:bg-slate-800">Submit idea</button>
+
+      <!-- AI assistant -->
+      <div class="rounded-md border border-slate-200 bg-white">
+        <div class="px-4 py-3 border-b border-slate-200 flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L9 9l-7 1 5 5-1 7 6-3 6 3-1-7 5-5-7-1z"/></svg>
+          <span class="text-sm font-semibold text-slate-900">AI assistant</span>
+        </div>
+        <div class="px-4 py-3 space-y-2">
+          <div class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            Three sharpening suggestions and a one-line rationale.
+          </div>
+          <input class="w-full rounded-md border border-slate-200 px-3 py-1.5 text-xs" placeholder="Ask a follow-up..." />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- OPTION 2: Stripe / Plaid — clean light                       -->
+  <!-- ============================================================ -->
+  <section class="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-200 bg-white">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Option 2</div>
+      <div class="text-base font-semibold text-slate-900" style="letter-spacing:-0.01em">Stripe / Plaid</div>
+      <div class="text-xs text-slate-500 mt-0.5">Generous whitespace, one muted accent, careful typography</div>
+    </div>
+    <div class="p-6 space-y-6 bg-white">
+      <!-- sidebar -->
+      <div>
+        <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3">Workspace</div>
+        <nav class="space-y-1 text-sm">
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium text-slate-900" style="background-color:#eef2ff">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            Dashboard
+          </a>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            All ideas
+          </a>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+            Graph
+          </a>
+        </nav>
+      </div>
+
+      <!-- heading -->
+      <div>
+        <h2 class="text-2xl font-semibold text-slate-900" style="letter-spacing:-0.02em">Welcome back, Alice</h2>
+        <p class="text-sm text-slate-500 mt-1.5">Here's what's happening across <span class="font-medium text-slate-700">Acme</span></p>
+      </div>
+
+      <!-- idea card -->
+      <div class="rounded-xl border border-slate-200 bg-white p-5" style="box-shadow:0 1px 2px rgba(16,24,40,0.04)">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium" style="color:#3730a3;background:#eef2ff">Submitted</span>
+          <span class="text-[11px] text-slate-400">·</span>
+          <span class="text-[11px] text-slate-500">People</span>
+        </div>
+        <h3 class="mt-3 text-base font-semibold text-slate-900" style="letter-spacing:-0.01em">Interactive onboarding playbooks for new hires</h3>
+        <p class="mt-1.5 text-sm text-slate-600 line-clamp-2">New engineers spend their first two weeks reading scattered Confluence pages...</p>
+        <div class="mt-4 flex items-center gap-4 text-xs text-slate-500 tnum">
+          <span>+12 votes</span><span>3 comments</span><span>2 reviews</span>
+        </div>
+      </div>
+
+      <!-- button -->
+      <button class="w-full rounded-lg text-white text-sm font-medium py-2.5"
+              style="background:#4338ca; box-shadow:0 1px 2px rgba(67,56,202,0.25)">
+        Submit idea
+      </button>
+
+      <!-- AI assistant -->
+      <div class="rounded-xl border border-slate-200 bg-white p-5" style="box-shadow:0 1px 2px rgba(16,24,40,0.04)">
+        <div class="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4338ca" stroke-width="1.75"><path d="M15 4V2m0 14v-2M8 9h2m12 0h-2"/><path d="M17.8 11.8L19 13l1.2-1.2L19 10.6zM3 21l9-9"/><path d="M12.2 6.2L13 7l1-1-1-1z"/></svg>
+          <span class="text-sm font-semibold text-slate-900">AI assistant</span>
+        </div>
+        <p class="mt-2 text-xs text-slate-500">Sharpening suggestions, ready in seconds.</p>
+        <div class="mt-3 rounded-lg p-3 text-xs text-slate-700" style="background:#f8fafc;border:1px solid #e2e8f0">
+          Three sharpening suggestions and a one-line rationale.
+        </div>
+        <input class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs" placeholder="Ask a follow-up..." />
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- OPTION 3: Notion / editorial                                 -->
+  <!-- ============================================================ -->
+  <section class="rounded-lg border border-stone-300 overflow-hidden" style="background:#faf9f7">
+    <div class="px-5 py-4 border-b border-stone-300" style="background:#f5f3ee">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-stone-500">Option 3</div>
+      <div class="serif text-lg text-stone-900">Notion / editorial</div>
+      <div class="text-xs text-stone-500 mt-0.5">Warm grays, serif accents, content-first</div>
+    </div>
+    <div class="p-5 space-y-5" style="background:#faf9f7;color:#1c1917">
+      <!-- sidebar -->
+      <div>
+        <nav class="text-sm">
+          <a class="flex items-center gap-2 px-2 py-1.5 rounded font-medium" style="background:#eae6dd;color:#1c1917">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            Dashboard
+          </a>
+          <a class="flex items-center gap-2 px-2 py-1.5 text-stone-600 hover:bg-stone-100 rounded">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            All ideas
+          </a>
+          <a class="flex items-center gap-2 px-2 py-1.5 text-stone-600 hover:bg-stone-100 rounded">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+            Graph
+          </a>
+        </nav>
+      </div>
+
+      <!-- heading -->
+      <div>
+        <h2 class="serif text-2xl text-stone-900">Welcome back, Alice</h2>
+        <p class="text-sm text-stone-600 mt-2 leading-relaxed">Here's what's happening across <em>Acme</em>.</p>
+      </div>
+
+      <!-- idea card -->
+      <div class="border-b border-stone-300 pb-4">
+        <div class="flex items-center gap-2 text-[11px] text-stone-500">
+          <span class="px-1.5 py-0.5 rounded" style="background:#f0ead9;color:#854d0e">Submitted</span>
+          <span>·</span><span>People</span><span>·</span><span>2 days ago</span>
+        </div>
+        <h3 class="serif mt-2 text-lg text-stone-900">Interactive onboarding playbooks for new hires</h3>
+        <p class="mt-1.5 text-sm text-stone-600 leading-relaxed line-clamp-3">New engineers spend their first two weeks reading scattered Confluence pages. A guided playbook would cut ramp-up time...</p>
+        <div class="mt-3 flex items-center gap-3 text-xs text-stone-500">
+          <span>+12 votes</span><span>3 comments</span>
+        </div>
+      </div>
+
+      <!-- button -->
+      <button class="px-4 py-2 rounded-md text-sm font-medium" style="background:#1c1917;color:#faf9f7">
+        Submit an idea →
+      </button>
+
+      <!-- AI assistant -->
+      <div class="border-l-2 pl-4" style="border-color:#a8a29e">
+        <div class="flex items-center gap-2">
+          <span class="serif text-base text-stone-900 italic">AI assistant</span>
+        </div>
+        <p class="mt-1 text-sm text-stone-600 leading-relaxed">
+          A short note: three sharpening suggestions plus a one-line rationale, drawn from your tenant's prior ideas.
+        </p>
+        <input class="mt-3 w-full bg-transparent border-b border-stone-400 pb-1 text-sm focus:outline-none focus:border-stone-700"
+               placeholder="Ask a follow-up…" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- OPTION 4: Clean up current                                   -->
+  <!-- ============================================================ -->
+  <section class="rounded-xl border border-slate-200 bg-white overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-200 bg-white">
+      <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Option 4</div>
+      <div class="text-base font-semibold text-slate-900">Keep current, just polish</div>
+      <div class="text-xs text-slate-500 mt-0.5">Same blue brand; unified radii, no gradients, calmer shadows</div>
+    </div>
+    <div class="p-5 space-y-5 bg-white">
+      <!-- sidebar -->
+      <div>
+        <nav class="text-sm space-y-0.5">
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium" style="background:#eef4ff;color:#1f37c8">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+            Dashboard
+          </a>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            All ideas
+          </a>
+          <a class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+            Graph
+          </a>
+        </nav>
+      </div>
+
+      <!-- heading -->
+      <div>
+        <h2 class="text-2xl font-semibold text-slate-900 tracking-tight">Welcome back, Alice</h2>
+        <p class="text-sm text-slate-500 mt-1">Here's what's happening across Acme.</p>
+      </div>
+
+      <!-- idea card -->
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <div class="flex items-start justify-between gap-3">
+          <h3 class="text-base font-semibold text-slate-900 leading-snug">Interactive onboarding playbooks for new hires</h3>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium" style="color:#1f37c8;background:#eef4ff">Submitted</span>
+        </div>
+        <p class="mt-1 text-sm text-slate-600 line-clamp-2">New engineers spend their first two weeks reading scattered Confluence pages...</p>
+        <div class="mt-3 flex items-center gap-3 text-xs text-slate-500 tnum">
+          <span>+12 votes</span><span>3 comments</span><span>2 reviews</span>
+        </div>
+      </div>
+
+      <!-- button -->
+      <button class="w-full rounded-lg text-white text-sm font-medium py-2.5" style="background:#2748f5">
+        Submit idea
+      </button>
+
+      <!-- AI assistant -->
+      <div class="rounded-lg border border-slate-200 bg-white p-5">
+        <div class="flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2748f5" stroke-width="2"><path d="M15 4V2m0 14v-2M8 9h2m12 0h-2"/><path d="M17.8 11.8L19 13l1.2-1.2L19 10.6zM3 21l9-9"/></svg>
+          <span class="text-sm font-semibold text-slate-900">AI assistant</span>
+        </div>
+        <p class="mt-1 text-sm text-slate-500">Pulls related internal ideas and suggests improvements.</p>
+        <div class="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+          Three sharpening suggestions and a one-line rationale.
+        </div>
+        <input class="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs" placeholder="Ask a follow-up..." />
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="max-w-[1600px] mx-auto px-6 py-8 text-sm text-slate-500">
+  When you've picked one, tell me <span class="mono">"go with option N"</span> and I'll roll it through the real app
+  (Layout, IdeaCard, IdeaDetail, IdeaGraph, Dashboard, Admin, Login, Tailwind config).
+</footer>
+
+</body>
+</html>

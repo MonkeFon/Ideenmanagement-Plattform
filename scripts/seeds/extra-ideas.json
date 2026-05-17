@@ -1,0 +1,167 @@
+{
+  "_comment": "Mirror of backend/src/main/resources/db/migration/V4__more_seed_ideas.sql in a tooling-friendly form. Keep these two files in sync. Tenant Acme = 11111111-1111-1111-1111-111111111111. User UUIDs match V3__seed_demo.sql.",
+  "tenantId": "11111111-1111-1111-1111-111111111111",
+  "tenantSlug": "acme",
+  "users": {
+    "admin":    "aaaaaaaa-0000-0000-0000-000000000001",
+    "sponsor":  "aaaaaaaa-0000-0000-0000-000000000002",
+    "manager":  "aaaaaaaa-0000-0000-0000-000000000003",
+    "reviewer": "aaaaaaaa-0000-0000-0000-000000000004",
+    "alice":    "aaaaaaaa-0000-0000-0000-000000000005",
+    "bob":      "aaaaaaaa-0000-0000-0000-000000000006"
+  },
+  "clusters": {
+    "ccccccc2-0000-0000-0000-000000000001": "onboarding",
+    "ccccccc2-0000-0000-0000-000000000002": "onboarding",
+    "ccccccc2-0000-0000-0000-000000000003": "onboarding",
+    "ccccccc2-0000-0000-0000-000000000004": "developer-productivity",
+    "ccccccc2-0000-0000-0000-000000000005": "developer-productivity",
+    "ccccccc2-0000-0000-0000-000000000006": "developer-productivity",
+    "ccccccc2-0000-0000-0000-000000000007": "customer-feedback",
+    "ccccccc2-0000-0000-0000-000000000008": "customer-feedback",
+    "ccccccc2-0000-0000-0000-000000000009": "customer-feedback",
+    "ccccccc2-0000-0000-0000-000000000010": "sustainability",
+    "ccccccc2-0000-0000-0000-000000000011": "sustainability",
+    "ccccccc2-0000-0000-0000-000000000012": "sustainability",
+    "ccccccc2-0000-0000-0000-000000000013": "outlier",
+    "ccccccc2-0000-0000-0000-000000000014": "outlier",
+    "ccccccc2-0000-0000-0000-000000000015": "outlier"
+  },
+  "ideas": [
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000001",
+      "authorKey": "alice",
+      "title": "Interactive onboarding playbooks for new hires",
+      "description": "New engineers spend their first two weeks reading scattered Confluence pages. A guided playbook that walks them through environment setup, first PR, and team rituals would cut ramp-up time and standardise the experience across teams.",
+      "category": "People",
+      "stage": "SUBMITTED",
+      "submittedDaysAgo": 8
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000002",
+      "authorKey": "bob",
+      "title": "Buddy-system rotation for first 90 days",
+      "description": "Pair every new hire with a rotating buddy from a different team for the first three months. Encourages cross-team relationships early and gives newcomers a low-stakes channel for \"dumb\" questions outside their direct chain.",
+      "category": "People",
+      "stage": "UNDER_REVIEW",
+      "submittedDaysAgo": 14
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000003",
+      "authorKey": "manager",
+      "title": "Self-paced training tracks per career ladder",
+      "description": "Curate per-role learning tracks (Junior → Senior → Staff) with video, hands-on labs, and assessments. Gives employees a clear development path without waiting for a manager 1:1 to surface gaps.",
+      "category": "People",
+      "stage": "PRIORITIZATION",
+      "submittedDaysAgo": 22
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000004",
+      "authorKey": "alice",
+      "title": "Faster CI by sharding tests intelligently",
+      "description": "Our CI pipeline takes 24 minutes because slow integration tests run sequentially. Shard them across N runners weighted by historical duration so total wall time drops to ~6 minutes for the same coverage.",
+      "category": "Engineering",
+      "stage": "APPROVED",
+      "submittedDaysAgo": 30
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000005",
+      "authorKey": "bob",
+      "title": "Pre-merge ephemeral preview environments",
+      "description": "Spin up a per-PR preview environment with seeded data so reviewers (PMs and designers included) can click around the change before merge. Reduces \"looks good, ship it\" PRs that bite us in QA.",
+      "category": "Engineering",
+      "stage": "IN_IMPLEMENTATION",
+      "submittedDaysAgo": 45
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000006",
+      "authorKey": "manager",
+      "title": "Local devbox with one-command bootstrap",
+      "description": "New engineers and infrastructure migrations both suffer from drift in dev environment setup scripts. Ship a single CLI that provisions a reproducible local dev environment (databases, queues, secrets) idempotently.",
+      "category": "Engineering",
+      "stage": "SUBMITTED",
+      "submittedDaysAgo": 4
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000007",
+      "authorKey": "alice",
+      "title": "In-product NPS with semantic clustering",
+      "description": "Post-feature NPS surveys generate hundreds of free-text comments nobody reads. Cluster responses by theme using embeddings and surface the top three themes weekly to the product team.",
+      "category": "Customer",
+      "stage": "UNDER_REVIEW",
+      "submittedDaysAgo": 11
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000008",
+      "authorKey": "bob",
+      "title": "Customer support tickets to roadmap signals",
+      "description": "Every week support handles ~400 tickets, but only escalations reach product. Tag tickets automatically and feed an aggregated weekly digest to PMs so chronic friction shows up in roadmap planning.",
+      "category": "Customer",
+      "stage": "SUBMITTED",
+      "submittedDaysAgo": 6
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000009",
+      "authorKey": "reviewer",
+      "title": "Closed-loop follow-up for negative survey responses",
+      "description": "When a customer leaves a low NPS score, route it to a CSM within 24 hours with the verbatim and account context. Closes the loop and surfaces churn risk earlier than the renewal call.",
+      "category": "Customer",
+      "stage": "PRIORITIZATION",
+      "submittedDaysAgo": 18
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000010",
+      "authorKey": "alice",
+      "title": "Carbon-aware batch job scheduling",
+      "description": "Move non-urgent batch workloads (analytics rebuilds, model training) to time windows when the grid carbon intensity is lowest. Could cut Scope 2 emissions by ~20% with no service degradation.",
+      "category": "Sustainability",
+      "stage": "SUBMITTED",
+      "submittedDaysAgo": 3
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000011",
+      "authorKey": "bob",
+      "title": "Right-size idle dev environments overnight",
+      "description": "Most dev/staging clusters sit idle from 19:00 to 08:00 local time. Auto-scale them to zero outside working hours and restore on first request — cuts cloud spend and energy use without slowing anyone down.",
+      "category": "Sustainability",
+      "stage": "APPROVED",
+      "submittedDaysAgo": 40
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000012",
+      "authorKey": "sponsor",
+      "title": "Green-build badge in the PR template",
+      "description": "Show the estimated CO2 cost of each CI run on the PR, with a leaderboard for the most efficient builds. Makes carbon a first-class engineering metric and nudges teams toward leaner pipelines.",
+      "category": "Sustainability",
+      "stage": "UNDER_REVIEW",
+      "submittedDaysAgo": 16
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000013",
+      "authorKey": "admin",
+      "title": "Quarterly red-team exercise on prod auth flows",
+      "description": "Run a half-day exercise each quarter where a small internal red team tries to compromise our authentication and session management against staging. Findings feed directly into the security backlog.",
+      "category": "Security",
+      "stage": "PRIORITIZATION",
+      "submittedDaysAgo": 25
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000014",
+      "authorKey": "manager",
+      "title": "Office hot-desk booking via Slack",
+      "description": "Replace the clunky room-booking web app with a Slack slash command for hot-desks: /desk book floor-3 tomorrow. Faster than the web UI and integrates with existing reminders.",
+      "category": "Office",
+      "stage": "DONE",
+      "submittedDaysAgo": 90
+    },
+    {
+      "id": "ccccccc2-0000-0000-0000-000000000015",
+      "authorKey": "sponsor",
+      "title": "Procurement transparency dashboard",
+      "description": "Finance approves software purchases over EUR 500 individually, but nobody sees the aggregate picture. Publish an internal dashboard of all SaaS subscriptions with owner, renewal date, and seat utilisation.",
+      "category": "Finance",
+      "stage": "SUBMITTED",
+      "submittedDaysAgo": 9
+    }
+  ]
+}

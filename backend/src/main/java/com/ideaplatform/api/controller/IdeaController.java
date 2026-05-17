@@ -37,6 +37,15 @@ public class IdeaController {
         return ideas.list(stage, SecurityUtil.current());
     }
 
+    @GetMapping("/graph")
+    public IdeaGraphResponse graph(@RequestParam(required = false) Double threshold) {
+        double t = threshold != null ? threshold : 0.55;
+        // Clamp to a sane range so a malformed query doesn't kill perf or yield garbage.
+        if (t < 0.30) t = 0.30;
+        if (t > 0.99) t = 0.99;
+        return recs.graph(t, SecurityUtil.current());
+    }
+
     @GetMapping("/{id}")
     public IdeaResponse get(@PathVariable UUID id) {
         return ideas.get(id, SecurityUtil.current());
@@ -101,5 +110,12 @@ public class IdeaController {
     @PreAuthorize("hasAnyRole('INNOVATION_MANAGER','REVIEWER','ADMIN')")
     public RefineResponse refine(@PathVariable UUID id) {
         return refine.refine(id, SecurityUtil.current());
+    }
+
+    @PostMapping("/{id}/chat")
+    @RequiresFeature("rag_refine")
+    @PreAuthorize("hasAnyRole('INNOVATION_MANAGER','REVIEWER','ADMIN')")
+    public ChatResponse chat(@PathVariable UUID id, @Valid @RequestBody ChatRequest req) {
+        return refine.chat(id, req.messages(), SecurityUtil.current());
     }
 }

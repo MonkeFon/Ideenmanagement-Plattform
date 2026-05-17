@@ -48,9 +48,21 @@ public class EmbeddingService {
     }
 
     public List<SimilarIdeaResponse> findSimilar(UUID tenantId, UUID sourceIdeaId, String queryText) {
+        return findSimilar(tenantId, sourceIdeaId, queryText, similarityThreshold);
+    }
+
+    /**
+     * Same as {@link #findSimilar(UUID, UUID, String)} but with a caller-supplied threshold.
+     * Use a low value (e.g. 0.0) for free-text search where "most similar" matters more than
+     * "highly similar" — the configured threshold is tuned for the "similar ideas" sidebar
+     * which should only surface strong matches.
+     */
+    public List<SimilarIdeaResponse> findSimilar(UUID tenantId, UUID sourceIdeaId, String queryText, double threshold) {
         try {
-            float[] vec = provider.embed(queryText);
-            List<SimilarIdeaRow> rows = embeddings.findSimilar(tenantId, sourceIdeaId, vec, topK, similarityThreshold);
+            // Use the query-side embedding path so it lives in the right region of the
+            // semantic space relative to the stored document vectors.
+            float[] vec = provider.embedQuery(queryText);
+            List<SimilarIdeaRow> rows = embeddings.findSimilar(tenantId, sourceIdeaId, vec, topK, threshold);
             return rows.stream().map(r -> new SimilarIdeaResponse(
                     r.id(), r.title(),
                     r.description().length() > 240 ? r.description().substring(0, 240) + "…" : r.description(),

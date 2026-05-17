@@ -1,10 +1,13 @@
 package com.ideaplatform.api.service;
 
 import com.ideaplatform.api.domain.Idea;
+import com.ideaplatform.api.dto.IdeaDtos.ChatMessage;
+import com.ideaplatform.api.dto.IdeaDtos.ChatResponse;
 import com.ideaplatform.api.dto.IdeaDtos.RefineResponse;
 import com.ideaplatform.api.dto.IdeaDtos.SimilarIdeaResponse;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
+import com.ideaplatform.api.service.embedding.EmbeddingProvider;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -59,6 +62,42 @@ public class RefineService {
                 snippets);
 
         return parse(llmRaw, related);
+    }
+
+    /**
+     * Free-form follow-up chat about an idea. Stateless — the caller passes the conversation
+     * history each turn; the system prompt is rebuilt from the idea + freshly retrieved
+     * similar ideas so the assistant always sees the latest tenant context.
+     */
+    public ChatResponse chat(UUID ideaId, List<ChatMessage> history, AuthPrincipal me) {
+        Idea idea = store.findIdea(ideaId).orElseThrow(() -> new EntityNotFoundException("Idea " + ideaId));
+        if (!idea.getTenantId().equals(me.tenantId())) throw new EntityNotFoundException("Idea " + ideaId);
+        if (history == null || history.isEmpty()) {
+            throw new IllegalArgumentException("chat history must contain at least one message");
+        }
+
+        List<SimilarIdeaResponse> related =
+                embeddings.findSimilar(me.tenantId(), ideaId, idea.getTitle() + "\n" + idea.getDescription());
+
+        StringBuilder sys = new StringBuilder()
+                .append("You are an innovation coach inside an enterprise idea management platform. ")
+                .append("Answer the user's questions about the idea below, drawing on the related prior ideas. ")
+                .append("Keep replies short (max ~5 sentences) and concrete.\n\n")
+                .append("Idea title: ").append(idea.getTitle()).append('\n')
+                .append("Idea description: ").append(idea.getDescription()).append('\n');
+        if (!related.isEmpty()) {
+            sys.append("\nRelated prior ideas (semantic neighbours):\n");
+            for (SimilarIdeaResponse r : related) {
+                sys.append("- ").append(r.title()).append(": ").append(r.snippet()).append('\n');
+            }
+        }
+
+        List<EmbeddingProvider.ChatTurn> turns = history.stream()
+                .map(m -> new EmbeddingProvider.ChatTurn(m.role(), m.content()))
+                .toList();
+
+        String reply = embeddings.provider().chat(sys.toString(), turns);
+        return new ChatResponse(reply == null ? "" : reply.trim());
     }
 
     private RefineResponse parse(String raw, List<SimilarIdeaResponse> related) {

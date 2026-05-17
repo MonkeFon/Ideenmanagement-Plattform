@@ -18,4 +18,8 @@ public interface IdeaRepository extends JpaRepository<Idea, UUID> {
 
     @Query("SELECT COUNT(i) FROM Idea i WHERE i.tenantId = :tenantId AND i.submittedAt >= :since")
     long countSubmittedSince(@Param("tenantId") UUID tenantId, @Param("since") OffsetDateTime since);
+
+    List<Idea> findByTenantIdAndCampaignIdOrderByCreatedAtDesc(UUID tenantId, UUID campaignId);
+
+    long countByCampaignId(UUID campaignId);
 }

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -38,10 +39,22 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
 
     @Override
     public float[] embed(String text) {
+        // nomic-embed-text uses task prefixes to place query/document vectors in different
+        // regions of the space. Without them, queries match generic noise (e.g. 4-char "Test"
+        // ideas) almost as well as relevant ideas.
+        return rawEmbed("search_document: " + text);
+    }
+
+    @Override
+    public float[] embedQuery(String text) {
+        return rawEmbed("search_query: " + text);
+    }
+
+    private float[] rawEmbed(String prefixedText) {
         @SuppressWarnings("unchecked")
         Map<String, Object> resp = client.post()
                 .uri("/api/embed")
-                .bodyValue(Map.of("model", embedModel, "input", text))
+                .bodyValue(Map.of("model", embedModel, "input", prefixedText))
                 .retrieve()
                 .bodyToMono(Map.class)
                 .block(Duration.ofSeconds(30));
@@ -70,6 +83,15 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                 .bodyValue(Map.of(
                         "model", chatModel,
                         "stream", false,
+                        // Disable Qwen-3 style reasoning mode — refine produces structured bullets,
+                        // not a chain-of-thought, and "thinking" tokens otherwise eat the num_predict budget.
+                        "think", false,
+                        // Cap generation: 3 short suggestions + a one-line rationale fits well under 256 tokens.
+                        // Lower temperature reduces rambling on small models.
+                        "options", Map.of(
+                                "num_predict", 256,
+                                "temperature", 0.5,
+                                "top_p", 0.9),
                         "messages", List.of(
                                 Map.of("role", "system", "content", systemPrompt),
                                 Map.of("role", "user",
@@ -77,7 +99,38 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                                                 + "\n\nTask:\n" + userPrompt))))
                 .retrieve()
                 .bodyToMono(Map.class)
-                .block(Duration.ofSeconds(60));
+                .block(Duration.ofSeconds(180));
+        if (resp == null) return "";
+        Object m = resp.get("message");
+        if (m instanceof Map<?, ?> mm) {
+            Object c = mm.get("content");
+            return c == null ? "" : c.toString();
+        }
+        return "";
+    }
+
+    @Override
+    public String chat(String systemPrompt, List<ChatTurn> messages) {
+        List<Map<String, String>> ollamaMessages = new ArrayList<>(messages.size() + 1);
+        ollamaMessages.add(Map.of("role", "system", "content", systemPrompt));
+        for (ChatTurn t : messages) {
+            ollamaMessages.add(Map.of("role", t.role(), "content", t.content()));
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resp = client.post()
+                .uri("/api/chat")
+                .bodyValue(Map.of(
+                        "model", chatModel,
+                        "stream", false,
+                        "think", false,
+                        "options", Map.of(
+                                "num_predict", 384,
+                                "temperature", 0.6,
+                                "top_p", 0.9),
+                        "messages", ollamaMessages))
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block(Duration.ofSeconds(180));
         if (resp == null) return "";
         Object m = resp.get("message");
         if (m instanceof Map<?, ?> mm) {

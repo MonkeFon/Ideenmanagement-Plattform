@@ -31,6 +31,12 @@ public class Idea {
     @Column(nullable = false, columnDefinition = "text")
     private String description;
 
+    @Column(name = "title_de", length = 200)
+    private String titleDe;
+
+    @Column(name = "description_de", columnDefinition = "text")
+    private String descriptionDe;
+
     @Column(length = 64)
     private String category;
 
@@ -46,6 +52,9 @@ public class Idea {
 
     @Column(name = "submitted_at")
     private OffsetDateTime submittedAt;
+
+    @Column(name = "campaign_id")
+    private UUID campaignId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

@@ -43,4 +43,10 @@ public class MockEmbeddingProvider implements EmbeddingProvider {
         return "[mock LLM] Consider sharpening the problem statement, naming the affected user group, "
                 + "and citing one of the related ideas above to position your proposal.";
     }
+
+    @Override
+    public String chat(String systemPrompt, List<ChatTurn> messages) {
+        String last = messages.isEmpty() ? "" : messages.get(messages.size() - 1).content();
+        return "[mock LLM] You asked: \"" + last + "\". In a real deployment the configured LLM would answer using the idea + related ideas as context.";
+    }
 }

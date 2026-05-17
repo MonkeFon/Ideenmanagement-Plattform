@@ -44,6 +44,9 @@ export interface Idea {
   evaluationCount: number
   submittedAt: string | null
   createdAt: string
+  campaignId: string | null
+  campaignName: string | null
+  campaignColor: string | null
 }
 
 export interface Comment {
@@ -81,6 +84,15 @@ export interface RefineResponse {
   rationale: string
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface ChatResponse {
+  reply: string
+}
+
 export interface WorkflowEvent {
   id: string
   fromStage: Stage | null
@@ -89,6 +101,73 @@ export interface WorkflowEvent {
   actorName: string
   reason: string | null
   createdAt: string
+}
+
+export interface GraphNode {
+  id: string
+  title: string
+  stage: Stage
+  category: string | null
+  netVotes: number
+}
+
+export interface GraphEdge {
+  source: string
+  target: string
+  similarity: number
+}
+
+export interface IdeaGraph {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+  threshold: number
+}
+
+export interface Campaign {
+  id: string
+  name: string
+  description: string
+  color: string
+  startsAt: string | null
+  endsAt: string | null
+  createdBy: string
+  createdByName: string
+  createdAt: string
+  ideaCount: number
+}
+
+export interface CampaignDetail {
+  campaign: Campaign
+  ideas: Idea[]
+}
+
+export interface TopIdea {
+  id: string
+  title: string
+  authorName: string
+  stage: Stage
+  category: string | null
+  netVotes: number
+  priorityScore: number | null
+  commentCount: number
+  rank: number
+}
+
+export interface TopContributor {
+  userId: string
+  displayName: string
+  role: Role
+  ideasSubmitted: number
+  votesReceived: number
+  commentsPosted: number
+  evaluationsGiven: number
+  score: number
+  rank: number
+}
+
+export interface Leaderboard {
+  topIdeas: TopIdea[]
+  topContributors: TopContributor[]
 }
 
 export interface TenantUsage {

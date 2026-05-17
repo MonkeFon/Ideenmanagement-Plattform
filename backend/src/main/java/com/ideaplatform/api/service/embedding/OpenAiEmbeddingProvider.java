@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +67,32 @@ public class OpenAiEmbeddingProvider implements EmbeddingProvider {
                                 Map.of("role", "user",
                                         "content", "Context (prior internal ideas):\n" + context
                                                 + "\n\nTask:\n" + userPrompt))))
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block(Duration.ofSeconds(60));
+        if (resp == null) return "";
+        List<?> choices = (List<?>) resp.get("choices");
+        if (choices == null || choices.isEmpty()) return "";
+        Map<?, ?> msg = (Map<?, ?>) ((Map<?, ?>) choices.get(0)).get("message");
+        Object c = msg.get("content");
+        return c == null ? "" : c.toString();
+    }
+
+    @Override
+    public String chat(String systemPrompt, List<ChatTurn> messages) {
+        List<Map<String, String>> openAiMessages = new ArrayList<>(messages.size() + 1);
+        openAiMessages.add(Map.of("role", "system", "content", systemPrompt));
+        for (ChatTurn t : messages) {
+            openAiMessages.add(Map.of("role", t.role(), "content", t.content()));
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resp = client.post()
+                .uri("/chat/completions")
+                .bodyValue(Map.of(
+                        "model", chatModel,
+                        "messages", openAiMessages,
+                        "max_tokens", 384,
+                        "temperature", 0.6))
                 .retrieve()
                 .bodyToMono(Map.class)
                 .block(Duration.ofSeconds(60));
