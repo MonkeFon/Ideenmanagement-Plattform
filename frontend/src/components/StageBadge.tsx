@@ -14,15 +14,15 @@ const STYLE: Record<Stage, string> = {
 }
 
 const LABEL: Record<Stage, string> = {
-  DRAFT: 'Draft',
-  SUBMITTED: 'Submitted',
-  UNDER_REVIEW: 'Under review',
-  PRIORITIZATION: 'Prioritisation',
-  APPROVED: 'Approved',
-  IN_IMPLEMENTATION: 'In implementation',
-  DONE: 'Done',
-  REJECTED: 'Rejected',
-  ARCHIVED: 'Archived',
+  DRAFT: 'Entwurf',
+  SUBMITTED: 'Eingereicht',
+  UNDER_REVIEW: 'In Prüfung',
+  PRIORITIZATION: 'Priorisierung',
+  APPROVED: 'Genehmigt',
+  IN_IMPLEMENTATION: 'In Umsetzung',
+  DONE: 'Erledigt',
+  REJECTED: 'Abgelehnt',
+  ARCHIVED: 'Archiviert',
 }
 
 export default function StageBadge({ stage }: { stage: Stage }) {

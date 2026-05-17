@@ -3,6 +3,7 @@ package com.ideaplatform.api.service;
 import com.ideaplatform.api.domain.*;
 import com.ideaplatform.api.dto.IdeaDtos.*;
 import com.ideaplatform.api.license.LicenseService;
+import com.ideaplatform.api.repo.CampaignRepository;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
 import jakarta.persistence.EntityNotFoundException;
@@ -13,6 +14,7 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -22,18 +24,22 @@ public class IdeaService {
     private final LicenseService licenses;
     private final EmbeddingService embeddings;
     private final ScoringService scoring;
+    private final CampaignRepository campaigns;
 
     public IdeaService(DataStore store, LicenseService licenses,
-                       EmbeddingService embeddings, ScoringService scoring) {
+                       EmbeddingService embeddings, ScoringService scoring,
+                       CampaignRepository campaigns) {
         this.store = store;
         this.licenses = licenses;
         this.embeddings = embeddings;
         this.scoring = scoring;
+        this.campaigns = campaigns;
     }
 
     @Transactional
     public IdeaResponse create(CreateIdeaRequest req, AuthPrincipal me) {
         licenses.checkIdeaQuota(me.tenantId());
+        UUID campaignId = resolveCampaign(req.campaignId(), me);
         Idea idea = Idea.builder()
                 .tenantId(me.tenantId())
                 .authorId(me.userId())
@@ -42,6 +48,7 @@ public class IdeaService {
                 .category(req.category())
                 .stage(Stage.DRAFT)
                 .sponsorBoost(false)
+                .campaignId(campaignId)
                 .build();
         idea = store.saveIdea(idea);
         embeddings.indexIdeaSafe(idea);
@@ -57,9 +64,18 @@ public class IdeaService {
         if (req.title() != null) idea.setTitle(req.title());
         if (req.description() != null) idea.setDescription(req.description());
         if (req.category() != null) idea.setCategory(req.category());
+        if (req.campaignId() != null) idea.setCampaignId(resolveCampaign(req.campaignId(), me));
         idea = store.saveIdea(idea);
         embeddings.indexIdeaSafe(idea);
         return toResponse(idea, authorName(idea.getAuthorId()));
+    }
+
+    /** Validates that the campaign belongs to the caller's tenant. */
+    private UUID resolveCampaign(UUID campaignId, AuthPrincipal me) {
+        if (campaignId == null) return null;
+        return campaigns.findByTenantIdAndId(me.tenantId(), campaignId)
+                .map(Campaign::getId)
+                .orElseThrow(() -> new EntityNotFoundException("Campaign " + campaignId));
     }
 
     public IdeaResponse get(UUID id, AuthPrincipal me) {
@@ -78,6 +94,15 @@ public class IdeaService {
         return all.stream().map(i -> toResponse(i, authorNames.get(i.getAuthorId()))).toList();
     }
 
+    public List<IdeaResponse> listByCampaign(UUID campaignId, AuthPrincipal me) {
+        // Reused by CampaignService — kept here so the toResponse + author resolution
+        // logic stays in one place.
+        return store.listIdeas(me.tenantId(), null).stream()
+                .filter(i -> campaignId.equals(i.getCampaignId()))
+                .map(i -> toResponse(i, authorName(i.getAuthorId())))
+                .toList();
+    }
+
     @Transactional
     public IdeaResponse setSponsorBoost(UUID id, boolean boost, AuthPrincipal me) {
         if (me.role() != Role.SPONSOR && me.role() != Role.ADMIN) {
@@ -92,12 +117,19 @@ public class IdeaService {
 
     public IdeaResponse toResponse(Idea i, String authorName) {
         int net = store.netVotes(i.getId());
+        UUID campaignId = i.getCampaignId();
+        String campaignName = null, campaignColor = null;
+        if (campaignId != null) {
+            Optional<Campaign> c = campaigns.findById(campaignId);
+            if (c.isPresent()) { campaignName = c.get().getName(); campaignColor = c.get().getColor(); }
+        }
         return new IdeaResponse(
                 i.getId(), i.getAuthorId(), authorName,
                 i.getTitle(), i.getDescription(), i.getCategory(),
                 i.getStage(), i.isSponsorBoost(), i.getPriorityScore(),
                 net, store.listComments(i.getId()).size(), store.listEvaluations(i.getId()).size(),
-                i.getSubmittedAt(), i.getCreatedAt()
+                i.getSubmittedAt(), i.getCreatedAt(),
+                campaignId, campaignName, campaignColor
         );
     }
 

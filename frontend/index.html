@@ -6,8 +6,22 @@
     <link rel="preconnect" href="https://rsms.me/" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     <title>Geistesblitz</title>
+    <script>
+      // Apply theme class before paint so dark mode never flashes white.
+      // Mirrors store/theme.ts; kept inline so it runs before the bundle loads.
+      (function () {
+        try {
+          var raw = localStorage.getItem('gb-theme');
+          var theme = 'auto';
+          if (raw) { try { theme = JSON.parse(raw).state.theme || 'auto'; } catch (_) {} }
+          var dark = theme === 'dark' ||
+            (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (_) {}
+      })();
+    </script>
   </head>
-  <body class="bg-surface text-slate-900 antialiased">
+  <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

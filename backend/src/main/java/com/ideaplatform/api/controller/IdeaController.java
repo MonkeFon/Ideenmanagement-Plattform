@@ -111,4 +111,11 @@ public class IdeaController {
     public RefineResponse refine(@PathVariable UUID id) {
         return refine.refine(id, SecurityUtil.current());
     }
+
+    @PostMapping("/{id}/chat")
+    @RequiresFeature("rag_refine")
+    @PreAuthorize("hasAnyRole('INNOVATION_MANAGER','REVIEWER','ADMIN')")
+    public ChatResponse chat(@PathVariable UUID id, @Valid @RequestBody ChatRequest req) {
+        return refine.chat(id, req.messages(), SecurityUtil.current());
+    }
 }

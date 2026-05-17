@@ -19,4 +19,13 @@ public interface EmbeddingProvider {
      * a stubbed string when no LLM is reachable; callers should not depend on quality.
      */
     String complete(String systemPrompt, String userPrompt, List<String> contextSnippets);
+
+    /**
+     * Multi-turn chat used for follow-up questions on the refine panel. Stateless: the caller
+     * keeps the conversation history and passes it in full on every call.
+     * Each turn is {@code role} = "user" or "assistant", {@code content} = message text.
+     */
+    String chat(String systemPrompt, List<ChatTurn> messages);
+
+    record ChatTurn(String role, String content) {}
 }

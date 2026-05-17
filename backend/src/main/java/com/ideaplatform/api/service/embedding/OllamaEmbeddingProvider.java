@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -84,6 +85,37 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                                 Map.of("role", "user",
                                         "content", "Context (prior internal ideas):\n" + context
                                                 + "\n\nTask:\n" + userPrompt))))
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block(Duration.ofSeconds(180));
+        if (resp == null) return "";
+        Object m = resp.get("message");
+        if (m instanceof Map<?, ?> mm) {
+            Object c = mm.get("content");
+            return c == null ? "" : c.toString();
+        }
+        return "";
+    }
+
+    @Override
+    public String chat(String systemPrompt, List<ChatTurn> messages) {
+        List<Map<String, String>> ollamaMessages = new ArrayList<>(messages.size() + 1);
+        ollamaMessages.add(Map.of("role", "system", "content", systemPrompt));
+        for (ChatTurn t : messages) {
+            ollamaMessages.add(Map.of("role", t.role(), "content", t.content()));
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resp = client.post()
+                .uri("/api/chat")
+                .bodyValue(Map.of(
+                        "model", chatModel,
+                        "stream", false,
+                        "think", false,
+                        "options", Map.of(
+                                "num_predict", 384,
+                                "temperature", 0.6,
+                                "top_p", 0.9),
+                        "messages", ollamaMessages))
                 .retrieve()
                 .bodyToMono(Map.class)
                 .block(Duration.ofSeconds(180));

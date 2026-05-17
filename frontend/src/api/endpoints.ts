@@ -1,6 +1,7 @@
 import { api } from './client'
 import type {
-  Comment, Evaluation, Idea, IdeaGraph, LoginResponse, MeResponse,
+  Campaign, CampaignDetail, ChatMessage, ChatResponse,
+  Comment, Evaluation, Idea, IdeaGraph, Leaderboard, LoginResponse, MeResponse,
   RefineResponse, SimilarIdea, Stage, TenantUsage, WorkflowEvent,
 } from '@/types/api'
 
@@ -14,9 +15,9 @@ export const IdeaApi = {
   list: (stage?: Stage) =>
     api.get<Idea[]>('/ideas', { params: stage ? { stage } : {} }).then((r) => r.data),
   get: (id: string) => api.get<Idea>(`/ideas/${id}`).then((r) => r.data),
-  create: (payload: { title: string; description: string; category?: string }) =>
+  create: (payload: { title: string; description: string; category?: string; campaignId?: string }) =>
     api.post<Idea>('/ideas', payload).then((r) => r.data),
-  update: (id: string, payload: Partial<{ title: string; description: string; category: string }>) =>
+  update: (id: string, payload: Partial<{ title: string; description: string; category: string; campaignId: string }>) =>
     api.patch<Idea>(`/ideas/${id}`, payload).then((r) => r.data),
   vote: (id: string, value: -1 | 0 | 1) =>
     api.post<{ netVotes: number }>(`/ideas/${id}/votes`, { value }).then((r) => r.data),
@@ -32,6 +33,8 @@ export const IdeaApi = {
     api.patch<Idea>(`/ideas/${id}/sponsor-boost`, null, { params: { on } }).then((r) => r.data),
   similar: (id: string) => api.get<SimilarIdea[]>(`/ideas/${id}/similar`).then((r) => r.data),
   refine: (id: string) => api.post<RefineResponse>(`/ideas/${id}/refine`).then((r) => r.data),
+  chat: (id: string, messages: ChatMessage[]) =>
+    api.post<ChatResponse>(`/ideas/${id}/chat`, { messages }).then((r) => r.data),
   graph: (threshold?: number) =>
     api.get<IdeaGraph>('/ideas/graph', { params: threshold !== undefined ? { threshold } : {} })
        .then((r) => r.data),
@@ -45,6 +48,20 @@ export const WorkflowApi = {
   stages: () => api.get<Record<Stage, Stage[]>>('/workflow/stages').then((r) => r.data),
   history: (ideaId: string) =>
     api.get<WorkflowEvent[]>(`/workflow/history/${ideaId}`).then((r) => r.data),
+}
+
+export const LeaderboardApi = {
+  get: () => api.get<Leaderboard>('/leaderboard').then((r) => r.data),
+}
+
+export const CampaignApi = {
+  list: () => api.get<Campaign[]>('/campaigns').then((r) => r.data),
+  get: (id: string) => api.get<CampaignDetail>(`/campaigns/${id}`).then((r) => r.data),
+  create: (payload: { name: string; description: string; color?: string; startsAt?: string; endsAt?: string }) =>
+    api.post<Campaign>('/campaigns', payload).then((r) => r.data),
+  update: (id: string, payload: Partial<{ name: string; description: string; color: string; startsAt: string; endsAt: string }>) =>
+    api.patch<Campaign>(`/campaigns/${id}`, payload).then((r) => r.data),
+  delete: (id: string) => api.delete(`/campaigns/${id}`).then((r) => r.data),
 }
 
 export const AdminApi = {

@@ -7,40 +7,132 @@ import type { GraphEdge, GraphNode, Stage } from '@/types/api'
 import { Network, RefreshCw } from 'lucide-react'
 
 /**
- * Force-directed map of semantically related ideas.
+ * Force-directed map of semantically related ideas with cluster overlay.
  *
- * The simulation is intentionally tiny (no d3-force or cytoscape dependency) — Barnes–Hut
- * isn't needed at the scale we expect (a few hundred nodes per tenant). It runs for a fixed
- * number of ticks after each data/threshold change, then stops; we re-spawn it only when the
- * user drags or changes inputs.
+ * Clusters = connected components in the similarity graph at the current threshold.
+ * They're computed via union-find each time the data changes, then rendered as a soft
+ * background convex hull behind the nodes. Cluster colours come from a small qualitative
+ * palette and are assigned by a stable hash so the same cluster keeps the same colour
+ * across re-renders as the user nudges the threshold.
+ *
+ * The simulation itself is intentionally tiny (no d3-force / cytoscape dependency).
  */
 
-type SimNode = GraphNode & { x: number; y: number; vx: number; vy: number; degree: number }
+type SimNode = GraphNode & {
+  x: number; y: number; vx: number; vy: number
+  degree: number; cluster: number
+}
 type SimEdge = GraphEdge & { weight: number }
 
+// Stage palette — mid-saturation so it reads on both light and dark backgrounds.
 const STAGE_FILL: Record<Stage, string> = {
   DRAFT: '#94a3b8',
-  SUBMITTED: '#3a66ff',
-  UNDER_REVIEW: '#f59e0b',
-  PRIORITIZATION: '#f59e0b',
-  APPROVED: '#10b981',
-  IN_IMPLEMENTATION: '#3a66ff',
-  DONE: '#10b981',
-  REJECTED: '#f43f5e',
+  SUBMITTED: '#64748b',
+  UNDER_REVIEW: '#d97706',
+  PRIORITIZATION: '#d97706',
+  APPROVED: '#059669',
+  IN_IMPLEMENTATION: '#0891b2',
+  DONE: '#059669',
+  REJECTED: '#e11d48',
   ARCHIVED: '#94a3b8',
 }
+
+// Qualitative cluster palette. Cluster -1 (singletons) is rendered with no hull.
+const CLUSTER_COLORS = [
+  '#6366f1', // indigo
+  '#10b981', // emerald
+  '#f59e0b', // amber
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#8b5cf6', // violet
+  '#84cc16', // lime
+  '#f43f5e', // rose
+]
 
 const WIDTH = 1100
 const HEIGHT = 720
 const TICKS = 400
 const TICK_DT = 0.85
 
+// Union-find for connected components.
+function unionFind(ids: string[], edges: GraphEdge[]) {
+  const parent = new Map<string, string>()
+  ids.forEach((id) => parent.set(id, id))
+  const find = (a: string): string => {
+    let p = parent.get(a)!
+    while (p !== a) { a = p; p = parent.get(a)! }
+    return a
+  }
+  const union = (a: string, b: string) => {
+    const ra = find(a), rb = find(b)
+    if (ra !== rb) parent.set(ra, rb)
+  }
+  for (const e of edges) union(e.source, e.target)
+
+  // Group by root, assign stable cluster index ordered by smallest member id (lexicographic).
+  const groups = new Map<string, string[]>()
+  for (const id of ids) {
+    const r = find(id)
+    if (!groups.has(r)) groups.set(r, [])
+    groups.get(r)!.push(id)
+  }
+  const sortedRoots = [...groups.keys()]
+    .filter((r) => groups.get(r)!.length >= 2)
+    .sort((a, b) => {
+      const sa = [...groups.get(a)!].sort()[0]
+      const sb = [...groups.get(b)!].sort()[0]
+      return sa < sb ? -1 : sa > sb ? 1 : 0
+    })
+  const clusterIndex = new Map<string, number>()
+  sortedRoots.forEach((r, i) => clusterIndex.set(r, i))
+
+  const nodeCluster = new Map<string, number>()
+  for (const id of ids) {
+    const r = find(id)
+    nodeCluster.set(id, clusterIndex.has(r) ? clusterIndex.get(r)! : -1)
+  }
+  return { nodeCluster, clusterCount: sortedRoots.length }
+}
+
+// Andrew's monotone chain convex hull.
+function convexHull(points: { x: number; y: number }[]): { x: number; y: number }[] {
+  if (points.length < 3) return points.slice()
+  const pts = points.slice().sort((a, b) => (a.x - b.x) || (a.y - b.y))
+  const cross = (O: any, A: any, B: any) =>
+    (A.x - O.x) * (B.y - O.y) - (A.y - O.y) * (B.x - O.x)
+  const lower: typeof pts = []
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop()
+    lower.push(p)
+  }
+  const upper: typeof pts = []
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i]
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop()
+    upper.push(p)
+  }
+  lower.pop(); upper.pop()
+  return lower.concat(upper)
+}
+
+// Expand a hull outward from its centroid by `margin` so node circles sit comfortably inside.
+function expandHull(hull: { x: number; y: number }[], margin: number) {
+  if (hull.length === 0) return hull
+  const cx = hull.reduce((s, p) => s + p.x, 0) / hull.length
+  const cy = hull.reduce((s, p) => s + p.y, 0) / hull.length
+  return hull.map((p) => {
+    const dx = p.x - cx, dy = p.y - cy
+    const len = Math.sqrt(dx * dx + dy * dy) || 1
+    return { x: p.x + (dx / len) * margin, y: p.y + (dy / len) * margin }
+  })
+}
+
 export default function IdeaGraph() {
   const [threshold, setThreshold] = useState(0.55)
   const [hovered, setHovered] = useState<string | null>(null)
   const [dragging, setDragging] = useState<string | null>(null)
-  const [seed, setSeed] = useState(0) // bump to re-run the simulation
-  const [, setTick] = useState(0) // forces re-render during simulation
+  const [seed, setSeed] = useState(0)
+  const [, setTick] = useState(0)
   const navigate = useNavigate()
 
   const graphQ = useQuery({
@@ -48,7 +140,6 @@ export default function IdeaGraph() {
     queryFn: () => IdeaApi.graph(threshold),
   })
 
-  // Build the simulation state. Re-runs when payload or threshold changes.
   const sim = useMemo(() => {
     if (!graphQ.data) return null
     const { nodes, edges } = graphQ.data
@@ -57,7 +148,9 @@ export default function IdeaGraph() {
       degree[e.source] = (degree[e.source] ?? 0) + 1
       degree[e.target] = (degree[e.target] ?? 0) + 1
     }
-    // Seed positions on a circle so the layout starts disordered but bounded.
+
+    const { nodeCluster, clusterCount } = unionFind(nodes.map((n) => n.id), edges)
+
     const cx = WIDTH / 2, cy = HEIGHT / 2
     const r = Math.min(WIDTH, HEIGHT) * 0.35
     const simNodes: SimNode[] = nodes.map((n, i) => {
@@ -68,14 +161,30 @@ export default function IdeaGraph() {
         y: cy + Math.sin(angle) * r * (0.6 + Math.random() * 0.4),
         vx: 0, vy: 0,
         degree: degree[n.id] ?? 0,
+        cluster: nodeCluster.get(n.id) ?? -1,
       }
     })
     const simEdges: SimEdge[] = edges.map((e) => ({ ...e, weight: e.similarity }))
-    return { nodes: simNodes, edges: simEdges, byId: new Map(simNodes.map((n) => [n.id, n])) }
+    return {
+      nodes: simNodes,
+      edges: simEdges,
+      byId: new Map(simNodes.map((n) => [n.id, n])),
+      clusterCount,
+    }
   }, [graphQ.data])
 
-  // Run the simulation loop. We mutate node positions in place for cheapness, then
-  // bump a tick counter to trigger React re-renders.
+  // Group nodes by cluster for hull rendering. Recomputed each tick via the wrapper render.
+  const clustersForRender = useMemo(() => {
+    if (!sim) return []
+    const groups = new Map<number, SimNode[]>()
+    for (const n of sim.nodes) {
+      if (n.cluster < 0) continue
+      if (!groups.has(n.cluster)) groups.set(n.cluster, [])
+      groups.get(n.cluster)!.push(n)
+    }
+    return [...groups.entries()].map(([id, nodes]) => ({ id, nodes }))
+  }, [sim, /* tick triggers via setTick re-renders */ ])
+
   const rafRef = useRef<number | null>(null)
   const remainingTicksRef = useRef(0)
   useEffect(() => {
@@ -84,7 +193,6 @@ export default function IdeaGraph() {
     const step = () => {
       if (!sim) return
       const draggedId = dragging
-      // Repulsion: O(n^2). Fine for ≤ ~500 nodes; we don't expect more in a tenant view.
       const repulsion = 9000
       for (let i = 0; i < sim.nodes.length; i++) {
         const a = sim.nodes[i]
@@ -102,27 +210,24 @@ export default function IdeaGraph() {
           b.vx -= fx; b.vy -= fy
         }
       }
-      // Spring attraction along edges. Stiffer when more similar.
       for (const e of sim.edges) {
         const a = sim.byId.get(e.source); const b = sim.byId.get(e.target)
         if (!a || !b) continue
         const dx = b.x - a.x, dy = b.y - a.y
         const dist = Math.sqrt(dx * dx + dy * dy) || 0.01
-        const target = 90 + (1 - e.weight) * 180 // ideal length: similar pairs sit closer
-        const k = 0.04 * (0.3 + e.weight) // stiffness scales with similarity
+        const target = 90 + (1 - e.weight) * 180
+        const k = 0.04 * (0.3 + e.weight)
         const f = (dist - target) * k
         const fx = (dx / dist) * f
         const fy = (dy / dist) * f
         a.vx += fx; a.vy += fy
         b.vx -= fx; b.vy -= fy
       }
-      // Gentle gravity toward the centre keeps disconnected clusters from drifting off-canvas.
       const cx = WIDTH / 2, cy = HEIGHT / 2
       for (const n of sim.nodes) {
         n.vx += (cx - n.x) * 0.0015
         n.vy += (cy - n.y) * 0.0015
       }
-      // Integrate + damping + clamp to viewport.
       const damping = 0.78
       for (const n of sim.nodes) {
         if (n.id === draggedId) { n.vx = 0; n.vy = 0; continue }
@@ -154,11 +259,8 @@ export default function IdeaGraph() {
     return s
   }, [sim, hovered])
 
-  // Drag handling (SVG coords; account for viewBox scaling via getCTM).
   const svgRef = useRef<SVGSVGElement | null>(null)
   const pressStartRef = useRef<{ x: number; y: number } | null>(null)
-  // True once the pointer has moved past the click threshold during a press —
-  // used to suppress the synthetic click that fires on pointer release after a drag.
   const draggedRef = useRef(false)
   const CLICK_DRAG_THRESHOLD_PX = 4
 
@@ -197,60 +299,60 @@ export default function IdeaGraph() {
   function onPointerUp() {
     if (!dragging) return
     pressStartRef.current = null
-    setDragging(null) // effect re-runs and resumes the simulation
-    // draggedRef stays true until the synthetic click fires; the click handler resets it.
+    setDragging(null)
   }
 
   const hoveredNode = hovered && sim ? sim.byId.get(hovered) : null
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-7xl">
+    <div className="p-4 md:p-8 space-y-5 max-w-7xl">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-            <Network size={22} className="text-brand-600" />
-            Idea graph
+          <div className="eyebrow">Graph</div>
+          <h1 className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <Network size={18} strokeWidth={1.75} className="text-slate-500 dark:text-slate-400" />
+            Semantische Karte
           </h1>
-          <p className="text-slate-500 mt-1">
-            Each node is an idea; edges link semantically similar pairs. Drag to rearrange, click to open.
+          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">
+            Verbundene Ideen bilden automatisch Cluster. Ziehen zum Verschieben, klicken zum Öffnen.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="text-sm text-slate-600 flex items-center gap-2">
-            Min similarity
+          <label className="text-[12px] text-slate-600 dark:text-slate-400 flex items-center gap-2">
+            <span className="uppercase tracking-wider text-[11px] text-slate-500 dark:text-slate-400 font-medium">Schwelle</span>
             <input
               type="range"
               min={0.30} max={0.95} step={0.01}
               value={threshold}
               onChange={(e) => setThreshold(parseFloat(e.target.value))}
-              className="w-32 md:w-40"
+              className="w-32 md:w-40 accent-slate-900 dark:accent-slate-100"
             />
-            <span className="font-mono text-xs w-10 text-right">{(threshold * 100).toFixed(0)}%</span>
+            <span className="font-mono text-[11px] w-9 text-right tabular-nums">{(threshold * 100).toFixed(0)}%</span>
           </label>
-          <button className="btn-secondary" onClick={restart} title="Re-run layout">
-            <RefreshCw size={16} /> Re-layout
+          <button className="btn-secondary text-[12px]" onClick={restart} title="Layout neu berechnen">
+            <RefreshCw size={13} strokeWidth={1.75} /> Neu anordnen
           </button>
         </div>
       </header>
 
       {/* Stage legend */}
-      <div className="flex flex-wrap gap-3 text-xs text-slate-600">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
         {(Object.keys(STAGE_FILL) as Stage[])
-          .filter((s) => s !== 'DRAFT') // DRAFTs are excluded server-side
+          .filter((s) => s !== 'DRAFT')
           .map((s) => (
             <span key={s} className="inline-flex items-center gap-1.5">
-              <span className="inline-block w-3 h-3 rounded-full" style={{ backgroundColor: STAGE_FILL[s] }} />
+              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STAGE_FILL[s] }} />
               {stageLabels[s]}
             </span>
           ))}
       </div>
 
       <div className="card overflow-hidden">
-        {graphQ.isLoading && <div className="p-8 text-sm text-slate-500">Loading graph…</div>}
-        {graphQ.error && <div className="p-8 text-sm text-rose-600">Failed to load graph.</div>}
+        {graphQ.isLoading && <div className="p-8 text-sm text-slate-500 dark:text-slate-400">Graph wird geladen…</div>}
+        {graphQ.error && <div className="p-8 text-sm text-rose-600 dark:text-rose-400">Graph konnte nicht geladen werden.</div>}
         {sim && sim.nodes.length === 0 && (
-          <div className="p-8 text-sm text-slate-500 text-center">
-            No ideas to plot yet. Submit a few ideas (and make sure embeddings are indexed) to see relationships emerge.
+          <div className="p-8 text-sm text-slate-500 dark:text-slate-400 text-center">
+            Noch keine Ideen darzustellen. Reichen Sie einige Ideen ein (und stellen Sie sicher, dass Embeddings vorhanden sind), damit Beziehungen sichtbar werden.
           </div>
         )}
         {sim && sim.nodes.length > 0 && (
@@ -258,11 +360,46 @@ export default function IdeaGraph() {
             <svg
               ref={svgRef}
               viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-              className="w-full h-[60vh] min-h-[420px] md:h-[720px] bg-surface select-none touch-none"
+              className="w-full h-[60vh] min-h-[420px] md:h-[720px] bg-slate-50 dark:bg-slate-950 select-none touch-none"
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerLeave={onPointerUp}
             >
+              {/* cluster hulls (rendered first so they sit behind everything) */}
+              <g>
+                {clustersForRender.map(({ id, nodes }) => {
+                  if (nodes.length < 2) return null
+                  const color = CLUSTER_COLORS[id % CLUSTER_COLORS.length]
+                  if (nodes.length === 2) {
+                    // Two-node cluster: render a thick translucent capsule connecting them.
+                    const [a, b] = nodes
+                    return (
+                      <line
+                        key={'h' + id}
+                        x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                        stroke={color}
+                        strokeOpacity={0.18}
+                        strokeWidth={40}
+                        strokeLinecap="round"
+                      />
+                    )
+                  }
+                  const hull = expandHull(convexHull(nodes), 30)
+                  const path = 'M ' + hull.map((p) => `${p.x},${p.y}`).join(' L ') + ' Z'
+                  return (
+                    <path
+                      key={'h' + id}
+                      d={path}
+                      fill={color}
+                      fillOpacity={0.14}
+                      stroke={color}
+                      strokeOpacity={0.35}
+                      strokeWidth={1}
+                    />
+                  )
+                })}
+              </g>
+
               {/* edges */}
               <g stroke="#94a3b8" strokeOpacity={0.35}>
                 {sim.edges.map((e, idx) => {
@@ -274,7 +411,7 @@ export default function IdeaGraph() {
                       key={idx}
                       x1={a.x} y1={a.y} x2={b.x} y2={b.y}
                       strokeWidth={0.5 + e.weight * 2.5}
-                      stroke={isHi ? '#2748f5' : '#94a3b8'}
+                      stroke={isHi ? '#0f172a' : '#94a3b8'}
                       strokeOpacity={isHi ? 0.85 : 0.25 + e.weight * 0.4}
                     />
                   )
@@ -304,12 +441,13 @@ export default function IdeaGraph() {
                         fillOpacity={dim ? 0.25 : 0.92}
                         stroke="white"
                         strokeWidth={2}
+                        className="dark:[stroke:#0f172a]"
                       />
                       {(hovered === n.id || neighbors.has(n.id) || sim.nodes.length <= 25) && (
                         <text
                           y={-r - 6}
                           textAnchor="middle"
-                          className="fill-slate-800"
+                          className="fill-slate-800 dark:fill-slate-100"
                           fontSize={11}
                           fontWeight={500}
                           style={{ pointerEvents: 'none' }}
@@ -325,19 +463,29 @@ export default function IdeaGraph() {
 
             {/* Hover detail panel */}
             {hoveredNode && (
-              <div className="absolute top-3 left-3 card p-3 max-w-xs pointer-events-none shadow-card">
-                <div className="text-sm font-semibold text-slate-900">{hoveredNode.title}</div>
-                <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+              <div className="absolute top-3 left-3 card p-3 max-w-xs pointer-events-none">
+                <div className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 tracking-tight">{hoveredNode.title}</div>
+                <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
                   <StageBadge stage={hoveredNode.stage} />
-                  {hoveredNode.category && <span>· {hoveredNode.category}</span>}
+                  {hoveredNode.category && <span>{hoveredNode.category}</span>}
+                  {hoveredNode.cluster >= 0 && (
+                    <span
+                      className="inline-flex items-center gap-1 font-mono uppercase tracking-wider text-[10px]"
+                      style={{ color: CLUSTER_COLORS[hoveredNode.cluster % CLUSTER_COLORS.length] }}
+                    >
+                      <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: CLUSTER_COLORS[hoveredNode.cluster % CLUSTER_COLORS.length] }} />
+                      Cluster {hoveredNode.cluster + 1}
+                    </span>
+                  )}
                 </div>
-                <div className="mt-2 text-xs text-slate-500">
-                  {hoveredNode.netVotes >= 0 ? '+' : ''}{hoveredNode.netVotes} votes · {neighbors.size} related
+                <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                  {hoveredNode.netVotes >= 0 ? '+' : ''}{hoveredNode.netVotes} Stimmen · {neighbors.size} verwandt
                 </div>
               </div>
             )}
-            <div className="absolute bottom-3 right-3 text-xs text-slate-500 bg-white/80 px-2 py-1 rounded">
-              {sim.nodes.length} ideas · {sim.edges.length} edges
+
+            <div className="absolute bottom-3 right-3 text-[11px] text-slate-500 dark:text-slate-400 bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded tabular-nums font-mono">
+              {sim.nodes.length} Knoten · {sim.edges.length} Kanten · {sim.clusterCount} Cluster
             </div>
           </div>
         )}
@@ -345,4 +493,3 @@ export default function IdeaGraph() {
     </div>
   )
 }
-
