@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { IdeaApi, SearchApi } from '@/api/endpoints'
 import IdeaCard from '@/components/IdeaCard'
+import IdeaCardSkeleton from '@/components/IdeaCardSkeleton'
 import StageBadge, { stageLabels } from '@/components/StageBadge'
-import Spinner from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -61,7 +61,16 @@ export default function IdeaList() {
       {semantic && (
         <section>
           <div className="eyebrow mb-3">Semantische Treffer</div>
-          {semantic.length === 0 && <Card className="p-5 text-[13px] text-muted-foreground">Keine ähnlichen Ideen gefunden.</Card>}
+          {semantic.length === 0 && (
+            <Card className="p-6 text-center">
+              <Search className="mx-auto text-muted-foreground/60" size={20} strokeWidth={1.5} />
+              <div className="mt-2 text-[13px] font-medium text-foreground">Keine ähnlichen Ideen gefunden</div>
+              <p className="mt-1 text-[12px] text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                Versuchen Sie es mit anderen Worten oder beschreiben Sie das Problem aus
+                einer anderen Perspektive. Die Suche findet Konzepte, nicht nur Stichworte.
+              </p>
+            </Card>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {semantic.map((s) => (
               <Card key={s.id} asChild className="p-4 transition-colors hover:border-input">
@@ -91,12 +100,13 @@ export default function IdeaList() {
       </div>
 
       <section>
-        {ideasQ.isLoading && <Spinner label="Wird geladen…" />}
         {ideasQ.data && ideasQ.data.length === 0 && (
           <Card className="p-8 text-center text-[13px] text-muted-foreground">Noch keine Ideen in diesem Status.</Card>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {ideasQ.data?.map((i) => <IdeaCard key={i.id} idea={i} />)}
+          {ideasQ.isLoading
+            ? Array.from({ length: 6 }, (_, i) => <IdeaCardSkeleton key={i} />)
+            : ideasQ.data?.map((i) => <IdeaCard key={i.id} idea={i} />)}
         </div>
       </section>
     </div>

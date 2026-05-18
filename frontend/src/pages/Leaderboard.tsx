@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { LeaderboardApi } from '@/api/endpoints'
 import StageBadge from '@/components/StageBadge'
-import Spinner from '@/components/Spinner'
 import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Trophy, Users, ArrowUp, MessageSquare } from 'lucide-react'
 
 const ROLE_LABEL_DE: Record<string, string> = {
@@ -28,7 +28,25 @@ export default function Leaderboard() {
         </p>
       </header>
 
-      {q.isLoading && <Spinner label="Wird geladen…" />}
+      {q.isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[0, 1].map((c) => (
+            <Card key={c} className="p-4 space-y-3">
+              <Skeleton className="h-4 w-32" />
+              {Array.from({ length: 5 }, (_, r) => (
+                <div key={r} className="flex items-center gap-3">
+                  <Skeleton className="h-3 w-6 shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-3 w-4/5" />
+                    <Skeleton className="h-2.5 w-2/5" />
+                  </div>
+                  <Skeleton className="h-3 w-10 shrink-0" />
+                </div>
+              ))}
+            </Card>
+          ))}
+        </div>
+      )}
       {q.error && <div className="text-[13px] text-destructive">Rangliste konnte nicht geladen werden.</div>}
 
       {q.data && (

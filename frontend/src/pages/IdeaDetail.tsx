@@ -54,14 +54,58 @@ export default function IdeaDetail() {
     qc.invalidateQueries({ queryKey: ['ideas'] })
   }
 
-  const voteM = useMutation({
-    mutationFn: (v: -1 | 1) => IdeaApi.vote(id, v),
-    onSuccess: refresh,
+  /**
+   * Optimistic vote: bump the cached `netVotes` immediately so the click feels
+   * instant, then settle to the server's authoritative count on success or
+   * roll back on failure. The backend is idempotent per (user, idea) so a
+   * second click in the same direction is a no-op and the count snaps back.
+   *
+   * Note: we don't track the user's previous vote here (the API doesn't expose
+   * it via /api/ideas/{id}), so the optimistic update is direction-only —
+   * good enough for the demo "feel instant" experience without faking a
+   * second-vote state we can't actually compute.
+   */
+  const voteM = useMutation<unknown, unknown, -1 | 1, { previous: any }>({
+    mutationFn: (v) => IdeaApi.vote(id, v),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ['idea', id] })
+      const previous = qc.getQueryData(['idea', id])
+      qc.setQueryData(['idea', id], (old: any) =>
+        old ? { ...old, netVotes: old.netVotes + v } : old,
+      )
+      return { previous }
+    },
+    onError: (_err, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['idea', id], ctx.previous)
+    },
+    onSettled: refresh,
   })
 
-  const commentM = useMutation({
+  const commentM = useMutation<unknown, unknown, void, { previous: any; tempId: string }>({
     mutationFn: () => IdeaApi.addComment(id, comment),
-    onSuccess: () => { setComment(''); refresh() },
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['idea', id, 'comments'] })
+      const previous = qc.getQueryData(['idea', id, 'comments'])
+      const tempId = `temp-${Date.now()}`
+      qc.setQueryData(['idea', id, 'comments'], (old: any[] | undefined) => [
+        ...(old ?? []),
+        {
+          id: tempId,
+          ideaId: id,
+          userId: user.id,
+          userName: user.displayName,
+          body: comment,
+          createdAt: new Date().toISOString(),
+        },
+      ])
+      // NB: don't clear the input here — if the post fails, the user keeps what they typed.
+      return { previous, tempId }
+    },
+    onSuccess: () => setComment(''),
+    onError: (_err, _v, ctx) => {
+      if (ctx?.previous !== undefined) qc.setQueryData(['idea', id, 'comments'], ctx.previous)
+    },
+    onSettled: refresh,
   })
 
   const evalM = useMutation({
@@ -163,9 +207,9 @@ export default function IdeaDetail() {
         </div>
 
         <div className="border border-border rounded p-1.5 flex sm:flex-col items-center gap-0.5 self-start">
-          <Button variant="ghost" size="icon" onClick={() => voteM.mutate(1)} title="Hochstimmen"><ArrowUp size={16} strokeWidth={1.75} /></Button>
-          <div className="text-[13px] font-semibold text-foreground tabular-nums px-1">{idea.netVotes > 0 ? '+' : ''}{idea.netVotes}</div>
-          <Button variant="ghost" size="icon" onClick={() => voteM.mutate(-1)} title="Runterstimmen"><ArrowDown size={16} strokeWidth={1.75} /></Button>
+          <Button variant="ghost" size="icon" onClick={() => voteM.mutate(1)} title="Hochstimmen" aria-label="Idee hochstimmen"><ArrowUp size={16} strokeWidth={1.75} /></Button>
+          <div className="text-[13px] font-semibold text-foreground tabular-nums px-1" aria-live="polite" aria-atomic="true">{idea.netVotes > 0 ? '+' : ''}{idea.netVotes}</div>
+          <Button variant="ghost" size="icon" onClick={() => voteM.mutate(-1)} title="Runterstimmen" aria-label="Idee runterstimmen"><ArrowDown size={16} strokeWidth={1.75} /></Button>
         </div>
       </div>
 
@@ -366,6 +410,7 @@ export default function IdeaDetail() {
                       disabled={aiBusy || !aiInput.trim()}
                       size="icon"
                       title="Senden"
+                      aria-label="Nachricht an KI-Assistent senden"
                     >
                       <Send size={14} strokeWidth={1.75} />
                     </Button>

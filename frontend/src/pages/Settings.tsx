@@ -46,9 +46,11 @@ const CONTENT_LANG_OPTIONS: { value: ContentLang; label: string; description: st
 ]
 
 const SHORTCUTS: { keys: string[]; label: string }[] = [
+  { keys: ['G', 'H'], label: 'Zur Übersicht' },
   { keys: ['G', 'I'], label: 'Zur Ideenliste' },
-  { keys: ['G', 'G'], label: 'Zum Graph' },
   { keys: ['G', 'K'], label: 'Zu den Kampagnen' },
+  { keys: ['G', 'G'], label: 'Zum Graph' },
+  { keys: ['G', 'L'], label: 'Zur Rangliste' },
   { keys: ['N'],      label: 'Neue Idee einreichen' },
   { keys: ['/'],      label: 'Suchfeld fokussieren' },
   { keys: ['?'],      label: 'Diese Übersicht anzeigen' },
@@ -235,8 +237,9 @@ export default function Settings() {
               </li>
             ))}
           </ul>
-          <p className="text-[11px] text-muted-foreground/70 italic">
-            Hinweis: Tastenkürzel sind als Vorschau dokumentiert und werden in einer der nächsten Versionen scharfgeschaltet.
+          <p className="text-[11px] text-muted-foreground/70">
+            Tastenkürzel sind in jeder Seite aktiv — außer während der Texteingabe.
+            <span className="ml-1">Drücken Sie <kbd className="font-mono text-[10px] uppercase tracking-wider border border-input rounded bg-muted px-1 py-px text-foreground">?</kbd> jederzeit, um diese Übersicht zu öffnen.</span>
           </p>
         </Card>
       </div>

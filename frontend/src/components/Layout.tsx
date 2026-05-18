@@ -5,6 +5,7 @@ import { applyTheme, useTheme, type Theme } from '@/store/theme'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import GeistesblitzLogo from '@/components/GeistesblitzLogo'
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { cn } from '@/lib/utils'
 import {
   LayoutDashboard, ListChecks, Network, Trophy, Megaphone,
@@ -35,6 +36,8 @@ export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  useKeyboardShortcuts()
 
   useEffect(() => { setMenuOpen(false) }, [location.pathname])
 
@@ -108,6 +111,7 @@ export default function Layout() {
             className="md:hidden -mr-1.5"
             onClick={() => setMenuOpen(false)}
             title="Menü schließen"
+            aria-label="Menü schließen"
           >
             <X size={16} />
           </Button>
@@ -143,6 +147,7 @@ export default function Layout() {
               size="icon"
               onClick={() => setTheme(THEME_CYCLE[theme])}
               title={`Design: ${THEME_LABEL[theme]} (zum Wechseln klicken)`}
+              aria-label={`Design wechseln (aktuell: ${THEME_LABEL[theme]})`}
             >
               {THEME_ICON[theme]}
             </Button>
@@ -151,6 +156,7 @@ export default function Layout() {
               size="icon"
               onClick={() => { clear(); navigate('/login') }}
               title="Abmelden"
+              aria-label="Abmelden"
             >
               <LogOut size={16} />
             </Button>

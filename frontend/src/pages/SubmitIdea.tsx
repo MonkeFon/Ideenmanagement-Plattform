@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CampaignApi, IdeaApi } from '@/api/endpoints'
+import { CampaignApi, IdeaApi, SearchApi } from '@/api/endpoints'
 import { asLicenseViolation } from '@/api/client'
 import Spinner from '@/components/Spinner'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
-import { Lightbulb, Target, Sparkles, Users } from 'lucide-react'
+import { Lightbulb, Target, Sparkles, Users, AlertCircle, ArrowRight } from 'lucide-react'
 
 export default function SubmitIdea() {
   const navigate = useNavigate()
@@ -23,6 +23,37 @@ export default function SubmitIdea() {
   const [licenseHint, setLicenseHint] = useState<string | null>(null)
 
   const campaignsQ = useQuery({ queryKey: ['campaigns'], queryFn: () => CampaignApi.list() })
+
+  /**
+   * Live duplicate detection. As the user types title + description, debounce
+   * 500 ms and hit the semantic search to surface existing ideas above a
+   * similarity threshold. Saves people from submitting near-duplicates and
+   * makes the semantic search feature visible right where it's most useful.
+   */
+  const [dupQuery, setDupQuery] = useState('')
+  useEffect(() => {
+    const combined = `${title}\n${description}`.trim()
+    // Need at least 6 chars in the title before checking — otherwise we either
+    // hit noise or the user hasn't expressed an intent yet.
+    if (title.trim().length < 6) {
+      setDupQuery('')
+      return
+    }
+    const t = setTimeout(() => setDupQuery(combined), 500)
+    return () => clearTimeout(t)
+  }, [title, description])
+
+  const dupsQ = useQuery({
+    queryKey: ['dup-check', dupQuery],
+    queryFn: () => SearchApi.dupCheck(dupQuery),
+    enabled: dupQuery.length > 0,
+    // The query text rarely changes while the user is reviewing matches; cache
+    // for a minute so toggling between fields doesn't refire.
+    staleTime: 60_000,
+  })
+  // Threshold tuned to "strong match" — looser than the semantic search page
+  // would use because we want to err on the side of warning here.
+  const dups = (dupsQ.data ?? []).filter((d) => d.similarity >= 0.6).slice(0, 3)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -86,6 +117,40 @@ export default function SubmitIdea() {
             />
             <div className="mt-1 text-[11px] text-muted-foreground/70 tabular-nums font-mono">{description.length} / 8000</div>
           </div>
+
+          {dups.length > 0 && (
+            <div className="rounded border border-amber-200 bg-amber-50/60 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+              <div className="flex items-center gap-2 text-[12px] font-semibold text-amber-900 dark:text-amber-200">
+                <AlertCircle size={14} strokeWidth={2} />
+                Ähnliche Ideen existieren bereits
+              </div>
+              <p className="mt-1 text-[12px] text-amber-900/80 dark:text-amber-200/80 leading-relaxed">
+                Bevor Sie einreichen — vielleicht passt einer dieser Vorschläge bereits, oder Sie können
+                Ihre Idee dort als Kommentar anhängen.
+              </p>
+              <ul className="mt-2.5 space-y-1.5">
+                {dups.map((d) => (
+                  <li key={d.id}>
+                    <Link
+                      to={`/ideas/${d.id}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="group flex items-start gap-2 rounded border border-amber-200/60 bg-card px-2.5 py-2 transition-colors hover:border-amber-400 dark:border-amber-900/40"
+                    >
+                      <ArrowRight size={12} strokeWidth={2} className="mt-1 shrink-0 text-amber-700 dark:text-amber-300 transition-transform group-hover:translate-x-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium text-foreground tracking-tight truncate">{d.title}</div>
+                        <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{d.snippet}</div>
+                      </div>
+                      <span className="font-mono text-[11px] text-amber-700 dark:text-amber-300 tabular-nums shrink-0 mt-0.5">
+                        {(d.similarity * 100).toFixed(0)}%
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="category">Kategorie</Label>

@@ -63,11 +63,20 @@ public class GlobalExceptionHandler {
      * Catch-all so unhandled server errors return 500 rather than being escalated to 403 by
      * Spring Security's ExceptionTranslationFilter (which is what happens when an authenticated
      * request throws an unknown exception). The full stack is logged here, not returned.
+     *
+     * Importantly: the response body does NOT include {@code ex.getMessage()} — those messages
+     * are frequently raw JDBC/Hibernate text or NPE call sites that leak internals and look
+     * terrible in toasts. The opaque "Unerwarteter Serverfehler" message plus the {@code traceId}
+     * is what the user sees; the full stack is in the server log under that id.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> unhandled(Exception ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        String traceId = Long.toUnsignedString(System.nanoTime(), 36);
+        log.error("Unhandled exception [traceId={}]: {}", traceId, ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "internal_error", "message", ex.getMessage() == null ? "Server error" : ex.getMessage()));
+                .body(Map.of(
+                        "error", "internal_error",
+                        "message", "Unerwarteter Serverfehler. Bitte erneut versuchen.",
+                        "traceId", traceId));
     }
 }
