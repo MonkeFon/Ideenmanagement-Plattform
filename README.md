@@ -226,14 +226,54 @@ PY
 
 ## Switching to Supabase
 
-1. Create a Supabase project and enable the `vector` extension.
-2. Copy [`backend/src/main/resources/application-supabase.yml.example`](backend/src/main/resources/application-supabase.yml.example) → `application-supabase.yml` and fill in URL + service-role key.
-3. Run with:
-   ```bash
-   mvn spring-boot:run -Dspring-boot.run.profiles=supabase
-   ```
+There are two switchover paths. **Pick Path A unless you have a hard reason to avoid JDBC.**
 
-All services depend on the `DataStore` interface, so no other code changes are needed.
+### Path A — JDBC to Supabase Postgres (recommended)
+
+Supabase is just Postgres + pgvector under the hood, so pointing the existing JDBC datasource at Supabase's connection pooler keeps every feature working — JPA, Flyway, raw pgvector queries, transactions, the lot. **No Java changes; switching is two env vars and a profile flag.**
+
+```bash
+# One-time bootstrap (enables pgvector + runs V1..V8 migrations)
+export SUPABASE_HOST=db.<project-ref>.supabase.co
+export SUPABASE_DB_PASSWORD=...
+bash scripts/supabase-bootstrap.sh
+
+# Run the backend against Supabase
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=supabase-jdbc
+```
+
+The profile is committed at [`backend/src/main/resources/application-supabase-jdbc.yml`](backend/src/main/resources/application-supabase-jdbc.yml) — no `.example` copy step needed. It reads the same `SUPABASE_HOST` / `SUPABASE_DB_PASSWORD` env vars at runtime.
+
+### Path B — PostgREST (no direct JDBC)
+
+Use this only when your deployment can't open a direct Postgres connection (edge runtime, hardened egress). It routes all CRUD through PostgREST (`SupabaseDataStore`) and all vector search through Postgres RPC functions (`SupabaseRpcEmbeddingStore`) defined in [`V8__supabase_rpc.sql`](backend/src/main/resources/db/migration/V8__supabase_rpc.sql).
+
+```bash
+# Bootstrap first (same script — it applies V1..V8 to Supabase regardless of profile)
+bash scripts/supabase-bootstrap.sh
+
+# Configure + run
+cp backend/src/main/resources/application-supabase.yml.example \
+   backend/src/main/resources/application-supabase.yml
+export SUPABASE_URL=https://<project-ref>.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=...
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=supabase
+```
+
+Path B has one known limitation: `netVotes` and `countActiveUsers` fall back to per-row sums in Java because PostgREST has no SQL aggregates by default. Fine for the prototype; replace with an SQL function in production.
+
+### How the switch stays minimal
+
+Every persistence call in the service layer goes through one of two interfaces:
+
+| Interface | JPA implementation | Supabase implementation |
+|-----------|--------------------|------------------------|
+| [`DataStore`](backend/src/main/java/com/ideaplatform/api/service/datastore/DataStore.java) | `JpaDataStore` (Spring Data JPA) | `SupabaseDataStore` (PostgREST) |
+| [`EmbeddingStore`](backend/src/main/java/com/ideaplatform/api/service/embedding/EmbeddingStore.java) | `JdbcEmbeddingStore` (raw JDBC + pgvector) | `SupabaseRpcEmbeddingStore` (PostgREST RPC) |
+
+Both pairs are `@ConditionalOnProperty`-selected via `ideaplatform.datastore.impl` (`jpa` \| `supabase`) and `ideaplatform.embedding.store` (`jdbc` \| `supabase`). The profile files set those — application code never imports a concrete implementation.
 
 ---
 

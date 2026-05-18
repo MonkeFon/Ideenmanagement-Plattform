@@ -2,6 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * shadcn/ui colour tokens, expressed as space-separated RGB triples so they
+ * compose with `<alpha-value>` in tailwind.config.js. Light values on :root,
+ * dark values flip on `html.dark`. The palette is the Linear/Vercel slate
+ * scale we used before — only the names changed to match shadcn's conventions.
+ */
+:root {
+  --background:           255 255 255;
+  --foreground:            15  23  42;   /* slate-900 */
+
+  --card:                 255 255 255;
+  --card-foreground:        15  23  42;
+
+  --popover:              255 255 255;
+  --popover-foreground:     15  23  42;
+
+  --primary:               15  23  42;   /* slate-900 — solid brand */
+  --primary-foreground:   255 255 255;
+
+  --secondary:            248 250 252;   /* slate-50 — quiet surface */
+  --secondary-foreground:  15  23  42;
+
+  --muted:                248 250 252;
+  --muted-foreground:     100 116 139;   /* slate-500 */
+
+  --accent:               241 245 249;   /* slate-100 */
+  --accent-foreground:     15  23  42;
+
+  --destructive:          225  29  72;   /* rose-600 */
+  --destructive-foreground: 255 255 255;
+
+  --border:               226 232 240;   /* slate-200 */
+  --input:                226 232 240;
+  --ring:                 148 163 184;   /* slate-400 */
+
+  --radius: 6px;
+}
+
+html.dark {
+  --background:             2   6  23;   /* slate-950 */
+  --foreground:           241 245 249;   /* slate-100 */
+
+  --card:                  15  23  42;   /* slate-900 */
+  --card-foreground:      241 245 249;
+
+  --popover:               15  23  42;
+  --popover-foreground:   241 245 249;
+
+  --primary:              241 245 249;   /* invert: brand becomes white on dark */
+  --primary-foreground:    15  23  42;
+
+  --secondary:             30  41  59;   /* slate-800 */
+  --secondary-foreground: 241 245 249;
+
+  --muted:                 15  23  42;
+  --muted-foreground:     148 163 184;   /* slate-400 */
+
+  --accent:                30  41  59;
+  --accent-foreground:    241 245 249;
+
+  --destructive:          225  29  72;
+  --destructive-foreground: 255 255 255;
+
+  --border:                30  41  59;   /* slate-800 */
+  --input:                 30  41  59;
+  --ring:                 100 116 139;   /* slate-500 */
+}
+
 @layer base {
   html {
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -13,36 +81,24 @@
   html.dark { color-scheme: dark; }
 
   body {
-    @apply bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+    background-color: rgb(var(--background));
+    color: rgb(var(--foreground));
     font-feature-settings: "cv11", "ss01";
   }
 
   /* Tabular numerals everywhere a number reads as data, not prose. */
-  .tnum, .badge, table, code, .mono { font-variant-numeric: tabular-nums; }
+  .tnum, table, code, .mono { font-variant-numeric: tabular-nums; }
 }
 
+/*
+ * The only hand-written component class that survived the shadcn migration is
+ * `.eyebrow` — it's a typographic motif (uppercase 11px slate label) used in
+ * page headers and card titles. shadcn has no equivalent; keeping it as a
+ * single-purpose utility is simpler than threading a styled component for it.
+ */
 @layer components {
-  .btn        { @apply inline-flex items-center justify-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition select-none; }
-  .btn-primary   { @apply btn bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40
-                        dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200; }
-  .btn-secondary { @apply btn border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-40
-                        dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:border-slate-600 dark:hover:text-slate-100; }
-  .btn-ghost     { @apply btn text-slate-600 hover:bg-slate-100
-                        dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100; }
-  .btn-danger    { @apply btn bg-rose-600 text-white hover:bg-rose-700; }
-
-  .card  { @apply rounded border border-slate-200 bg-white
-                  dark:border-slate-800 dark:bg-slate-900; }
-
-  .input { @apply w-full rounded border border-slate-200 bg-white px-2.5 py-1.5 text-sm placeholder:text-slate-400 focus:border-slate-400 focus:ring-1 focus:ring-slate-300 outline-none transition
-                  dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:focus:border-slate-500 dark:focus:ring-slate-700; }
-  .label   { @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400; }
-  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400; }
-
-  .badge       { @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium tabular-nums; }
-  .badge-blue  { @apply badge bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100; }
-  .badge-gray  { @apply badge bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
-  .badge-green { @apply badge bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300; }
-  .badge-amber { @apply badge bg-amber-50 text-amber-800   dark:bg-amber-950/60   dark:text-amber-300; }
-  .badge-red   { @apply badge bg-rose-50 text-rose-700     dark:bg-rose-950/60    dark:text-rose-300; }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-wider;
+    color: rgb(var(--muted-foreground));
+  }
 }

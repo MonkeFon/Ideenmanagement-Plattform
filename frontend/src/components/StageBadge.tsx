@@ -1,16 +1,20 @@
-import clsx from 'clsx'
+import { Badge } from '@/components/ui/badge'
 import type { Stage } from '@/types/api'
+import type { VariantProps } from 'class-variance-authority'
+import { badgeVariants } from '@/components/ui/badge'
 
-const STYLE: Record<Stage, string> = {
-  DRAFT:              'badge-gray',
-  SUBMITTED:          'badge-blue',
-  UNDER_REVIEW:       'badge-amber',
-  PRIORITIZATION:     'badge-amber',
-  APPROVED:           'badge-green',
-  IN_IMPLEMENTATION:  'badge-blue',
-  DONE:               'badge-green',
-  REJECTED:           'badge-red',
-  ARCHIVED:           'badge-gray',
+type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>
+
+const VARIANT: Record<Stage, BadgeVariant> = {
+  DRAFT:              'gray',
+  SUBMITTED:          'default',
+  UNDER_REVIEW:       'amber',
+  PRIORITIZATION:     'amber',
+  APPROVED:           'green',
+  IN_IMPLEMENTATION:  'default',
+  DONE:               'green',
+  REJECTED:           'red',
+  ARCHIVED:           'gray',
 }
 
 const LABEL: Record<Stage, string> = {
@@ -26,7 +30,7 @@ const LABEL: Record<Stage, string> = {
 }
 
 export default function StageBadge({ stage }: { stage: Stage }) {
-  return <span className={clsx(STYLE[stage])}>{LABEL[stage]}</span>
+  return <Badge variant={VARIANT[stage]}>{LABEL[stage]}</Badge>
 }
 
 export const stageLabels = LABEL

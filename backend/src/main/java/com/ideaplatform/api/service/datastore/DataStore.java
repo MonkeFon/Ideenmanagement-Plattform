@@ -50,6 +50,18 @@ public interface DataStore {
     WorkflowHistory saveWorkflowEvent(WorkflowHistory h);
     List<WorkflowHistory> listWorkflowHistory(UUID ideaId);
 
+    // campaigns — kept here because earlier prototype builds called CampaignRepository
+    // directly from IdeaService and CampaignService, which crashed under the supabase
+    // profile (no JPA context). Routing through DataStore closes the abstraction leak.
+    Optional<Campaign> findCampaign(UUID id);
+    Optional<Campaign> findCampaignByTenantAndId(UUID tenantId, UUID id);
+    List<Campaign> listCampaignsForTenant(UUID tenantId);
+    boolean campaignNameTakenInTenant(UUID tenantId, String name);
+    Campaign saveCampaign(Campaign c);
+    void deleteCampaign(Campaign c);
+    List<Idea> listIdeasInCampaign(UUID tenantId, UUID campaignId);
+    long countIdeasInCampaign(UUID campaignId);
+
     // quota helpers
     long countActiveUsers(UUID tenantId);
     long countIdeasSubmittedSince(UUID tenantId, OffsetDateTime since);

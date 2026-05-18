@@ -20,3 +20,8 @@ spring:
 ideaplatform:
   datastore:
     impl: jpa
+  embedding:
+    # `jdbc` uses raw JdbcTemplate + pgvector — required for JPA mode and for
+    # supabase-jdbc mode. The `supabase` profile flips this to `supabase` to call
+    # PostgREST RPCs instead.
+    store: jdbc

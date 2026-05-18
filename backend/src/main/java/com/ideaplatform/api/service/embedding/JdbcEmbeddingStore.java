@@ -1,9 +1,8 @@
-package com.ideaplatform.api.repo;
+package com.ideaplatform.api.service.embedding;
 
 import com.ideaplatform.api.dto.SimilarIdeaRow;
 import com.ideaplatform.api.dto.SimilarPairRow;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -11,22 +10,21 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Vector search lives outside JPA because Hibernate cannot generate the `<=>` operator.
- * We use raw JDBC against pgvector. The query is tenant-scoped explicitly.
+ * Vector search via raw JDBC + pgvector. Active for both {@code postgres} and
+ * {@code supabase-jdbc} profiles (anything with a real JDBC datasource pointing at a
+ * Postgres + pgvector). Hibernate cannot generate the {@code <=>} operator on its own.
  */
 @Repository
-public class IdeaEmbeddingRepository {
+@ConditionalOnProperty(name = "ideaplatform.embedding.store", havingValue = "jdbc", matchIfMissing = true)
+public class JdbcEmbeddingStore implements EmbeddingStore {
 
     private final JdbcTemplate jdbc;
 
-    @PersistenceContext
-    private EntityManager em;
-
-    public IdeaEmbeddingRepository(JdbcTemplate jdbc) {
+    public JdbcEmbeddingStore(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
-    /** Upserts an embedding. Tenant must match the parent idea (callers guarantee this). */
+    @Override
     public void upsert(UUID ideaId, UUID tenantId, float[] embedding, String model) {
         String vec = toVectorLiteral(embedding);
         jdbc.update("""
@@ -39,10 +37,7 @@ public class IdeaEmbeddingRepository {
             """, ideaId, tenantId, vec, model);
     }
 
-    /**
-     * All similar pairs in a tenant above the threshold. Each unordered pair appears once
-     * (idea_id ordered ascending) so the caller doesn't have to dedupe.
-     */
+    @Override
     public List<SimilarPairRow> findAllSimilarPairs(UUID tenantId, double threshold, int maxPairs) {
         return jdbc.query("""
             SELECT e1.idea_id AS a_id,
@@ -65,10 +60,9 @@ public class IdeaEmbeddingRepository {
             tenantId, threshold, maxPairs);
     }
 
-    /** Top-k most similar ideas to the supplied vector, excluding the source idea itself. */
+    @Override
     public List<SimilarIdeaRow> findSimilar(UUID tenantId, UUID excludeIdeaId, float[] query, int k, double threshold) {
         String vec = toVectorLiteral(query);
-        // cosine distance via `<=>`. similarity = 1 - distance.
         return jdbc.query("""
             SELECT i.id, i.title, i.description, i.stage, i.category,
                    1 - (e.embedding <=> ?::vector) AS similarity

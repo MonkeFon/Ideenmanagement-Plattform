@@ -2,12 +2,9 @@ package com.ideaplatform.api.service;
 
 import com.ideaplatform.api.domain.Campaign;
 import com.ideaplatform.api.domain.Idea;
-import com.ideaplatform.api.domain.Role;
 import com.ideaplatform.api.domain.User;
 import com.ideaplatform.api.dto.CampaignDtos.*;
 import com.ideaplatform.api.dto.IdeaDtos.IdeaResponse;
-import com.ideaplatform.api.repo.CampaignRepository;
-import com.ideaplatform.api.repo.IdeaRepository;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
 import com.ideaplatform.api.tenant.LocaleContext;
@@ -20,25 +17,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * All persistence here goes through {@link DataStore} so the service works under both
+ * {@code postgres} (JPA) and {@code supabase} (PostgREST) profiles without changes.
+ * Authorisation is enforced at the controller via {@code @PreAuthorize}.
+ */
 @Service
 public class CampaignService {
 
-    private final CampaignRepository campaigns;
-    private final IdeaRepository ideas;
-    private final IdeaService ideaService;
     private final DataStore store;
+    private final IdeaService ideaService;
 
-    public CampaignService(CampaignRepository campaigns, IdeaRepository ideas,
-                           IdeaService ideaService, DataStore store) {
-        this.campaigns = campaigns;
-        this.ideas = ideas;
-        this.ideaService = ideaService;
+    public CampaignService(DataStore store, IdeaService ideaService) {
         this.store = store;
+        this.ideaService = ideaService;
     }
 
     public List<CampaignResponse> list(AuthPrincipal me) {
-        List<Campaign> all = campaigns.findByTenantIdOrderByCreatedAtDesc(me.tenantId());
-        // Pre-resolve author names once.
+        List<Campaign> all = store.listCampaignsForTenant(me.tenantId());
         Map<UUID, String> names = new HashMap<>();
         for (Campaign c : all) {
             names.computeIfAbsent(c.getCreatedBy(),
@@ -49,7 +45,7 @@ public class CampaignService {
 
     public CampaignDetailResponse get(UUID id, AuthPrincipal me) {
         Campaign c = mustSeeable(id, me);
-        List<Idea> ideaList = ideas.findByTenantIdAndCampaignIdOrderByCreatedAtDesc(me.tenantId(), id);
+        List<Idea> ideaList = store.listIdeasInCampaign(me.tenantId(), id);
         Map<UUID, String> authorNames = new HashMap<>();
         for (Idea i : ideaList) {
             authorNames.computeIfAbsent(i.getAuthorId(),
@@ -64,8 +60,7 @@ public class CampaignService {
 
     @Transactional
     public CampaignResponse create(CreateCampaignRequest req, AuthPrincipal me) {
-        requireManager(me);
-        if (campaigns.existsByTenantIdAndName(me.tenantId(), req.name())) {
+        if (store.campaignNameTakenInTenant(me.tenantId(), req.name())) {
             throw new IllegalStateException("A campaign with that name already exists in this tenant");
         }
         Campaign c = Campaign.builder()
@@ -77,30 +72,28 @@ public class CampaignService {
                 .endsAt(req.endsAt())
                 .createdBy(me.userId())
                 .build();
-        c = campaigns.save(c);
+        c = store.saveCampaign(c);
         String createdByName = store.findUserById(me.userId()).map(User::getDisplayName).orElse("Unknown");
         return toResponse(c, createdByName);
     }
 
     @Transactional
     public CampaignResponse update(UUID id, UpdateCampaignRequest req, AuthPrincipal me) {
-        requireManager(me);
         Campaign c = mustSeeable(id, me);
         if (req.name() != null) c.setName(req.name());
         if (req.description() != null) c.setDescription(req.description());
         if (req.color() != null) c.setColor(req.color());
         if (req.startsAt() != null) c.setStartsAt(req.startsAt());
         if (req.endsAt() != null) c.setEndsAt(req.endsAt());
-        c = campaigns.save(c);
+        c = store.saveCampaign(c);
         String createdByName = store.findUserById(c.getCreatedBy()).map(User::getDisplayName).orElse("Unknown");
         return toResponse(c, createdByName);
     }
 
     @Transactional
     public void delete(UUID id, AuthPrincipal me) {
-        requireManager(me);
         Campaign c = mustSeeable(id, me);
-        campaigns.delete(c);
+        store.deleteCampaign(c);
     }
 
     private CampaignResponse toResponse(Campaign c, String createdByName) {
@@ -112,18 +105,12 @@ public class CampaignService {
                 c.getStartsAt(), c.getEndsAt(),
                 c.getCreatedBy(), createdByName,
                 c.getCreatedAt(),
-                (int) ideas.countByCampaignId(c.getId())
+                (int) store.countIdeasInCampaign(c.getId())
         );
     }
 
     private Campaign mustSeeable(UUID id, AuthPrincipal me) {
-        return campaigns.findByTenantIdAndId(me.tenantId(), id)
+        return store.findCampaignByTenantAndId(me.tenantId(), id)
                 .orElseThrow(() -> new EntityNotFoundException("Campaign " + id));
-    }
-
-    private void requireManager(AuthPrincipal me) {
-        if (me.role() != Role.INNOVATION_MANAGER && me.role() != Role.ADMIN && me.role() != Role.SUPERADMIN) {
-            throw new IllegalStateException("Only INNOVATION_MANAGER or ADMIN can manage campaigns");
-        }
     }
 }
