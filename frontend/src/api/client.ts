@@ -60,6 +60,7 @@ api.interceptors.response.use(
         status === 403 ? 'Keine Berechtigung'
         : status === 404 ? 'Nicht gefunden'
         : status === 409 ? 'Aktion nicht möglich'
+        : status === 503 ? 'Dienst nicht verfügbar'
         : status >= 500 ? 'Server-Fehler'
         : 'Anfrage fehlgeschlagen'
       toast.error(title, {

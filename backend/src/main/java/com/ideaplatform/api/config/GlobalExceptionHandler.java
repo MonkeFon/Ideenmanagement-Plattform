@@ -1,6 +1,7 @@
 package com.ideaplatform.api.config;
 
 import com.ideaplatform.api.license.LicenseException;
+import com.ideaplatform.api.service.embedding.RagUnavailableException;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> badState(IllegalStateException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("error", "conflict", "message", ex.getMessage()));
+    }
+
+    /**
+     * Ollama (or whichever embedding provider is configured) is unreachable.
+     * 503 + a German message specifically targeted at the user, so the
+     * frontend's toast can read "AI-Dienst nicht erreichbar" instead of the
+     * useless catch-all "Unerwarteter Serverfehler".
+     */
+    @ExceptionHandler(RagUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> ragUnavailable(RagUnavailableException ex) {
+        log.warn("RAG provider unavailable: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", "rag_unavailable", "message", ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

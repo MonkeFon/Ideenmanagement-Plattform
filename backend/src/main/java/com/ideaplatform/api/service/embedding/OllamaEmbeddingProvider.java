@@ -4,11 +4,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 
+import java.net.ConnectException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Free, self-hosted Ollama backend. Default in dev because it requires no API keys.
@@ -37,6 +40,37 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
     @Override public String name()    { return "ollama:" + embedModel; }
     @Override public int dimensions() { return dimensions; }
 
+    /**
+     * Translates the predictable "Ollama isn't running" failure modes into a
+     * dedicated {@link RagUnavailableException} so the global handler can
+     * answer with HTTP 503 + a friendly message. Anything else re-throws
+     * unchanged so genuine bugs still surface as 500s.
+     */
+    private static <T> T orRagUnavailable(java.util.function.Supplier<T> call) {
+        try {
+            return call.get();
+        } catch (WebClientRequestException ex) {
+            // Netty wraps java.net.ConnectException inside its own AnnotatedConnectException.
+            Throwable cause = ex.getCause();
+            if (cause instanceof ConnectException || (cause != null && cause.getClass().getName().contains("ConnectException"))) {
+                throw new RagUnavailableException(
+                        "Ollama ist nicht erreichbar. Bitte den lokalen Ollama-Dienst starten und erneut versuchen.", ex);
+            }
+            if (cause instanceof TimeoutException) {
+                throw new RagUnavailableException(
+                        "Ollama hat zu lange gebraucht. Bitte den Server prüfen und erneut versuchen.", ex);
+            }
+            throw ex;
+        } catch (IllegalStateException ex) {
+            // WebClient.block() wraps a Reactor timeout as IllegalStateException("Timeout on blocking read").
+            if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("timeout")) {
+                throw new RagUnavailableException(
+                        "Ollama hat zu lange gebraucht. Bitte den Server prüfen und erneut versuchen.", ex);
+            }
+            throw ex;
+        }
+    }
+
     @Override
     public float[] embed(String text) {
         // nomic-embed-text uses task prefixes to place query/document vectors in different
@@ -52,12 +86,12 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
 
     private float[] rawEmbed(String prefixedText) {
         @SuppressWarnings("unchecked")
-        Map<String, Object> resp = client.post()
+        Map<String, Object> resp = orRagUnavailable(() -> client.post()
                 .uri("/api/embed")
                 .bodyValue(Map.of("model", embedModel, "input", prefixedText))
                 .retrieve()
                 .bodyToMono(Map.class)
-                .block(Duration.ofSeconds(30));
+                .block(Duration.ofSeconds(30)));
         if (resp == null) throw new IllegalStateException("Ollama returned empty body");
         // Newer endpoint returns {"embeddings": [[...]]}; older returns {"embedding": [...]}
         Object payload = resp.containsKey("embeddings") ? resp.get("embeddings") : resp.get("embedding");
@@ -78,7 +112,7 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
     public String complete(String systemPrompt, String userPrompt, List<String> contextSnippets) {
         String context = String.join("\n---\n", contextSnippets);
         @SuppressWarnings("unchecked")
-        Map<String, Object> resp = client.post()
+        Map<String, Object> resp = orRagUnavailable(() -> client.post()
                 .uri("/api/chat")
                 .bodyValue(Map.of(
                         "model", chatModel,
@@ -99,7 +133,7 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                                                 + "\n\nTask:\n" + userPrompt))))
                 .retrieve()
                 .bodyToMono(Map.class)
-                .block(Duration.ofSeconds(180));
+                .block(Duration.ofSeconds(180)));
         if (resp == null) return "";
         Object m = resp.get("message");
         if (m instanceof Map<?, ?> mm) {
@@ -117,7 +151,7 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
             ollamaMessages.add(Map.of("role", t.role(), "content", t.content()));
         }
         @SuppressWarnings("unchecked")
-        Map<String, Object> resp = client.post()
+        Map<String, Object> resp = orRagUnavailable(() -> client.post()
                 .uri("/api/chat")
                 .bodyValue(Map.of(
                         "model", chatModel,
@@ -130,7 +164,7 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                         "messages", ollamaMessages))
                 .retrieve()
                 .bodyToMono(Map.class)
-                .block(Duration.ofSeconds(180));
+                .block(Duration.ofSeconds(180)));
         if (resp == null) return "";
         Object m = resp.get("message");
         if (m instanceof Map<?, ?> mm) {
