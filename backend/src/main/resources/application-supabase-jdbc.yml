@@ -1,0 +1,41 @@
+# ───────────────────────────────────────────────────────────────────────────────
+# Supabase via JDBC — the recommended "easy" migration path.
+#
+# Supabase Postgres is just Postgres + pgvector, so the simplest, fastest, and
+# most-complete way to use it from this app is to point the existing JDBC
+# DataSource at Supabase's connection pooler. Everything else — JPA, Flyway,
+# raw pgvector queries, vote aggregations, transactions — keeps working
+# unchanged. No bytes of Java code differ between this profile and `postgres`.
+#
+# To run:
+#   1. Get the pooler connection string from your Supabase project:
+#         Settings → Database → Connection pooling → Session mode (port 5432)
+#   2. Export env vars (Bash/zsh):
+#         export SUPABASE_HOST=db.<project-ref>.supabase.co
+#         export SUPABASE_DB_PASSWORD=...
+#   3. mvn spring-boot:run -Dspring-boot.run.profiles=supabase-jdbc
+#
+# Flyway will run V1..V8 against the Supabase database on first boot. Make sure
+# pgvector is enabled in the Supabase SQL editor first:
+#         CREATE EXTENSION IF NOT EXISTS vector;
+# (scripts/supabase-bootstrap.sh does this for you.)
+# ───────────────────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: "jdbc:postgresql://${SUPABASE_HOST}:5432/postgres?sslmode=require"
+    username: postgres
+    password: "${SUPABASE_DB_PASSWORD}"
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+ideaplatform:
+  datastore:
+    impl: jpa
+  embedding:
+    store: jdbc

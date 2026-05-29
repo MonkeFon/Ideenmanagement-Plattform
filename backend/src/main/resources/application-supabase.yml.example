@@ -1,22 +1,43 @@
-# Copy to application-supabase.yml and fill in real values, then run with
-#   --spring.profiles.active=supabase
+# ───────────────────────────────────────────────────────────────────────────────
+# Supabase via PostgREST — the "no JDBC" path.
+#
+# Use this profile when your deployment cannot open a direct Postgres connection
+# (e.g. edge runtime, hardened network egress) and must go through the Supabase
+# REST surface. Otherwise PREFER `application-supabase-jdbc.yml` — it is faster,
+# transactional, and has zero feature gaps.
+#
+# Under this profile:
+#   - All CRUD goes through SupabaseDataStore (PostgREST filters + upserts).
+#   - Vector search goes through SupabaseRpcEmbeddingStore (POST /rpc/...).
+#     The RPC functions are defined in V8__supabase_rpc.sql.
+#   - Flyway is disabled here because there is no JDBC connection to apply
+#     migrations through. Apply the V1..V8 SQL files manually via the Supabase
+#     SQL editor or `psql`, or run `scripts/supabase-bootstrap.sh` once with
+#     SUPABASE_DB_PASSWORD set to do this for you.
+#   - Spring's JPA auto-config is disabled (no DataSource bean).
+#
+# To run:
+#   1. Copy this file to application-supabase.yml and fill in <project-ref>.
+#   2. Export env vars:
+#         export SUPABASE_URL=https://<project-ref>.supabase.co
+#         export SUPABASE_SERVICE_ROLE_KEY=...
+#   3. mvn spring-boot:run -Dspring-boot.run.profiles=supabase
+# ───────────────────────────────────────────────────────────────────────────────
 spring:
-  datasource:
-    # Optional: direct Postgres URL for Flyway migrations against Supabase
-    url: jdbc:postgresql://db.<project-ref>.supabase.co:5432/postgres
-    username: postgres
-    password: "${SUPABASE_DB_PASSWORD:}"
-  jpa:
-    hibernate:
-      ddl-auto: none
-  flyway:
-    enabled: true
+  # No DataSource here — exclude the JDBC auto-config to keep Spring from looking for one.
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
 
 ideaplatform:
   datastore:
     impl: supabase
+  embedding:
+    store: supabase
   supabase:
-    url: "https://<project-ref>.supabase.co"
+    url: "${SUPABASE_URL:https://<project-ref>.supabase.co}"
     service-role-key: "${SUPABASE_SERVICE_ROLE_KEY:}"
     anon-key: "${SUPABASE_ANON_KEY:}"
     schema: "public"

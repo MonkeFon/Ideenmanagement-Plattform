@@ -117,6 +117,33 @@ public class SupabaseDataStore implements DataStore {
         return list("workflow_history", "idea_id=eq." + ideaId + "&order=created_at.asc", WorkflowHistory.class);
     }
 
+    // ---- campaigns ----
+    @Override public Optional<Campaign> findCampaign(UUID id) {
+        return first("campaigns", "id=eq." + id, Campaign.class);
+    }
+    @Override public Optional<Campaign> findCampaignByTenantAndId(UUID tenantId, UUID id) {
+        return first("campaigns", "tenant_id=eq." + tenantId + "&id=eq." + id, Campaign.class);
+    }
+    @Override public List<Campaign> listCampaignsForTenant(UUID tenantId) {
+        return list("campaigns", "tenant_id=eq." + tenantId + "&order=created_at.desc", Campaign.class);
+    }
+    @Override public boolean campaignNameTakenInTenant(UUID tenantId, String name) {
+        // PostgREST has no SELECT-EXISTS shortcut; a limit-1 lookup is sufficient.
+        return !list("campaigns", "tenant_id=eq." + tenantId + "&name=eq." + name + "&limit=1", Campaign.class).isEmpty();
+    }
+    @Override public Campaign saveCampaign(Campaign c) { return upsert("campaigns", c, Campaign.class); }
+    @Override public void deleteCampaign(Campaign c) {
+        client.delete().uri(uri -> uri.path("/campaigns").query("id=eq." + c.getId()).build())
+                .retrieve().toBodilessEntity().block();
+    }
+    @Override public List<Idea> listIdeasInCampaign(UUID tenantId, UUID campaignId) {
+        return list("ideas", "tenant_id=eq." + tenantId + "&campaign_id=eq." + campaignId + "&order=created_at.desc", Idea.class);
+    }
+    @Override public long countIdeasInCampaign(UUID campaignId) {
+        // No PostgREST aggregate by default — fall back to size of a thin list.
+        return list("ideas", "campaign_id=eq." + campaignId + "&select=id", Idea.class).size();
+    }
+
     @Override public long countActiveUsers(UUID tenantId) {
         return list("users", "tenant_id=eq." + tenantId + "&active=is.true", User.class).size();
     }

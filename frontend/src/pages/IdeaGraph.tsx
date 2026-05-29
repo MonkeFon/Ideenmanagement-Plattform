@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { IdeaApi } from '@/api/endpoints'
 import StageBadge, { stageLabels } from '@/components/StageBadge'
 import Spinner from '@/components/Spinner'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import type { GraphEdge, GraphNode, Stage } from '@/types/api'
 import { Network, RefreshCw } from 'lucide-react'
 
@@ -310,17 +312,17 @@ export default function IdeaGraph() {
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="eyebrow">Graph</div>
-          <h1 className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <Network size={18} strokeWidth={1.75} className="text-slate-500 dark:text-slate-400" />
+          <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight flex items-center gap-2">
+            <Network size={18} strokeWidth={1.75} className="text-muted-foreground" />
             Semantische Karte
           </h1>
-          <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-[13px] text-muted-foreground mt-1">
             Verbundene Ideen bilden automatisch Cluster. Ziehen zum Verschieben, klicken zum Öffnen.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="text-[12px] text-slate-600 dark:text-slate-400 flex items-center gap-2">
-            <span className="uppercase tracking-wider text-[11px] text-slate-500 dark:text-slate-400 font-medium">Schwelle</span>
+          <label className="text-[12px] text-muted-foreground flex items-center gap-2">
+            <span className="uppercase tracking-wider text-[11px] text-muted-foreground font-medium">Schwelle</span>
             <input
               type="range"
               min={0.30} max={0.95} step={0.01}
@@ -330,14 +332,14 @@ export default function IdeaGraph() {
             />
             <span className="font-mono text-[11px] w-9 text-right tabular-nums">{(threshold * 100).toFixed(0)}%</span>
           </label>
-          <button className="btn-secondary text-[12px]" onClick={restart} title="Layout neu berechnen">
+          <Button variant="secondary" size="sm" onClick={restart} title="Layout neu berechnen">
             <RefreshCw size={13} strokeWidth={1.75} /> Neu anordnen
-          </button>
+          </Button>
         </div>
       </header>
 
       {/* Stage legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-slate-600 dark:text-slate-400">
+      <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
         {(Object.keys(STAGE_FILL) as Stage[])
           .filter((s) => s !== 'DRAFT')
           .map((s) => (
@@ -348,11 +350,11 @@ export default function IdeaGraph() {
           ))}
       </div>
 
-      <div className="card overflow-hidden">
+      <Card className="overflow-hidden">
         {graphQ.isLoading && <div className="p-8"><Spinner label="Graph wird geladen…" /></div>}
-        {graphQ.error && <div className="p-8 text-sm text-rose-600 dark:text-rose-400">Graph konnte nicht geladen werden.</div>}
+        {graphQ.error && <div className="p-8 text-sm text-destructive">Graph konnte nicht geladen werden.</div>}
         {sim && sim.nodes.length === 0 && (
-          <div className="p-8 text-sm text-slate-500 dark:text-slate-400 text-center">
+          <div className="p-8 text-sm text-muted-foreground text-center">
             Noch keine Ideen darzustellen. Reichen Sie einige Ideen ein (und stellen Sie sicher, dass Embeddings vorhanden sind), damit Beziehungen sichtbar werden.
           </div>
         )}
@@ -444,18 +446,20 @@ export default function IdeaGraph() {
                         strokeWidth={2}
                         className="dark:[stroke:#0f172a]"
                       />
-                      {(hovered === n.id || neighbors.has(n.id) || sim.nodes.length <= 25) && (
-                        <text
-                          y={-r - 6}
-                          textAnchor="middle"
-                          className="fill-slate-800 dark:fill-slate-100"
-                          fontSize={11}
-                          fontWeight={500}
-                          style={{ pointerEvents: 'none' }}
-                        >
-                          {n.title.length > 32 ? n.title.slice(0, 30) + '…' : n.title}
-                        </text>
-                      )}
+                      <text
+                        y={-r - 6}
+                        textAnchor="middle"
+                        className="fill-foreground stroke-background"
+                        fontSize={11}
+                        fontWeight={500}
+                        // paint-order draws the stroke first, so the background-coloured halo
+                        // sits *behind* the glyph fill — letters stay readable when labels
+                        // cross edges or other nodes.
+                        style={{ pointerEvents: 'none', paintOrder: 'stroke', strokeWidth: 3, strokeLinejoin: 'round' }}
+                        opacity={dim ? 0.3 : 1}
+                      >
+                        {n.title.length > 32 ? n.title.slice(0, 30) + '…' : n.title}
+                      </text>
                     </g>
                   )
                 })}
@@ -464,9 +468,9 @@ export default function IdeaGraph() {
 
             {/* Hover detail panel */}
             {hoveredNode && (
-              <div className="absolute top-3 left-3 card p-3 max-w-xs pointer-events-none">
-                <div className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 tracking-tight">{hoveredNode.title}</div>
-                <div className="mt-1.5 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+              <Card className="absolute top-3 left-3 p-3 max-w-xs pointer-events-none">
+                <div className="text-[13px] font-semibold text-foreground tracking-tight">{hoveredNode.title}</div>
+                <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted-foreground">
                   <StageBadge stage={hoveredNode.stage} />
                   {hoveredNode.category && <span>{hoveredNode.category}</span>}
                   {hoveredNode.cluster >= 0 && (
@@ -479,18 +483,18 @@ export default function IdeaGraph() {
                     </span>
                   )}
                 </div>
-                <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                <div className="mt-2 text-[11px] text-muted-foreground tabular-nums">
                   {hoveredNode.netVotes >= 0 ? '+' : ''}{hoveredNode.netVotes} Stimmen · {neighbors.size} verwandt
                 </div>
-              </div>
+              </Card>
             )}
 
-            <div className="absolute bottom-3 right-3 text-[11px] text-slate-500 dark:text-slate-400 bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 px-2 py-1 rounded tabular-nums font-mono">
+            <div className="absolute bottom-3 right-3 text-[11px] text-muted-foreground bg-card/90 border border-border px-2 py-1 rounded tabular-nums font-mono">
               {sim.nodes.length} Knoten · {sim.edges.length} Kanten · {sim.clusterCount} Cluster
             </div>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

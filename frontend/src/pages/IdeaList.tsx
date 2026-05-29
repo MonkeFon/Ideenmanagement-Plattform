@@ -2,8 +2,11 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { IdeaApi, SearchApi } from '@/api/endpoints'
 import IdeaCard from '@/components/IdeaCard'
+import IdeaCardSkeleton from '@/components/IdeaCardSkeleton'
 import StageBadge, { stageLabels } from '@/components/StageBadge'
-import Spinner from '@/components/Spinner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card } from '@/components/ui/card'
 import { Search } from 'lucide-react'
 import type { Stage, SimilarIdea } from '@/types/api'
 import { Link } from 'react-router-dom'
@@ -32,79 +35,78 @@ export default function IdeaList() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="eyebrow">Ideen</div>
-          <h1 className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100 tracking-tight">Alle Ideen</h1>
+          <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Alle Ideen</h1>
         </div>
-        <Link to="/submit" className="btn-primary">Idee einreichen</Link>
+        <Button asChild><Link to="/submit">Idee einreichen</Link></Button>
       </header>
 
-      <form onSubmit={runSearch} className="card p-2 flex flex-wrap items-center gap-2">
-        <Search className="text-slate-400 dark:text-slate-500 hidden sm:block ml-1" size={15} strokeWidth={1.75} />
-        <input
-          className="input flex-1 min-w-[12rem] border-none focus:ring-0 focus:border-transparent px-1 bg-transparent dark:bg-transparent"
-          placeholder="Semantisch suchen — beschreiben Sie ein Konzept, nicht nur Stichworte…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <button className="btn-secondary" type="submit">Suchen</button>
-        {semantic && (
-          <button className="btn-ghost text-[12px]" type="button" onClick={() => { setSemantic(null); setQuery('') }}>
-            Zurücksetzen
-          </button>
-        )}
-      </form>
+      <Card asChild>
+        <form onSubmit={runSearch} className="p-2 flex flex-wrap items-center gap-2">
+          <Search className="text-muted-foreground/70 hidden sm:block ml-1" size={15} strokeWidth={1.75} />
+          <Input
+            className="flex-1 min-w-[12rem] border-none focus-visible:ring-0 focus-visible:ring-offset-0 px-1 bg-transparent"
+            placeholder="Semantisch suchen — beschreiben Sie ein Konzept, nicht nur Stichworte…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <Button variant="secondary" type="submit">Suchen</Button>
+          {semantic && (
+            <Button variant="ghost" size="sm" type="button" onClick={() => { setSemantic(null); setQuery('') }}>
+              Zurücksetzen
+            </Button>
+          )}
+        </form>
+      </Card>
 
       {semantic && (
         <section>
           <div className="eyebrow mb-3">Semantische Treffer</div>
-          {semantic.length === 0 && <div className="card p-5 text-[13px] text-slate-500 dark:text-slate-400">Keine ähnlichen Ideen gefunden.</div>}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {semantic.length === 0 && (
+            <Card className="p-6 text-center">
+              <Search className="mx-auto text-muted-foreground/60" size={20} strokeWidth={1.5} />
+              <div className="mt-2 text-[13px] font-medium text-foreground">Keine ähnlichen Ideen gefunden</div>
+              <p className="mt-1 text-[12px] text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                Versuchen Sie es mit anderen Worten oder beschreiben Sie das Problem aus
+                einer anderen Perspektive. Die Suche findet Konzepte, nicht nur Stichworte.
+              </p>
+            </Card>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {semantic.map((s) => (
-              <Link key={s.id} to={`/ideas/${s.id}`} className="card p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-medium text-slate-900 dark:text-slate-100 text-[14px] tracking-tight">{s.title}</h3>
-                  <span className="font-mono text-[11px] text-slate-900 dark:text-slate-100 tabular-nums">{(s.similarity * 100).toFixed(0)}%</span>
-                </div>
-                <p className="mt-1.5 text-[13px] text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">{s.snippet}</p>
-                <div className="mt-2"><StageBadge stage={s.stage} /></div>
-              </Link>
+              <Card key={s.id} asChild className="p-4 transition-colors hover:border-input">
+                <Link to={`/ideas/${s.id}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-medium text-foreground text-[14px] tracking-tight">{s.title}</h3>
+                    <span className="font-mono text-[11px] text-foreground tabular-nums">{(s.similarity * 100).toFixed(0)}%</span>
+                  </div>
+                  <p className="mt-1.5 text-[13px] text-muted-foreground line-clamp-2 leading-relaxed">{s.snippet}</p>
+                  <div className="mt-2"><StageBadge stage={s.stage} /></div>
+                </Link>
+              </Card>
             ))}
           </div>
         </section>
       )}
 
       <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          className={`text-[12px] rounded px-2.5 py-1 border transition ${
-            !stage
-              ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
-              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100'
-          }`}
-          onClick={() => setStage(undefined)}
-        >
+        <Button size="sm" variant={!stage ? 'default' : 'outline'} onClick={() => setStage(undefined)}>
           Alle
-        </button>
+        </Button>
         {FILTER_STAGES.map((s) => (
-          <button
-            key={s}
-            className={`text-[12px] rounded px-2.5 py-1 border transition ${
-              stage === s
-                ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
-                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100'
-            }`}
-            onClick={() => setStage(s)}
-          >
+          <Button key={s} size="sm" variant={stage === s ? 'default' : 'outline'} onClick={() => setStage(s)}>
             {stageLabels[s]}
-          </button>
+          </Button>
         ))}
       </div>
 
       <section>
-        {ideasQ.isLoading && <Spinner label="Wird geladen…" />}
         {ideasQ.data && ideasQ.data.length === 0 && (
-          <div className="card p-8 text-center text-[13px] text-slate-500 dark:text-slate-400">Noch keine Ideen in diesem Status.</div>
+          <Card className="p-8 text-center text-[13px] text-muted-foreground">Noch keine Ideen in diesem Status.</Card>
         )}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-          {ideasQ.data?.map((i) => <IdeaCard key={i.id} idea={i} />)}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {ideasQ.isLoading
+            ? Array.from({ length: 6 }, (_, i) => <IdeaCardSkeleton key={i} />)
+            : ideasQ.data?.map((i) => <IdeaCard key={i.id} idea={i} />)}
         </div>
       </section>
     </div>

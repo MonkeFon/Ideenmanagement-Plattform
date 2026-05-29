@@ -15,7 +15,7 @@ export default function Spinner({
 }) {
   const stroke = Math.max(1.5, size / 14)
   return (
-    <span className={clsx('inline-flex items-center gap-2 text-slate-500 dark:text-slate-400', className)} role="status">
+    <span className={clsx('inline-flex items-center gap-2 text-muted-foreground', className)} role="status">
       <svg
         width={size}
         height={size}

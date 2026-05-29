@@ -7,6 +7,12 @@ import StageBadge, { stageLabels } from '@/components/StageBadge'
 import RoleGate from '@/components/RoleGate'
 import Spinner, { PageSpinner } from '@/components/Spinner'
 import { useAuth } from '@/store/auth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { ArrowUp, ArrowDown, MessageSquare, Send, Wand2, Star, RotateCcw } from 'lucide-react'
 import type { ChatMessage, Stage } from '@/types/api'
 
@@ -48,14 +54,58 @@ export default function IdeaDetail() {
     qc.invalidateQueries({ queryKey: ['ideas'] })
   }
 
-  const voteM = useMutation({
-    mutationFn: (v: -1 | 1) => IdeaApi.vote(id, v),
-    onSuccess: refresh,
+  /**
+   * Optimistic vote: bump the cached `netVotes` immediately so the click feels
+   * instant, then settle to the server's authoritative count on success or
+   * roll back on failure. The backend is idempotent per (user, idea) so a
+   * second click in the same direction is a no-op and the count snaps back.
+   *
+   * Note: we don't track the user's previous vote here (the API doesn't expose
+   * it via /api/ideas/{id}), so the optimistic update is direction-only —
+   * good enough for the demo "feel instant" experience without faking a
+   * second-vote state we can't actually compute.
+   */
+  const voteM = useMutation<unknown, unknown, -1 | 1, { previous: any }>({
+    mutationFn: (v) => IdeaApi.vote(id, v),
+    onMutate: async (v) => {
+      await qc.cancelQueries({ queryKey: ['idea', id] })
+      const previous = qc.getQueryData(['idea', id])
+      qc.setQueryData(['idea', id], (old: any) =>
+        old ? { ...old, netVotes: old.netVotes + v } : old,
+      )
+      return { previous }
+    },
+    onError: (_err, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(['idea', id], ctx.previous)
+    },
+    onSettled: refresh,
   })
 
-  const commentM = useMutation({
+  const commentM = useMutation<unknown, unknown, void, { previous: any; tempId: string }>({
     mutationFn: () => IdeaApi.addComment(id, comment),
-    onSuccess: () => { setComment(''); refresh() },
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: ['idea', id, 'comments'] })
+      const previous = qc.getQueryData(['idea', id, 'comments'])
+      const tempId = `temp-${Date.now()}`
+      qc.setQueryData(['idea', id, 'comments'], (old: any[] | undefined) => [
+        ...(old ?? []),
+        {
+          id: tempId,
+          ideaId: id,
+          userId: user.id,
+          userName: user.displayName,
+          body: comment,
+          createdAt: new Date().toISOString(),
+        },
+      ])
+      // NB: don't clear the input here — if the post fails, the user keeps what they typed.
+      return { previous, tempId }
+    },
+    onSuccess: () => setComment(''),
+    onError: (_err, _v, ctx) => {
+      if (ctx?.previous !== undefined) qc.setQueryData(['idea', id, 'comments'], ctx.previous)
+    },
+    onSettled: refresh,
   })
 
   const evalM = useMutation({
@@ -132,183 +182,184 @@ export default function IdeaDetail() {
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             <StageBadge stage={idea.stage} />
-            {idea.sponsorBoost && <span className="badge-gray uppercase tracking-wider text-[10px]">gefördert</span>}
+            {idea.sponsorBoost && <Badge variant="gray" className="uppercase tracking-wider text-[10px]">gefördert</Badge>}
             {idea.priorityScore != null && (
-              <span className="font-mono text-[11px] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded px-1.5 py-0.5 tabular-nums">
+              <Badge variant="outline" className="font-mono text-[11px] text-foreground/90 tabular-nums">
                 P {idea.priorityScore.toFixed(2)}
-              </span>
+              </Badge>
             )}
-            {idea.category && <span className="badge-gray">{idea.category}</span>}
+            {idea.category && <Badge variant="gray">{idea.category}</Badge>}
             {idea.campaignId && idea.campaignName && (
-              <Link
-                to={`/campaigns/${idea.campaignId}`}
-                className="inline-flex items-center gap-1.5 text-[11px] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded px-1.5 py-0.5"
-              >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: idea.campaignColor ?? '#6366f1' }} aria-hidden />
-                {idea.campaignName}
+              <Link to={`/campaigns/${idea.campaignId}`}>
+                <Badge variant="outline" className="gap-1.5 text-[11px] text-foreground/90 hover:border-foreground/30">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: idea.campaignColor ?? '#6366f1' }} aria-hidden />
+                  {idea.campaignName}
+                </Badge>
               </Link>
             )}
           </div>
-          <h1 className="mt-3 text-xl md:text-2xl font-semibold text-slate-900 dark:text-slate-100 leading-tight tracking-tight break-words">{idea.title}</h1>
-          <div className="mt-1 text-[12px] text-slate-500 dark:text-slate-400">
-            <span className="text-slate-700 dark:text-slate-300">{idea.authorName}</span>
+          <h1 className="mt-3 text-xl md:text-2xl font-semibold text-foreground leading-tight tracking-tight break-words">{idea.title}</h1>
+          <div className="mt-1 text-[12px] text-muted-foreground">
+            <span className="text-foreground/90">{idea.authorName}</span>
             <span className="mx-1.5 text-slate-300 dark:text-slate-600">·</span>
             <span className="tabular-nums">{new Date(idea.createdAt).toLocaleDateString('de-DE')}</span>
           </div>
         </div>
 
-        <div className="border border-slate-200 dark:border-slate-800 rounded p-1.5 flex sm:flex-col items-center gap-0.5 self-start">
-          <button className="btn-ghost h-7 w-7 p-0" onClick={() => voteM.mutate(1)} title="Hochstimmen"><ArrowUp size={16} strokeWidth={1.75} /></button>
-          <div className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 tabular-nums px-1">{idea.netVotes > 0 ? '+' : ''}{idea.netVotes}</div>
-          <button className="btn-ghost h-7 w-7 p-0" onClick={() => voteM.mutate(-1)} title="Runterstimmen"><ArrowDown size={16} strokeWidth={1.75} /></button>
+        <div className="border border-border rounded p-1.5 flex sm:flex-col items-center gap-0.5 self-start">
+          <Button variant="ghost" size="icon" onClick={() => voteM.mutate(1)} title="Hochstimmen" aria-label="Idee hochstimmen"><ArrowUp size={16} strokeWidth={1.75} /></Button>
+          <div className="text-[13px] font-semibold text-foreground tabular-nums px-1" aria-live="polite" aria-atomic="true">{idea.netVotes > 0 ? '+' : ''}{idea.netVotes}</div>
+          <Button variant="ghost" size="icon" onClick={() => voteM.mutate(-1)} title="Runterstimmen" aria-label="Idee runterstimmen"><ArrowDown size={16} strokeWidth={1.75} /></Button>
         </div>
       </div>
 
-      <p className="mt-6 whitespace-pre-wrap text-[14px] text-slate-700 dark:text-slate-300 leading-relaxed">{idea.description}</p>
+      <p className="mt-6 whitespace-pre-wrap text-[14px] text-foreground/90 leading-relaxed">{idea.description}</p>
 
       <div className="mt-8 grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 space-y-4">
-          <section className="card p-4">
+          <Card className="p-4">
             <div className="eyebrow">Workflow</div>
             <div className="mt-3 flex flex-wrap gap-2">
-              {reachable.length === 0 && <div className="text-[13px] text-slate-500 dark:text-slate-400">Keine weiteren Übergänge.</div>}
+              {reachable.length === 0 && <div className="text-[13px] text-muted-foreground">Keine weiteren Übergänge.</div>}
               {reachable.map((s) => (
-                <button key={s} className="btn-secondary text-[12px]" onClick={() => transitionM.mutate(s)}>
+                <Button key={s} variant="secondary" size="sm" onClick={() => transitionM.mutate(s)}>
                   → {stageLabels[s]}
-                </button>
+                </Button>
               ))}
               <RoleGate allow={['SPONSOR', 'ADMIN']}>
-                <button className="btn-ghost text-[12px]" onClick={() => boostM.mutate(!idea.sponsorBoost)}>
+                <Button variant="ghost" size="sm" onClick={() => boostM.mutate(!idea.sponsorBoost)}>
                   {idea.sponsorBoost ? 'Förderung entfernen' : 'Sponsor-Förderung'}
-                </button>
+                </Button>
               </RoleGate>
             </div>
             {historyQ.data && historyQ.data.length > 0 && (
-              <ol className="mt-4 border-l border-slate-200 dark:border-slate-800 ml-px space-y-2.5">
+              <ol className="mt-4 border-l border-border ml-px space-y-2.5">
                 {historyQ.data.map((h) => (
                   <li key={h.id} className="pl-3 relative">
-                    <span className="absolute -left-[3px] top-[7px] h-1.5 w-1.5 rounded-full bg-slate-900 dark:bg-slate-100" />
-                    <div className="text-[13px] text-slate-800 dark:text-slate-200">
+                    <span className="absolute -left-[3px] top-[7px] h-1.5 w-1.5 rounded-full bg-primary" />
+                    <div className="text-[13px] text-foreground/90">
                       <span className="font-medium">{h.actorName}</span>{' '}
                       verschob {h.fromStage ? stageLabels[h.fromStage] : '—'} → <span className="font-medium">{stageLabels[h.toStage]}</span>
                     </div>
-                    {h.reason && <div className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">{h.reason}</div>}
-                    <div className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 tabular-nums">{new Date(h.createdAt).toLocaleString('de-DE')}</div>
+                    {h.reason && <div className="text-[12px] text-muted-foreground mt-0.5">{h.reason}</div>}
+                    <div className="text-[11px] text-muted-foreground/70 mt-0.5 tabular-nums">{new Date(h.createdAt).toLocaleString('de-DE')}</div>
                   </li>
                 ))}
               </ol>
             )}
-          </section>
+          </Card>
 
           {/* Discussion above Evaluation: same input position regardless of role. */}
-          <section className="card p-4">
+          <Card className="p-4">
             <div className="flex items-center gap-2">
-              <MessageSquare size={14} strokeWidth={1.75} className="text-slate-500 dark:text-slate-400" />
+              <MessageSquare size={14} strokeWidth={1.75} className="text-muted-foreground" />
               <div className="eyebrow">Diskussion</div>
-              <span className="text-[11px] text-slate-400 dark:text-slate-500 tabular-nums ml-auto">{commentsQ.data?.length ?? 0}</span>
+              <span className="text-[11px] text-muted-foreground/70 tabular-nums ml-auto">{commentsQ.data?.length ?? 0}</span>
             </div>
             <div className="mt-3 space-y-3">
               {commentsQ.data?.map((c) => (
                 <div key={c.id} className="text-[13px]">
-                  <div className="font-medium text-slate-900 dark:text-slate-100">{c.userName} <span className="text-slate-400 dark:text-slate-500 font-normal tabular-nums">· {new Date(c.createdAt).toLocaleString('de-DE')}</span></div>
-                  <div className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{c.body}</div>
+                  <div className="font-medium text-foreground">{c.userName} <span className="text-muted-foreground/70 font-normal tabular-nums">· {new Date(c.createdAt).toLocaleString('de-DE')}</span></div>
+                  <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">{c.body}</div>
                 </div>
               ))}
-              {(commentsQ.data?.length ?? 0) === 0 && <div className="text-[13px] text-slate-500 dark:text-slate-400">Noch keine Kommentare.</div>}
+              {(commentsQ.data?.length ?? 0) === 0 && <div className="text-[13px] text-muted-foreground">Noch keine Kommentare.</div>}
             </div>
             <div className="mt-3 flex gap-2">
-              <input
-                className="input flex-1"
+              <Input
+                className="flex-1"
                 placeholder="Kommentar hinzufügen…"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && comment.trim()) commentM.mutate() }}
               />
-              <button className="btn-primary" disabled={!comment.trim() || commentM.isPending} onClick={() => commentM.mutate()}>
+              <Button disabled={!comment.trim() || commentM.isPending} onClick={() => commentM.mutate()}>
                 {commentM.isPending ? <><Spinner size={12} className="text-current" /> Wird gesendet…</> : 'Senden'}
-              </button>
+              </Button>
             </div>
-          </section>
+          </Card>
 
           <RoleGate allow={['REVIEWER', 'INNOVATION_MANAGER', 'ADMIN']}>
-            <section className="card p-4">
+            <Card className="p-4">
               <div className="flex items-center gap-2">
-                <Star size={14} strokeWidth={1.75} className="text-slate-500 dark:text-slate-400" />
+                <Star size={14} strokeWidth={1.75} className="text-muted-foreground" />
                 <div className="eyebrow">Bewertung durch Prüfer</div>
               </div>
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {RATING_AXES.map((a) => (
                   <div key={a.key} className="flex sm:block items-center gap-3">
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium w-24 sm:w-auto shrink-0">{a.label}</div>
+                    <div className="text-[11px] text-muted-foreground font-medium w-24 sm:w-auto shrink-0">{a.label}</div>
                     <div className="sm:mt-1.5 flex gap-1">
                       {[1, 2, 3, 4, 5].map((n) => (
                         <button
                           key={n}
                           onClick={() => setRating({ ...rating, [a.key]: n })}
-                          className={`h-7 w-7 rounded border text-[12px] font-medium tabular-nums transition ${
+                          className={cn(
+                            'h-7 w-7 rounded border text-[12px] font-medium tabular-nums transition-colors',
                             rating[a.key] === n
-                              ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100'
-                          }`}
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background border-input text-muted-foreground hover:text-foreground hover:border-foreground/30',
+                          )}
                         >{n}</button>
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
-              <textarea
-                className="input mt-3 min-h-[72px]"
+              <Textarea
+                className="mt-3 min-h-[72px]"
                 placeholder="Prüfer-Notizen — Teil Ihrer Bewertung, nicht als Kommentar veröffentlicht…"
                 value={rating.notes}
                 onChange={(e) => setRating({ ...rating, notes: e.target.value })}
               />
-              <button className="btn-primary mt-3" onClick={() => evalM.mutate()}>Bewertung speichern</button>
+              <Button className="mt-3" onClick={() => evalM.mutate()}>Bewertung speichern</Button>
 
               {evalsQ.data && evalsQ.data.length > 0 && (
-                <div className="mt-4 space-y-3 border-t border-slate-200 dark:border-slate-800 pt-3">
+                <div className="mt-4 space-y-3 border-t border-border pt-3">
                   {evalsQ.data.map((e) => (
                     <div key={e.id} className="text-[13px]">
-                      <div className="font-medium text-slate-900 dark:text-slate-100">{e.reviewerName}</div>
-                      <div className="text-slate-600 dark:text-slate-400 tabular-nums">
+                      <div className="font-medium text-foreground">{e.reviewerName}</div>
+                      <div className="text-muted-foreground tabular-nums">
                         Wirkung {e.impact} · Machbarkeit {e.feasibility} · Strategie-Fit {e.strategicFit}
-                        <span className="ml-2 font-mono text-slate-900 dark:text-slate-100">Ø {e.average.toFixed(2)}</span>
+                        <span className="ml-2 font-mono text-foreground">Ø {e.average.toFixed(2)}</span>
                       </div>
-                      {e.notes && <div className="text-slate-500 dark:text-slate-400 mt-0.5">"{e.notes}"</div>}
+                      {e.notes && <div className="text-muted-foreground mt-0.5">"{e.notes}"</div>}
                     </div>
                   ))}
                 </div>
               )}
-            </section>
+            </Card>
           </RoleGate>
         </div>
 
         <aside className="space-y-4">
           <RoleGate allow={['INNOVATION_MANAGER', 'REVIEWER', 'ADMIN']}>
-            <section className="card p-4">
+            <Card className="p-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Wand2 size={14} strokeWidth={1.75} className="text-slate-500 dark:text-slate-400" />
+                  <Wand2 size={14} strokeWidth={1.75} className="text-muted-foreground" />
                   <div className="eyebrow">KI-Assistent</div>
                 </div>
                 {aiOpen && (
-                  <button className="btn-ghost text-[11px] -mr-1" onClick={resetAiChat} title="Neues Gespräch beginnen">
+                  <Button variant="ghost" size="sm" className="-mr-1 text-[11px]" onClick={resetAiChat} title="Neues Gespräch beginnen">
                     <RotateCcw size={12} /> Zurücksetzen
-                  </button>
+                  </Button>
                 )}
               </div>
 
               {!aiOpen && (
                 <>
-                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  <p className="text-[13px] text-muted-foreground mt-2 leading-relaxed">
                     Schlägt Verbesserungen auf Basis verwandter Ideen vor und beantwortet anschließend Rückfragen.
                   </p>
-                  <button
-                    className="btn-secondary mt-3 w-full"
+                  <Button
+                    variant="secondary"
+                    className="mt-3 w-full"
                     onClick={startAiChat}
                     disabled={aiBusy}
                   >
                     {aiBusy ? <><Spinner size={12} className="text-current" /> Wird gestartet…</> : 'Diese Idee verfeinern'}
-                  </button>
+                  </Button>
                 </>
               )}
 
@@ -322,16 +373,17 @@ export default function IdeaDetail() {
                 <div className="mt-3 flex flex-col">
                   <div
                     ref={aiScrollRef}
-                    className="border border-slate-200 dark:border-slate-800 rounded bg-slate-50 dark:bg-slate-950 p-2.5 space-y-2 max-h-[28rem] overflow-y-auto"
+                    className="border border-border rounded bg-muted p-2.5 space-y-2 max-h-[28rem] overflow-y-auto"
                   >
                     {aiMessages.map((m, i) => (
                       <div
                         key={i}
-                        className={
+                        className={cn(
+                          'text-[12px] whitespace-pre-wrap rounded p-2 leading-relaxed',
                           m.role === 'assistant'
-                            ? 'text-[12px] whitespace-pre-wrap text-slate-800 bg-white border border-slate-200 rounded p-2 leading-relaxed dark:text-slate-200 dark:bg-slate-900 dark:border-slate-800'
-                            : 'text-[12px] whitespace-pre-wrap text-white bg-slate-900 rounded p-2 ml-6 leading-relaxed dark:text-slate-900 dark:bg-slate-100'
-                        }
+                            ? 'bg-card text-foreground/90 border border-border'
+                            : 'bg-primary text-primary-foreground ml-6',
+                        )}
                       >
                         {m.content}
                       </div>
@@ -340,48 +392,49 @@ export default function IdeaDetail() {
                       <Spinner label="Denkt nach…" className="text-[12px] italic px-2 py-1" />
                     )}
                     {aiError && (
-                      <div className="text-[12px] text-rose-700 bg-rose-50 border border-rose-200 rounded p-2 dark:text-rose-300 dark:bg-rose-950/40 dark:border-rose-900">{aiError}</div>
+                      <div className="text-[12px] text-destructive bg-destructive/10 border border-destructive/30 rounded p-2">{aiError}</div>
                     )}
                   </div>
 
                   <div className="mt-2 flex gap-2">
-                    <input
-                      className="input flex-1"
+                    <Input
+                      className="flex-1"
                       placeholder="Rückfrage stellen…"
                       value={aiInput}
                       onChange={(e) => setAiInput(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage() } }}
                       disabled={aiBusy}
                     />
-                    <button
-                      className="btn-primary"
+                    <Button
                       onClick={sendAiMessage}
                       disabled={aiBusy || !aiInput.trim()}
+                      size="icon"
                       title="Senden"
+                      aria-label="Nachricht an KI-Assistent senden"
                     >
                       <Send size={14} strokeWidth={1.75} />
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
-            </section>
+            </Card>
           </RoleGate>
 
-          <section className="card p-4">
+          <Card className="p-4">
             <div className="eyebrow">Ähnliche Ideen</div>
             <div className="mt-3 space-y-2">
-              {(similarQ.data ?? []).length === 0 && <div className="text-[13px] text-slate-500 dark:text-slate-400">Keine nahen Treffer.</div>}
+              {(similarQ.data ?? []).length === 0 && <div className="text-[13px] text-muted-foreground">Keine nahen Treffer.</div>}
               {similarQ.data?.map((s) => (
-                <a key={s.id} href={`/ideas/${s.id}`} className="block hover:bg-slate-50 dark:hover:bg-slate-800 rounded p-2 -mx-2 transition-colors">
+                <a key={s.id} href={`/ideas/${s.id}`} className="block hover:bg-accent rounded p-2 -mx-2 transition-colors">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-slate-900 dark:text-slate-100 text-[13px] tracking-tight">{s.title}</span>
-                    <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{(s.similarity * 100).toFixed(0)}%</span>
+                    <span className="font-medium text-foreground text-[13px] tracking-tight">{s.title}</span>
+                    <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{(s.similarity * 100).toFixed(0)}%</span>
                   </div>
-                  <div className="text-[12px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">{s.snippet}</div>
+                  <div className="text-[12px] text-muted-foreground line-clamp-2 mt-0.5 leading-relaxed">{s.snippet}</div>
                 </a>
               ))}
             </div>
-          </section>
+          </Card>
         </aside>
       </div>
     </div>

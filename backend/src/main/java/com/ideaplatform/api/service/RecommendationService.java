@@ -7,9 +7,10 @@ import com.ideaplatform.api.dto.IdeaDtos.GraphNode;
 import com.ideaplatform.api.dto.IdeaDtos.IdeaGraphResponse;
 import com.ideaplatform.api.dto.IdeaDtos.SimilarIdeaResponse;
 import com.ideaplatform.api.dto.SimilarPairRow;
-import com.ideaplatform.api.repo.IdeaEmbeddingRepository;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
+import com.ideaplatform.api.service.embedding.EmbeddingStore;
+import com.ideaplatform.api.tenant.LocaleContext;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -26,13 +27,13 @@ public class RecommendationService {
 
     private final DataStore store;
     private final EmbeddingService embeddings;
-    private final IdeaEmbeddingRepository embeddingRepo;
+    private final EmbeddingStore embeddingStore;
 
     public RecommendationService(DataStore store, EmbeddingService embeddings,
-                                 IdeaEmbeddingRepository embeddingRepo) {
+                                 EmbeddingStore embeddingStore) {
         this.store = store;
         this.embeddings = embeddings;
-        this.embeddingRepo = embeddingRepo;
+        this.embeddingStore = embeddingStore;
     }
 
     public List<SimilarIdeaResponse> similarTo(UUID ideaId, AuthPrincipal me) {
@@ -57,11 +58,17 @@ public class RecommendationService {
         Set<UUID> visibleIds = new HashSet<>(visible.size());
         for (Idea i : visible) visibleIds.add(i.getId());
 
+        boolean de = LocaleContext.isGerman();
         List<GraphNode> nodes = visible.stream()
-                .map(i -> new GraphNode(i.getId(), i.getTitle(), i.getStage(), i.getCategory(), store.netVotes(i.getId())))
+                .map(i -> new GraphNode(
+                        i.getId(),
+                        de && i.getTitleDe() != null ? i.getTitleDe() : i.getTitle(),
+                        i.getStage(),
+                        i.getCategory(),
+                        store.netVotes(i.getId())))
                 .toList();
 
-        List<SimilarPairRow> pairs = embeddingRepo.findAllSimilarPairs(me.tenantId(), threshold, MAX_GRAPH_EDGES);
+        List<SimilarPairRow> pairs = embeddingStore.findAllSimilarPairs(me.tenantId(), threshold, MAX_GRAPH_EDGES);
         List<GraphEdge> edges = pairs.stream()
                 .filter(p -> visibleIds.contains(p.aId()) && visibleIds.contains(p.bId()))
                 .map(p -> new GraphEdge(p.aId(), p.bId(), p.similarity()))

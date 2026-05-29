@@ -1,6 +1,7 @@
 package com.ideaplatform.api.config;
 
 import com.ideaplatform.api.license.LicenseException;
+import com.ideaplatform.api.service.embedding.RagUnavailableException;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +51,19 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "conflict", "message", ex.getMessage()));
     }
 
+    /**
+     * Ollama (or whichever embedding provider is configured) is unreachable.
+     * 503 + a German message specifically targeted at the user, so the
+     * frontend's toast can read "AI-Dienst nicht erreichbar" instead of the
+     * useless catch-all "Unerwarteter Serverfehler".
+     */
+    @ExceptionHandler(RagUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> ragUnavailable(RagUnavailableException ex) {
+        log.warn("RAG provider unavailable: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", "rag_unavailable", "message", ex.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> validation(MethodArgumentNotValidException ex) {
         String details = ex.getBindingResult().getFieldErrors().stream()
@@ -63,11 +77,20 @@ public class GlobalExceptionHandler {
      * Catch-all so unhandled server errors return 500 rather than being escalated to 403 by
      * Spring Security's ExceptionTranslationFilter (which is what happens when an authenticated
      * request throws an unknown exception). The full stack is logged here, not returned.
+     *
+     * Importantly: the response body does NOT include {@code ex.getMessage()} — those messages
+     * are frequently raw JDBC/Hibernate text or NPE call sites that leak internals and look
+     * terrible in toasts. The opaque "Unerwarteter Serverfehler" message plus the {@code traceId}
+     * is what the user sees; the full stack is in the server log under that id.
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> unhandled(Exception ex) {
-        log.error("Unhandled exception: {}", ex.getMessage(), ex);
+        String traceId = Long.toUnsignedString(System.nanoTime(), 36);
+        log.error("Unhandled exception [traceId={}]: {}", traceId, ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "internal_error", "message", ex.getMessage() == null ? "Server error" : ex.getMessage()));
+                .body(Map.of(
+                        "error", "internal_error",
+                        "message", "Unerwarteter Serverfehler. Bitte erneut versuchen.",
+                        "traceId", traceId));
     }
 }

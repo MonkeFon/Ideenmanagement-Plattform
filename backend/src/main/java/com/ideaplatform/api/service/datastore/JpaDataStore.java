@@ -23,13 +23,15 @@ public class JpaDataStore implements DataStore {
     private final CommentRepository comments;
     private final EvaluationRepository evals;
     private final WorkflowHistoryRepository history;
+    private final CampaignRepository campaigns;
 
     public JpaDataStore(TenantRepository tenants, PlanRepository plans, UserRepository users,
                         IdeaRepository ideas, VoteRepository votes, CommentRepository comments,
-                        EvaluationRepository evals, WorkflowHistoryRepository history) {
+                        EvaluationRepository evals, WorkflowHistoryRepository history,
+                        CampaignRepository campaigns) {
         this.tenants = tenants; this.plans = plans; this.users = users;
         this.ideas = ideas; this.votes = votes; this.comments = comments;
-        this.evals = evals; this.history = history;
+        this.evals = evals; this.history = history; this.campaigns = campaigns;
     }
 
     @Override public Optional<Tenant> findTenant(UUID id) { return tenants.findById(id); }
@@ -73,6 +75,23 @@ public class JpaDataStore implements DataStore {
 
     @Override public WorkflowHistory saveWorkflowEvent(WorkflowHistory h) { return history.save(h); }
     @Override public List<WorkflowHistory> listWorkflowHistory(UUID ideaId) { return history.findByIdeaIdOrderByCreatedAtAsc(ideaId); }
+
+    @Override public Optional<Campaign> findCampaign(UUID id) { return campaigns.findById(id); }
+    @Override public Optional<Campaign> findCampaignByTenantAndId(UUID tenantId, UUID id) {
+        return campaigns.findByTenantIdAndId(tenantId, id);
+    }
+    @Override public List<Campaign> listCampaignsForTenant(UUID tenantId) {
+        return campaigns.findByTenantIdOrderByCreatedAtDesc(tenantId);
+    }
+    @Override public boolean campaignNameTakenInTenant(UUID tenantId, String name) {
+        return campaigns.existsByTenantIdAndName(tenantId, name);
+    }
+    @Override public Campaign saveCampaign(Campaign c) { return campaigns.save(c); }
+    @Override public void deleteCampaign(Campaign c) { campaigns.delete(c); }
+    @Override public List<Idea> listIdeasInCampaign(UUID tenantId, UUID campaignId) {
+        return ideas.findByTenantIdAndCampaignIdOrderByCreatedAtDesc(tenantId, campaignId);
+    }
+    @Override public long countIdeasInCampaign(UUID campaignId) { return ideas.countByCampaignId(campaignId); }
 
     @Override public long countActiveUsers(UUID tenantId) { return users.countByTenantIdAndActiveTrue(tenantId); }
     @Override public long countIdeasSubmittedSince(UUID tenantId, OffsetDateTime since) {

@@ -3,7 +3,6 @@ package com.ideaplatform.api.service;
 import com.ideaplatform.api.domain.*;
 import com.ideaplatform.api.dto.IdeaDtos.*;
 import com.ideaplatform.api.license.LicenseService;
-import com.ideaplatform.api.repo.CampaignRepository;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
 import com.ideaplatform.api.tenant.LocaleContext;
@@ -25,16 +24,13 @@ public class IdeaService {
     private final LicenseService licenses;
     private final EmbeddingService embeddings;
     private final ScoringService scoring;
-    private final CampaignRepository campaigns;
 
     public IdeaService(DataStore store, LicenseService licenses,
-                       EmbeddingService embeddings, ScoringService scoring,
-                       CampaignRepository campaigns) {
+                       EmbeddingService embeddings, ScoringService scoring) {
         this.store = store;
         this.licenses = licenses;
         this.embeddings = embeddings;
         this.scoring = scoring;
-        this.campaigns = campaigns;
     }
 
     @Transactional
@@ -74,7 +70,7 @@ public class IdeaService {
     /** Validates that the campaign belongs to the caller's tenant. */
     private UUID resolveCampaign(UUID campaignId, AuthPrincipal me) {
         if (campaignId == null) return null;
-        return campaigns.findByTenantIdAndId(me.tenantId(), campaignId)
+        return store.findCampaignByTenantAndId(me.tenantId(), campaignId)
                 .map(Campaign::getId)
                 .orElseThrow(() -> new EntityNotFoundException("Campaign " + campaignId));
     }
@@ -124,7 +120,7 @@ public class IdeaService {
         UUID campaignId = i.getCampaignId();
         String campaignName = null, campaignColor = null;
         if (campaignId != null) {
-            Optional<Campaign> c = campaigns.findById(campaignId);
+            Optional<Campaign> c = store.findCampaign(campaignId);
             if (c.isPresent()) {
                 campaignName = de && c.get().getNameDe() != null ? c.get().getNameDe() : c.get().getName();
                 campaignColor = c.get().getColor();

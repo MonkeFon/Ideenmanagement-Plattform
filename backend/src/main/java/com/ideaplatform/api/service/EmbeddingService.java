@@ -3,8 +3,8 @@ package com.ideaplatform.api.service;
 import com.ideaplatform.api.domain.Idea;
 import com.ideaplatform.api.dto.IdeaDtos.SimilarIdeaResponse;
 import com.ideaplatform.api.dto.SimilarIdeaRow;
-import com.ideaplatform.api.repo.IdeaEmbeddingRepository;
 import com.ideaplatform.api.service.embedding.EmbeddingProvider;
+import com.ideaplatform.api.service.embedding.EmbeddingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,11 +23,11 @@ public class EmbeddingService {
     private static final Logger log = LoggerFactory.getLogger(EmbeddingService.class);
 
     private final EmbeddingProvider provider;
-    private final IdeaEmbeddingRepository embeddings;
+    private final EmbeddingStore embeddings;
     private final int topK;
     private final double similarityThreshold;
 
-    public EmbeddingService(EmbeddingProvider provider, IdeaEmbeddingRepository embeddings,
+    public EmbeddingService(EmbeddingProvider provider, EmbeddingStore embeddings,
                             @Value("${ideaplatform.rag.top-k}") int topK,
                             @Value("${ideaplatform.rag.similarity-threshold}") double threshold) {
         this.provider = provider;

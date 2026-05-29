@@ -37,6 +37,24 @@
 ## Why an interface for the datastore?
 The user requested switchable Postgres ↔ Supabase. JPA is the natural Postgres path, but JPA cannot run against Supabase's PostgREST. Services depend on `DataStore` so we can swap implementations via Spring profile without changing call sites. `JpaDataStore.saveIdea` uses `saveAndFlush` because the embedding insert runs as raw JDBC in the same transaction and needs the `ideas` row to exist in the database (not just the persistence context) before the FK is checked.
 
+`DataStore` covers all entity reads/writes — **including campaigns**. Earlier prototype builds had `IdeaService.resolveCampaign` and `CampaignService.*` call `CampaignRepository` directly, which crashed under the supabase profile (no JPA context). Routing those through `DataStore` closes the abstraction leak; the trade-off is that `DataStore` now has a handful of campaign-shaped methods (`findCampaignByTenantAndId`, `listIdeasInCampaign`, `countIdeasInCampaign`, etc.) that read like a thin repository facade.
+
+### Two pluggable seams, two switchover paths
+
+Two interfaces own all storage I/O. Each has a JPA/JDBC implementation and a Supabase-via-REST implementation, selected by `@ConditionalOnProperty`:
+
+| Interface       | `jpa` / `jdbc` impl       | `supabase` impl                 | Selected by                            |
+|-----------------|---------------------------|---------------------------------|----------------------------------------|
+| `DataStore`     | `JpaDataStore`            | `SupabaseDataStore`             | `ideaplatform.datastore.impl`          |
+| `EmbeddingStore`| `JdbcEmbeddingStore`      | `SupabaseRpcEmbeddingStore`     | `ideaplatform.embedding.store`         |
+
+The PostgREST embedding store calls three SQL functions defined in [`V8__supabase_rpc.sql`](../backend/src/main/resources/db/migration/V8__supabase_rpc.sql): `upsert_idea_embedding`, `match_idea_embeddings`, `idea_embedding_pairs`. PostgREST auto-exposes them as `POST /rpc/<name>`. The same migration runs cleanly against local Postgres too, so flipping back from Supabase mode needs no schema reset.
+
+Switchover paths:
+
+- **`supabase-jdbc`** (recommended): keep JPA + Flyway + `JdbcEmbeddingStore`, just point the JDBC URL at Supabase's connection pooler. Zero code differs from the local-Postgres path.
+- **`supabase`**: no JDBC datasource at all. `SupabaseDataStore` + `SupabaseRpcEmbeddingStore` handle every read/write through PostgREST. Spring's JDBC, JPA, and Flyway autoconfig are excluded; migrations are applied out-of-band by `scripts/supabase-bootstrap.sh`.
+
 ## Tenancy
 - Single shared schema, `tenant_id` on every table.
 - `TenantFilter` (servlet filter) extracts `tenant_id` from the JWT and stores it in `TenantContext` ThreadLocal.

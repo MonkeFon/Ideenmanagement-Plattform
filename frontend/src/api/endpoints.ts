@@ -42,6 +42,16 @@ export const IdeaApi = {
 
 export const SearchApi = {
   semantic: (q: string) => api.get<SimilarIdea[]>('/search', { params: { q } }).then((r) => r.data),
+  // Same endpoint as `semantic` but tagged with `meta.silent` so a background
+  // duplicate-check on the Submit page doesn't spam toasts when the network
+  // hiccups while the user is still typing.
+  dupCheck: (q: string) =>
+    api.get<SimilarIdea[]>('/search', {
+      params: { q },
+      // axios passes unknown config properties through; our response interceptor
+      // reads `config.meta.silent` to suppress the error toast.
+      meta: { silent: true },
+    } as any).then((r) => r.data),
 }
 
 export const WorkflowApi = {
