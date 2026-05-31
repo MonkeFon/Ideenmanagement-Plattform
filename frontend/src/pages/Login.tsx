@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+// Ordered by organisational hierarchy, lowest privilege first:
+// Mitarbeiter → Innovationsmanager → Prüfer → Sponsor → Administrator.
 const DEMO = [
-  { email: 'admin@acme.test',    role: 'Administrator' },
-  { email: 'sponsor@acme.test',  role: 'Sponsor' },
+  { email: 'alice@acme.test',    role: 'Mitarbeiter' },
   { email: 'manager@acme.test',  role: 'Innovationsmanager' },
   { email: 'reviewer@acme.test', role: 'Prüfer' },
-  { email: 'alice@acme.test',    role: 'Mitarbeiter' },
+  { email: 'sponsor@acme.test',  role: 'Sponsor' },
+  { email: 'admin@acme.test',    role: 'Administrator' },
 ]
 
 export default function Login() {

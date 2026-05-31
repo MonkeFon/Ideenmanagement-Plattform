@@ -10,15 +10,22 @@ import java.util.UUID;
 
 public final class IdeaDtos {
 
+    // Minimum lengths keep low-signal junk ("x", "Test", "Moon") out of the corpus.
+    // Embeddings are built from title + description, so trivially short text produces
+    // noisy vectors that pollute semantic search. Enforced on create and on update.
     public record CreateIdeaRequest(
-            @NotBlank @Size(max = 200) String title,
-            @NotBlank @Size(max = 8000) String description,
+            @NotBlank @Size(min = 5, max = 200, message = "Titel muss mindestens 5 Zeichen haben")
+            String title,
+            @NotBlank @Size(min = 30, max = 8000, message = "Beschreibung muss mindestens 30 Zeichen haben")
+            String description,
             @Size(max = 64) String category,
             UUID campaignId) {}
 
     public record UpdateIdeaRequest(
-            @Size(max = 200) String title,
-            @Size(max = 8000) String description,
+            @Size(min = 5, max = 200, message = "Titel muss mindestens 5 Zeichen haben")
+            String title,
+            @Size(min = 30, max = 8000, message = "Beschreibung muss mindestens 30 Zeichen haben")
+            String description,
             @Size(max = 64) String category,
             UUID campaignId) {}
 
