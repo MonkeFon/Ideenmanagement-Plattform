@@ -2,7 +2,7 @@
 
 A multi-tenant, license-gated platform where employees submit innovation ideas, vote on them, route them through a configurable evaluation workflow, and discover related work via RAG + semantic search.
 
-> **Status**: Working prototype. End-to-end functional with bilingual seed data; replace mock providers and tighten security before production use.
+> **Status**: Working prototype. End-to-end functional, German-first UI and seed data; replace mock providers and tighten security before production use.
 
 ---
 
@@ -18,8 +18,8 @@ A multi-tenant, license-gated platform where employees submit innovation ideas, 
 | Embeddings       | Pluggable `EmbeddingProvider`: **Ollama** (default, free, 768d) → OpenAI → Mock   |
 | LLM (refine + chat) | Same `EmbeddingProvider` interface — Ollama `qwen3.5:2b-q4_K_M` by default     |
 | Tenancy          | Per-row `tenant_id`, explicit scoping in repositories                             |
-| Licensing        | `Plan` (Free / Pro / Enterprise) with seat caps, idea quotas, feature flags       |
-| Localization     | Bilingual seed content (EN/DE) selected per request via `X-Content-Lang`          |
+| Licensing        | `Plan` (Free / Pro / Enterprise) with seat caps, idea quotas, feature flags, self-service upgrade |
+| Localization     | German-first. Seed content carries DE translations promoted to canonical; `X-Content-Lang` still negotiates per request and defaults to `de` |
 
 ---
 
@@ -42,7 +42,9 @@ Six roles, each with distinct UI surface and API permissions:
 DRAFT → SUBMITTED → UNDER_REVIEW → PRIORITIZATION → APPROVED → IN_IMPLEMENTATION → DONE
                                   ↘ REJECTED / ARCHIVED
 ```
-Declared in [`IdeaWorkflow.java`](backend/src/main/java/com/ideaplatform/api/workflow/IdeaWorkflow.java). Every transition is gated by (from-stage, to-stage, actor-role). `PRIORITIZATION` requires at least one reviewer evaluation.
+Declared in [`IdeaWorkflow.java`](backend/src/main/java/com/ideaplatform/api/workflow/IdeaWorkflow.java). Every transition is gated by (from-stage, to-stage, actor-role) **server-side**. `PRIORITIZATION` requires at least one reviewer evaluation.
+
+The **Workflow page is a Jira/Trello-style Kanban board**: one column per stage, cards are draggable, and while dragging only the columns the current user is actually allowed to move the card into light up (the rest dim). Drops do an optimistic move and roll back with a toast if the server rejects them. The board route is itself role-gated — `EMPLOYEE`s don't see it (the backend stays the source of truth either way).
 
 ### Composite priority scoring
 ```
@@ -63,6 +65,7 @@ Weights live in `application.yml`; per-tenant overrides are an obvious next step
 - **Prefix-aware embeddings.** For `nomic-embed-text` the document path prepends `search_document: ` and the query path prepends `search_query: ` so vectors live in the right region of the semantic space. Without these prefixes, short queries match generic noise almost as well as relevant ideas. The `EmbeddingProvider` interface exposes `embed()` for stored content and `embedQuery()` for free-text searches; OpenAI and Mock providers leave `embedQuery` as the default delegation.
 - **Top-k similar ideas** sidebar on the idea detail page (cosine, threshold `0.55` for the sidebar — tuned for "highly similar").
 - **Free-text semantic search** on the ideas list page — type a concept, get ranked semantic matches. Uses a lower threshold (`0.45`) than the sidebar so reasonable matches surface even for short queries.
+- **Visibility-filtered results.** Both the similar-ideas sidebar and free-text search exclude `DRAFT`, `REJECTED`, and `ARCHIVED` ideas at the SQL layer. A freshly created idea is embedded immediately while still a private DRAFT, so without this filter its title/snippet would leak into other tenant members' search results even though the detail endpoint 404s for them.
 - **AI refine** button (gated by the `rag_refine` plan feature) retrieves the top-k siblings and asks the LLM for sharpening suggestions, duplicate detection, and a rationale.
 - **Refine chat** — multi-turn follow-ups on the same idea, with the same RAG context kept in the prompt and conversation history passed back on every turn.
 - **Semantic graph view** of all visible ideas: nodes are ideas, edges are pairs above the chosen threshold, and connected components are colored as clusters (convex hulls drawn via Andrew's monotone-chain algorithm). Drag-aware so panning the graph doesn't accidentally navigate.
@@ -76,16 +79,15 @@ Weights live in `application.yml`; per-tenant overrides are an obvious next step
 ### Leaderboard
 Ranks the highest-priority ideas and the most active contributors in the tenant — submissions, votes cast, comments, evaluations. Sourced from `/api/leaderboard`.
 
-### Bilingual content (EN ↔ DE)
-- Seed ideas and campaigns ship with both `title` / `title_de` (and `description` / `description_de`, `name_de`) columns from migration `V7`.
-- A `LocaleFilter` reads the `X-Content-Lang` request header (`en` or `de`) into a `LocaleContext` ThreadLocal that mirrors `TenantContext`.
-- Services that produce `IdeaResponse` / `CampaignResponse` check `LocaleContext.isGerman()` and return the translated field when present; otherwise they fall back to the canonical English column.
-- The frontend `Settings` page exposes a Content Language toggle. Switching invalidates all React-Query caches so lists refetch in the new language. The Axios client always sets the header from the persisted Zustand `useLocale` store.
+### German-first content
+- The platform is **German-first**. The frontend's content locale defaults to `de`, and migration `V10` promotes the seeded German text (`title_de` / `description_de` / `name_de`, added in `V7`) into the canonical `title` / `description` / `name` columns — so a fresh `flyway migrate` reproduces the German dataset everyone demos against, with no manual post-seed step.
+- The i18n plumbing is still in place: a `LocaleFilter` reads the `X-Content-Lang` header into a `LocaleContext` ThreadLocal, and locale-aware services (incl. semantic search/snippets) call `LocaleContext.isGerman()` to prefer the `*_de` column with English fallback. This keeps the door open for re-introducing a language switch later.
+- The end-user Content-Language toggle was **removed** from `Settings` (the app no longer ships user-facing English content); a persisted-store migration coerces any browser still holding `en` to `de`.
 
 ### Theme: dark mode
 - Class-based Tailwind dark mode (`dark` on `<html>`).
 - Flash-free init script in `index.html` reads `localStorage` before the React bundle mounts, so the first paint matches the user's preference.
-- Toggle lives in the `Settings` page (`light` / `dark` / `system`).
+- Toggle (`Hell` / `Dunkel` / `Automatisch`) lives at the bottom of the `Settings` page, plus a quick-cycle button in the top bar.
 
 ### Licensing (server-side enforcement)
 | Plan           | Seats     | Ideas / month | RAG refine | Custom workflow | SSO | Price (demo) |
@@ -95,6 +97,8 @@ Ranks the highest-priority ideas and the most active contributors in the tenant 
 | **Enterprise** | unlimited | unlimited     | ✓         | ✓               | ✓    | custom       |
 
 Violations return **HTTP 402 Payment Required** with `X-License-Reason` header (`seat_limit_reached`, `idea_quota_reached`, `feature_not_in_plan`, `plan_expired`). The frontend surfaces an upgrade banner.
+
+**Self-service plan upgrade.** The `Settings` page renders the three tiers as cards (price, limits, features) with the active plan flagged. The catalogue (`GET /api/subscription/plans`) is readable by any member; switching plans (`PUT /api/subscription/plan`) is restricted to `ADMIN` / `SUPERADMIN`, so only admins see live "Wechseln" buttons. A switch is immediate (the prototype has no payment step — a real billing integration would gate it), renews the 365-day licence window, unlocks the new plan's features instantly, and refreshes the cached profile so the plan badge updates without a re-login.
 
 ### Multi-tenancy
 - One Postgres schema, `tenant_id` on every table.
@@ -169,7 +173,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-On boot, Flyway runs the seven migrations (`V1` schema → `V7` i18n columns + DE translations) and a `CommandLineRunner` resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale). The API binds on `http://localhost:8080`.
+On boot, Flyway runs the migrations (`V1` schema → `V10`; highlights: `V5` campaigns, `V7` i18n columns + DE translations, `V8` Supabase RPCs, `V9` excludes private stages from search, `V10` promotes German to canonical) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
 
 ### 5. Frontend
 
@@ -199,28 +203,16 @@ All seeded users share password `demo1234`.
 
 The login page has a one-click picker for these accounts.
 
-### 7. (Optional) Backfill embeddings for seeded ideas
+### 7. Embeddings are indexed automatically
 
-Seed SQL doesn't go through the service layer, so the ~23 seeded ideas start without vectors and the "similar ideas" sidebar is empty until they're indexed. Either submit a few new ideas (they auto-index) or run a no-op `PATCH` on each existing idea to trigger re-indexing. The script below stays Python-only to avoid shell-escaping bugs on titles that contain quotes/em-dashes:
+You don't need to do anything. On boot the **`EmbeddingBootstrapper`** (step 4) embeds every seeded idea that lacks a vector, so the "similar ideas" sidebar, free-text search, and the graph all work as soon as the backend is up — provided Ollama is reachable. If Ollama was down at boot, just restart the backend once it's healthy and the bootstrapper backfills the gap (it only touches ideas with no embedding).
 
-```bash
-python - <<'PY'
-import json, urllib.request
-def req(m, p, b=None, t=None):
-    r = urllib.request.Request(f"http://localhost:8080{p}",
-        data=json.dumps(b).encode() if b else None, method=m)
-    r.add_header("Content-Type", "application/json")
-    if t: r.add_header("Authorization", f"Bearer {t}")
-    return urllib.request.urlopen(r, timeout=120).read()
-tok = json.loads(req("POST","/api/auth/login",
-        {"email":"admin@testmandant.test","password":"demo1234"}))["token"]
-for i in json.loads(req("GET","/api/ideas",t=tok)):
-    full = json.loads(req("GET", f"/api/ideas/{i['id']}", t=tok))
-    req("PATCH", f"/api/ideas/{full['id']}",
-        {"title":full["title"],"description":full["description"]}, t=tok)
-print("reindex done")
-PY
-```
+### 8. (Optional) Identical seed data for everyone
+
+Two ways to give every teammate the same starting dataset:
+
+- **Migrations + auto-embed (default, version-controlled).** Just clone → migrate → run, as above. `V1..V10` recreate the schema + curated German content; the bootstrapper fills in vectors. No binary blobs in git, model-agnostic.
+- **Snapshot restore (fast, no Ollama needed).** `scripts/seed-snapshot.sh` dumps the live DB — **including the embedding vectors** — to `scripts/seeds/seed.sql`; `scripts/seed-restore.sh` loads it into a fresh DB. Restores a fully working semantic-search/graph demo in seconds even without an embedding model, at the cost of baking in volatile data (votes, timestamps) and tying the vectors to the model that produced them.
 
 ---
 
@@ -233,10 +225,10 @@ There are two switchover paths. **Pick Path A unless you have a hard reason to a
 Supabase is just Postgres + pgvector under the hood, so pointing the existing JDBC datasource at Supabase's connection pooler keeps every feature working — JPA, Flyway, raw pgvector queries, transactions, the lot. **No Java changes; switching is two env vars and a profile flag.**
 
 ```bash
-# One-time bootstrap (enables pgvector + runs V1..V8 migrations)
+# One-time bootstrap (enables pgvector + runs all V1..V10 migrations)
 export SUPABASE_HOST=db.<project-ref>.supabase.co
 export SUPABASE_DB_PASSWORD=...
-bash scripts/supabase-bootstrap.sh
+bash scripts/supabase-bootstrap.sh   # enables pgvector + runs all V1..V10 migrations
 
 # Run the backend against Supabase
 cd backend
@@ -250,7 +242,7 @@ The profile is committed at [`backend/src/main/resources/application-supabase-jd
 Use this only when your deployment can't open a direct Postgres connection (edge runtime, hardened egress). It routes all CRUD through PostgREST (`SupabaseDataStore`) and all vector search through Postgres RPC functions (`SupabaseRpcEmbeddingStore`) defined in [`V8__supabase_rpc.sql`](backend/src/main/resources/db/migration/V8__supabase_rpc.sql).
 
 ```bash
-# Bootstrap first (same script — it applies V1..V8 to Supabase regardless of profile)
+# Bootstrap first (same script — it applies all V1..V10 to Supabase regardless of profile)
 bash scripts/supabase-bootstrap.sh
 
 # Configure + run
@@ -343,8 +335,10 @@ Environment variables consumed by `application.yml`:
 | GET    | `/api/admin/users`                         | List tenant users                         |
 | GET    | `/api/admin/usage`                         | Plan, seats used, ideas this month        |
 | POST   | `/api/admin/users`                         | Invite a user (enforces seat cap)         |
+| GET    | `/api/subscription/plans`                  | Plan catalogue, current plan flagged (any member) |
+| PUT    | `/api/subscription/plan`                   | Change tenant plan `{ "planCode": "PRO" }` (`ADMIN` / `SUPERADMIN`) |
 
-All routes except `/api/auth/login`, `/actuator/health`, `/actuator/info` require a `Bearer` JWT. Locale-aware endpoints honour `X-Content-Lang: en|de` (default: `en`).
+All routes except `/api/auth/login`, `/actuator/health`, `/actuator/info` require a `Bearer` JWT. Locale-aware endpoints honour `X-Content-Lang: en|de` (default: `de`).
 
 ---
 
@@ -354,8 +348,8 @@ All routes except `/api/auth/login`, `/actuator/health`, `/actuator/info` requir
 geistesblitz/
 ├── backend/
 │   └── src/main/java/com/ideaplatform/api/
-│       ├── config/        Exception handler, demo password resetter
-│       ├── controller/    Auth, Idea, Campaign, Leaderboard, Search, Workflow, Admin
+│       ├── config/        Exception handler, demo password resetter, embedding bootstrapper
+│       ├── controller/    Auth, Idea, Campaign, Leaderboard, Search, Workflow, Admin, Subscription
 │       ├── domain/        JPA entities (incl. titleDe/descriptionDe) + enums
 │       ├── dto/           Request/response records
 │       ├── license/       LicenseService, @RequiresFeature aspect
@@ -367,14 +361,15 @@ geistesblitz/
 │       │   └── embedding/ EmbeddingProvider + Ollama / OpenAI / Mock
 │       ├── tenant/        TenantContext + LocaleContext + servlet filters
 │       └── workflow/      IdeaWorkflow state machine
-│   └── src/main/resources/db/migration/   V1..V7 (V5 campaigns, V7 i18n)
+│   └── src/main/resources/db/migration/   V1..V10 (V5 campaigns, V7 i18n, V8 Supabase RPC, V9 search visibility, V10 German-canonical)
 ├── frontend/
 │   └── src/
-│       ├── api/           Axios client (sets X-Content-Lang) + endpoint wrappers
-│       ├── components/    Layout, IdeaCard, StageBadge, RoleGate, Spinner
-│       ├── pages/         Dashboard, IdeaList, IdeaDetail, IdeaGraph,
-│       │                  Leaderboard, Campaigns, CampaignDetail, SubmitIdea,
-│       │                  Workflow, Settings, Admin, Login
+│       ├── api/           Axios client (sets X-Content-Lang, refreshes /auth/me) + endpoint wrappers
+│       ├── components/    Layout (top nav bar), IdeaCard, StageBadge, RoleGate, Spinner, ui/ (shadcn-style primitives)
+│       ├── lib/           permissions, campaign helpers, cn()
+│       ├── pages/         Dashboard (status breakdowns), IdeaList (filterable table),
+│       │                  IdeaDetail, IdeaGraph, Leaderboard, Campaigns, CampaignDetail,
+│       │                  SubmitIdea, Workflow (Kanban board), Settings, Admin, Login
 │       ├── store/         Zustand: auth, theme, locale (all persisted)
 │       └── types/         API DTO types
 ├── docs/                  Architecture, workflow, and licensing deep-dives
@@ -393,9 +388,9 @@ The Java package is still `com.ideaplatform.api` for historical reasons; this is
   docker compose -f scripts/docker-compose.yml up -d postgres
   ```
 - **Ollama returns 404 from the backend, even though `curl` works** — confirm `ollama list` shows `nomic-embed-text` on the same `127.0.0.1:11434` daemon the backend is calling. See the "Port-collision gotcha" above.
-- **Semantic search returns the same 1–2 unrelated results for every query** — embeddings were stored without the `search_document: ` prefix (older builds, or content imported outside the service layer). Re-run the backfill script in step 7 to refresh vectors with the prefixed text.
+- **Semantic search returns no / the same 1–2 unrelated results for every query** — either Ollama was down when the ideas were indexed (restart the backend with Ollama healthy; the `EmbeddingBootstrapper` backfills any missing vectors), or embeddings were stored without the `search_document: ` prefix by an older build (re-embed by `PATCH`-ing the affected ideas, which re-runs them through the service layer).
 - **AI refine takes 30+ seconds and produces only a single sentence** — you're on a Qwen reasoning model without `think: false`. The default `qwen3.5:2b-q4_K_M` plus the existing `"think": false` flag and `num_predict: 256` cap keeps a refine call under ~5–10 s on a CPU-only laptop.
-- **`Embedding indexing failed`** in backend logs — RAG is best-effort; the idea is saved either way. Run the backfill PATCH loop (step 7) once Ollama is healthy.
+- **`Embedding indexing failed`** in backend logs — RAG is best-effort; the idea is saved either way. Once Ollama is healthy, restart the backend and the `EmbeddingBootstrapper` re-indexes anything still missing a vector.
 - **Login returns 401** — the demo password resetter only fires under the `postgres` profile. Either run with that profile (the default) or set `ideaplatform.demo.reset-passwords: false` and seed your own hashes.
 - **`403 Forbidden` on `/api/auth/login` itself** — you posted to `/auth/login` instead of `/api/auth/login`. Spring Security's request matcher only opens the `/api/auth/**` prefix.
 - **Pages render blank after a long idle** — your JWT TTL (480 min) expired. Clear `localStorage` and re-login.
@@ -406,12 +401,11 @@ The Java package is still `com.ideaplatform.api` for historical reasons; this is
 
 - **Tests** — none yet. The service layer has clean seams; JUnit + Testcontainers is the natural pairing.
 - **Idea delete endpoint** — not yet exposed; `DataStore` supports it but `IdeaController` doesn't.
-- **`/api/ideas/{id}/transitions`** — the UI currently shows all reachable stages; it should additionally filter by what the current role can perform.
+- **Plan upgrade has no payment step** — `PUT /api/subscription/plan` switches the tenant immediately. A production build would gate it behind a billing provider (Stripe etc.) and a webhook.
 - **Supabase datastore** — functionally complete but uses per-row sums instead of PostgREST RPCs for `netVotes`. Fine for the prototype; replace with a stored function in production.
 - **`AdminService` duplicate-email check** queries globally, which leaks "email exists" across tenants. Switch to `findByEmailAndTenantId`.
-- **Frontend** — no toast/notification system, no optimistic vote updates, no skeleton loaders.
 - **Campaigns** — no UI to detach an idea from a campaign after the fact (the FE select on Submit only sets the value; `PATCH /api/ideas/{id}` with `campaignId: null` is currently a no-op because the service guards on `!= null`).
-- **Bilingual data** — only the seed rows have DE translations; user-submitted ideas are stored in the language the author typed in and shown as-is regardless of the `X-Content-Lang` preference.
+- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~310 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
 
 ---
 
