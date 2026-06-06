@@ -2,7 +2,7 @@ import { api } from './client'
 import type {
   Campaign, CampaignDetail, ChatMessage, ChatResponse,
   Comment, Evaluation, Idea, IdeaGraph, Leaderboard, LoginResponse, MeResponse,
-  RefineResponse, SimilarIdea, Stage, TenantUsage, WorkflowEvent,
+  PlanOption, RefineResponse, SimilarIdea, Stage, TenantUsage, WorkflowEvent,
 } from '@/types/api'
 
 export const AuthApi = {
@@ -81,4 +81,10 @@ export const AdminApi = {
   invite: (payload: { email: string; displayName: string; password: string; role: string }) =>
     api.post('/admin/users', payload).then((r) => r.data),
   usage: () => api.get<TenantUsage>('/admin/usage').then((r) => r.data),
+}
+
+export const SubscriptionApi = {
+  plans: () => api.get<PlanOption[]>('/subscription/plans').then((r) => r.data),
+  changePlan: (planCode: string) =>
+    api.put<TenantUsage>('/subscription/plan', { planCode }).then((r) => r.data),
 }

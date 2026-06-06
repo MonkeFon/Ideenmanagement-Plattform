@@ -199,7 +199,7 @@ export default function IdeaList() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70" size={15} strokeWidth={1.75} />
             <Input
               className="pl-8"
-              placeholder="Filtern nach Titel, Autor, Kategorie… — Enter für KI-Suche"
+              placeholder="Filtern nach Titel, Autor, Kategorie… — Enter für semantische Suche"
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
@@ -219,9 +219,8 @@ export default function IdeaList() {
             {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
 
-          <Button type="submit" variant="secondary" disabled={searching} className="gap-1.5">
-            <Sparkles size={14} strokeWidth={1.75} />
-            {searching ? 'Suche…' : 'KI-Suche'}
+          <Button type="submit" variant="secondary" disabled={searching} title="Findet Ideen nach Bedeutung (Vektor-Ähnlichkeit), nicht nur nach Stichwort">
+            {searching ? 'Suche…' : 'Suche'}
           </Button>
 
           {anyFilterActive && (
@@ -238,10 +237,10 @@ export default function IdeaList() {
             type="button"
             onClick={clearSemantic}
             className="inline-flex items-center gap-1.5 rounded-full border border-input bg-accent/60 px-2.5 py-1 text-[12px] text-foreground hover:border-ring transition-colors"
-            title="KI-Suche aufheben"
+            title="Semantische Suche aufheben"
           >
             <Sparkles size={12} className="text-amber-500" />
-            KI-Suche: „{semanticQuery}“
+            Suche: „{semanticQuery}“
             <X size={12} className="text-muted-foreground" />
           </button>
         )}

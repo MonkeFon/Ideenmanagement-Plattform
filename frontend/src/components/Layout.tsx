@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/store/auth'
+import { AuthApi } from '@/api/endpoints'
 import { applyTheme, useTheme, type Theme } from '@/store/theme'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import GeistesblitzLogo from '@/components/GeistesblitzLogo'
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { cn } from '@/lib/utils'
 import { WORKFLOW_ROLES, ADMIN_ROLES, hasRole } from '@/lib/permissions'
 import {
@@ -32,15 +32,25 @@ const ROLE_LABEL_DE: Record<string, string> = {
 }
 
 export default function Layout() {
-  const { user, clear } = useAuth()
+  const { user, clear, setUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  useKeyboardShortcuts()
-
   useEffect(() => { setMenuOpen(false) }, [location.pathname])
+
+  // On load, re-sync the cached profile with the server so any server-side change
+  // (tenant rename, role change, display name) self-heals instead of staying stale
+  // in the persisted store until a manual re-login. Silent: a 401 here is handled by
+  // the global response interceptor (clears session + redirects to /login).
+  useEffect(() => {
+    let cancelled = false
+    AuthApi.me()
+      .then((fresh) => { if (!cancelled) setUser(fresh) })
+      .catch(() => { /* interceptor handles auth failures; ignore transient errors */ })
+    return () => { cancelled = true }
+  }, [setUser])
 
   // Keep <html>.dark in sync with the store + OS preference.
   useEffect(() => {

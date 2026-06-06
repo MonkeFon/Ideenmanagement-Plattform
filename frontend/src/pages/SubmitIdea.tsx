@@ -227,7 +227,7 @@ export default function SubmitIdea() {
           <ol className="mt-3 space-y-2 text-[12px] text-muted-foreground leading-relaxed">
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">01</span>
-              <span>Ihre Idee landet im Status <span className="text-foreground">Eingereicht</span> und ist für Ihr Tenant sichtbar.</span>
+              <span>Ihre Idee erhält den Status <span className="text-foreground">Eingereicht</span> und ist für Ihre Organisation sichtbar.</span>
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">02</span>
@@ -235,7 +235,7 @@ export default function SubmitIdea() {
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">03</span>
-              <span>Prüfer bewerten auf Wirkung, Machbarkeit und Strategie-Fit.</span>
+              <span>Prüfer bewerten nach Wirkung, Machbarkeit und strategischer Passung.</span>
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">04</span>

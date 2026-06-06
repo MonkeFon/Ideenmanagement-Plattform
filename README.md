@@ -189,13 +189,13 @@ All seeded users share password `demo1234`.
 
 | Email                | Tenant         | Role                 |
 |----------------------|----------------|----------------------|
-| admin@acme.test      | Acme (Pro)     | `ADMIN`              |
-| sponsor@acme.test    | Acme (Pro)     | `SPONSOR`            |
-| manager@acme.test    | Acme (Pro)     | `INNOVATION_MANAGER` |
-| reviewer@acme.test   | Acme (Pro)     | `REVIEWER`           |
-| alice@acme.test      | Acme (Pro)     | `EMPLOYEE`           |
-| bob@acme.test        | Acme (Pro)     | `EMPLOYEE`           |
-| owner@globex.test    | Globex (Free)  | `ADMIN`              |
+| admin@testmandant.test      | TestMandant (Pro)     | `ADMIN`              |
+| sponsor@testmandant.test    | TestMandant (Pro)     | `SPONSOR`            |
+| manager@testmandant.test    | TestMandant (Pro)     | `INNOVATION_MANAGER` |
+| reviewer@testmandant.test   | TestMandant (Pro)     | `REVIEWER`           |
+| alice@testmandant.test      | TestMandant (Pro)     | `EMPLOYEE`           |
+| bob@testmandant.test        | TestMandant (Pro)     | `EMPLOYEE`           |
+| owner@globex.test           | Globex (Free)         | `ADMIN`              |
 
 The login page has a one-click picker for these accounts.
 
@@ -213,7 +213,7 @@ def req(m, p, b=None, t=None):
     if t: r.add_header("Authorization", f"Bearer {t}")
     return urllib.request.urlopen(r, timeout=120).read()
 tok = json.loads(req("POST","/api/auth/login",
-        {"email":"admin@acme.test","password":"demo1234"}))["token"]
+        {"email":"admin@testmandant.test","password":"demo1234"}))["token"]
 for i in json.loads(req("GET","/api/ideas",t=tok)):
     full = json.loads(req("GET", f"/api/ideas/{i['id']}", t=tok))
     req("PATCH", f"/api/ideas/{full['id']}",

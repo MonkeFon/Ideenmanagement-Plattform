@@ -188,7 +188,7 @@ export default function Workflow() {
                             <MessageSquare size={11} strokeWidth={1.75} /> {idea.commentCount}
                           </span>
                           {idea.sponsorBoost && (
-                            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400" title="Sponsor-Boost">
+                            <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400" title="Vom Sponsor gefördert">
                               <Sparkles size={11} strokeWidth={1.75} />
                             </span>
                           )}

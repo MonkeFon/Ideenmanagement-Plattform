@@ -9,7 +9,14 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Megaphone, Plus, X } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
+import {
+  campaignStatus, STATUS_LABEL, fmtCampaignDate, campaignProgress, daysUntilEnd,
+  type CampaignStatus,
+} from '@/lib/campaign'
+import { Megaphone, Plus, X, Lightbulb, CalendarRange, Infinity as InfinityIcon } from 'lucide-react'
+import type { Campaign } from '@/types/api'
 
 export default function Campaigns() {
   const qc = useQueryClient()
@@ -29,6 +36,10 @@ export default function Campaigns() {
     onError: (err) => setError((err as any)?.response?.data?.message ?? 'Kampagne konnte nicht angelegt werden'),
   })
 
+  const campaigns = q.data ?? []
+  const totalIdeas = campaigns.reduce((s, c) => s + c.ideaCount, 0)
+  const activeCount = campaigns.filter((c) => campaignStatus(c.startsAt, c.endsAt) === 'active').length
+
   return (
     <div className="p-4 md:p-8 space-y-5 max-w-7xl">
       <header className="flex flex-wrap items-center justify-between gap-3">
@@ -45,6 +56,15 @@ export default function Campaigns() {
           </Button>
         </RoleGate>
       </header>
+
+      {/* Overview strip — quick read on the whole portfolio. */}
+      {!q.isLoading && campaigns.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[12px] text-muted-foreground">
+          <span><span className="text-foreground font-semibold tabular-nums">{campaigns.length}</span> Kampagnen</span>
+          <span><span className="text-foreground font-semibold tabular-nums">{activeCount}</span> aktiv</span>
+          <span><span className="text-foreground font-semibold tabular-nums">{totalIdeas}</span> Ideen insgesamt</span>
+        </div>
+      )}
 
       {showForm && (
         <Card className="p-4 space-y-3">
@@ -85,8 +105,23 @@ export default function Campaigns() {
         </Card>
       )}
 
-      {q.isLoading && <Spinner label="Wird geladen…" />}
-      {q.data && q.data.length === 0 && (
+      {q.isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Card key={i} className="p-0 overflow-hidden">
+              <Skeleton className="h-1.5 w-full" />
+              <div className="p-4 space-y-3">
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-full" />
+                <Skeleton className="h-3 w-5/6" />
+                <Skeleton className="h-2 w-full mt-4" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {q.data && campaigns.length === 0 && (
         <Card className="p-8 text-center">
           <Megaphone className="mx-auto text-muted-foreground/70" size={28} strokeWidth={1.5} />
           <div className="mt-2 text-[14px] font-medium text-foreground">Noch keine Kampagnen</div>
@@ -95,36 +130,82 @@ export default function Campaigns() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {q.data?.map((c) => {
-          const now = Date.now()
-          const ends = c.endsAt ? new Date(c.endsAt).getTime() : null
-          const active = (!ends || ends > now)
-          return (
-            <Card key={c.id} asChild className="p-4 transition-colors hover:border-input">
-              <Link to={`/campaigns/${c.id}`}>
-                <div className="flex items-start gap-3">
-                  <span
-                    className="mt-1 h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: c.color }}
-                    aria-hidden
-                  />
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-[14px] font-semibold text-foreground tracking-tight">{c.name}</h2>
-                    <p className="mt-1 text-[12px] text-muted-foreground line-clamp-2 leading-relaxed">{c.description}</p>
-                  </div>
-                  {!active && (
-                    <Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase text-muted-foreground/70">beendet</Badge>
-                  )}
-                </div>
-                <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
-                  <span><span className="text-foreground font-medium">{c.ideaCount}</span> Ideen</span>
-                  <span>von {c.createdByName}</span>
-                </div>
-              </Link>
-            </Card>
-          )
-        })}
+        {campaigns.map((c) => <CampaignPreviewCard key={c.id} c={c} />)}
       </div>
     </div>
   )
+}
+
+function CampaignPreviewCard({ c }: { c: Campaign }) {
+  const status = campaignStatus(c.startsAt, c.endsAt)
+  const pct = campaignProgress(c.startsAt, c.endsAt)
+  const daysLeft = daysUntilEnd(c.endsAt)
+
+  return (
+    <Card asChild className="p-0 overflow-hidden transition-colors hover:border-input">
+      <Link to={`/campaigns/${c.id}`} className="block">
+        {/* Colour accent band keeps the campaign's identity visible at a glance. */}
+        <div className="h-1.5" style={{ backgroundColor: c.color }} aria-hidden />
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2.5 min-w-0">
+              <span className="mt-1 h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} aria-hidden />
+              <h2 className="text-[14px] font-semibold text-foreground tracking-tight leading-snug min-w-0">{c.name}</h2>
+            </div>
+            <StatusBadge status={status} />
+          </div>
+
+          <p className="mt-2 text-[12px] text-muted-foreground line-clamp-2 leading-relaxed">{c.description}</p>
+
+          {/* Timeline preview */}
+          <div className="mt-3.5">
+            {pct !== null ? (
+              <>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${pct}%`, backgroundColor: status === 'ended' ? '#94a3b8' : c.color }}
+                  />
+                </div>
+                <div className="mt-1.5 flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
+                  <span>{fmtCampaignDate(c.startsAt!)} – {fmtCampaignDate(c.endsAt!)}</span>
+                  {status === 'active' && daysLeft !== null && daysLeft >= 0 && (
+                    <span className="text-foreground font-medium">noch {daysLeft} {daysLeft === 1 ? 'Tag' : 'Tage'}</span>
+                  )}
+                  {status === 'ended' && <span>beendet</span>}
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                {c.startsAt || c.endsAt
+                  ? <><CalendarRange size={12} strokeWidth={1.75} />{timelinePartial(c)}</>
+                  : <><InfinityIcon size={12} strokeWidth={1.75} /> Läuft offen — kein festes Enddatum</>}
+              </div>
+            )}
+          </div>
+
+          {/* Footer: idea count + creator */}
+          <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5 text-foreground">
+              <Lightbulb size={13} strokeWidth={1.75} className="text-muted-foreground" />
+              <span className="font-semibold tabular-nums">{c.ideaCount}</span>
+              <span className="font-normal text-muted-foreground">{c.ideaCount === 1 ? 'Idee' : 'Ideen'}</span>
+            </span>
+            <span className="truncate max-w-[10rem]">von {c.createdByName}</span>
+          </div>
+        </div>
+      </Link>
+    </Card>
+  )
+}
+
+function timelinePartial(c: Campaign): string {
+  if (c.startsAt && !c.endsAt) return `seit ${fmtCampaignDate(c.startsAt)}`
+  if (!c.startsAt && c.endsAt) return `bis ${fmtCampaignDate(c.endsAt)}`
+  return ''
+}
+
+function StatusBadge({ status }: { status: CampaignStatus }) {
+  const variant = status === 'active' ? 'green' : status === 'planned' ? 'amber' : 'gray'
+  return <Badge variant={variant} className="shrink-0">{STATUS_LABEL[status]}</Badge>
 }

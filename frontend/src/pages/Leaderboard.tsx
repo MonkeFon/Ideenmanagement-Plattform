@@ -85,7 +85,7 @@ export default function Leaderboard() {
                     </div>
                     <div className="text-right shrink-0 tabular-nums">
                       {i.priorityScore != null && (
-                        <div className="font-mono text-[13px] text-foreground" title="Prioritäts-Score">{i.priorityScore.toFixed(2)}</div>
+                        <div className="font-mono text-[13px] text-foreground" title="Prioritätswert">{i.priorityScore.toFixed(2)}</div>
                       )}
                       <div className="text-[11px] text-muted-foreground flex items-center gap-2 justify-end mt-0.5">
                         <span className="inline-flex items-center gap-1"><ArrowUp size={11} strokeWidth={2} />{i.netVotes}</span>
@@ -134,13 +134,13 @@ export default function Leaderboard() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="font-mono tabular-nums text-[13px] text-foreground">{c.score}</div>
-                    <div className="eyebrow text-[10px] mt-0.5">Score</div>
+                    <div className="eyebrow text-[10px] mt-0.5">Punkte</div>
                   </div>
                 </li>
               ))}
             </ol>
             <footer className="px-4 py-2 border-t border-border text-[10px] text-muted-foreground/70 font-mono uppercase tracking-wider">
-              Score = 5·Ideen + Stimmen + Kommentare + 2·Bewertungen
+Punkte = 5·Ideen + Stimmen + Kommentare + 2·Bewertungen
             </footer>
           </Card>
         </div>

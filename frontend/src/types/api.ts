@@ -182,3 +182,13 @@ export interface TenantUsage {
   priceEur: number
   licenseValid: boolean
 }
+
+export interface PlanOption {
+  code: string
+  displayName: string
+  seatLimit: number | null
+  ideaLimit: number | null
+  features: string[]
+  priceEur: number
+  current: boolean
+}

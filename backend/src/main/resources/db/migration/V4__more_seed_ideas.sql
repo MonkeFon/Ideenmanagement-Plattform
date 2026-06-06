@@ -1,6 +1,6 @@
 -- Extra demo ideas, organised as four loose semantic clusters plus three outliers.
 -- The clustering is intentional so the /graph view shows visible groups once embeddings are indexed.
--- All belong to the Acme tenant; authors are drawn from the seven seeded users.
+-- All belong to the TestMandant tenant; authors are drawn from the seven seeded users.
 --
 -- Cluster 1 (Onboarding & training):     ccccccc2-...-001..003
 -- Cluster 2 (Developer productivity):    ccccccc2-...-004..006

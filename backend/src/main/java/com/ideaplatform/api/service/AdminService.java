@@ -66,6 +66,46 @@ public class AdminService {
         );
     }
 
+    // Display order by tier (Enterprise is €0 in the seed, so price alone would wrongly
+    // place it between Free and Pro). Unknown codes sort last.
+    private static final List<String> PLAN_TIER_ORDER = List.of("FREE", "PRO", "ENTERPRISE");
+
+    /** The plan catalogue, ordered by tier, with the tenant's current plan flagged. */
+    public List<PlanResponse> listPlans(AuthPrincipal me) {
+        Tenant t = store.findTenant(me.tenantId()).orElseThrow();
+        String currentCode = t.getPlan().getCode();
+        return store.listPlans().stream()
+                .sorted(java.util.Comparator.comparingInt(p -> {
+                    int i = PLAN_TIER_ORDER.indexOf(((Plan) p).getCode());
+                    return i < 0 ? Integer.MAX_VALUE : i;
+                }))
+                .map(p -> new PlanResponse(
+                        p.getCode(), p.getDisplayName(),
+                        p.getSeatLimit(), p.getIdeaLimit(),
+                        p.getFeatures(), p.getPriceEur(),
+                        p.getCode().equals(currentCode)))
+                .toList();
+    }
+
+    /**
+     * Change the tenant's subscription plan. Admin-gated at the controller. Renews the
+     * licence window so a freshly chosen plan is immediately valid. (A real billing
+     * integration would gate this on payment; for the prototype the switch is immediate.)
+     */
+    @Transactional
+    public TenantUsageResponse changePlan(String planCode, AuthPrincipal me) {
+        Tenant t = store.findTenant(me.tenantId()).orElseThrow();
+        Plan target = store.findPlanByCode(planCode)
+                .orElseThrow(() -> new IllegalArgumentException("Unbekannter Tarif: " + planCode));
+        if (t.getPlan().getCode().equals(target.getCode())) {
+            throw new IllegalStateException("Tarif " + target.getDisplayName() + " ist bereits aktiv.");
+        }
+        t.setPlan(target);
+        t.setPlanExpiresAt(OffsetDateTime.now(ZoneOffset.UTC).plusDays(365));
+        store.saveTenant(t);
+        return usage(me);
+    }
+
     private UserResponse toResponse(User u) {
         return new UserResponse(u.getId(), u.getEmail(), u.getDisplayName(), u.getRole(), u.isActive());
     }
