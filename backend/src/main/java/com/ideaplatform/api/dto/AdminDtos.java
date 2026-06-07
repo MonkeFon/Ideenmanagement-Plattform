@@ -30,4 +30,16 @@ public final class AdminDtos {
             List<String> features,
             BigDecimal priceEur,
             boolean licenseValid) {}
+
+    /** One plan in the catalogue, with a flag for the tenant's current plan. */
+    public record PlanResponse(
+            String code,
+            String displayName,
+            Integer seatLimit,
+            Integer ideaLimit,
+            List<String> features,
+            BigDecimal priceEur,
+            boolean current) {}
+
+    public record ChangePlanRequest(@NotBlank String planCode) {}
 }

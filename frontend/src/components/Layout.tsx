@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/store/auth'
+import { AuthApi } from '@/api/endpoints'
 import { applyTheme, useTheme, type Theme } from '@/store/theme'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import GeistesblitzLogo from '@/components/GeistesblitzLogo'
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { cn } from '@/lib/utils'
+import { WORKFLOW_ROLES, ADMIN_ROLES, hasRole } from '@/lib/permissions'
 import {
   LayoutDashboard, ListChecks, Network, Trophy, Megaphone,
   Settings as SettingsIcon, Shield, GitBranch, LogOut, Pencil, Menu, X,
@@ -31,15 +32,25 @@ const ROLE_LABEL_DE: Record<string, string> = {
 }
 
 export default function Layout() {
-  const { user, clear } = useAuth()
+  const { user, clear, setUser } = useAuth()
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  useKeyboardShortcuts()
-
   useEffect(() => { setMenuOpen(false) }, [location.pathname])
+
+  // On load, re-sync the cached profile with the server so any server-side change
+  // (tenant rename, role change, display name) self-heals instead of staying stale
+  // in the persisted store until a manual re-login. Silent: a 401 here is handled by
+  // the global response interceptor (clears session + redirects to /login).
+  useEffect(() => {
+    let cancelled = false
+    AuthApi.me()
+      .then((fresh) => { if (!cancelled) setUser(fresh) })
+      .catch(() => { /* interceptor handles auth failures; ignore transient errors */ })
+    return () => { cancelled = true }
+  }, [setUser])
 
   // Keep <html>.dark in sync with the store + OS preference.
   useEffect(() => {
@@ -53,8 +64,6 @@ export default function Layout() {
 
   if (!user) return null
 
-  const can = (...roles: string[]) => roles.includes(user.role)
-
   type NavItem = { to: string; label: string; icon: JSX.Element; show: boolean }
   const navWork: NavItem[] = [
     { to: '/',            label: 'Übersicht',  icon: <LayoutDashboard size={16} strokeWidth={1.75} />, show: true },
@@ -65,12 +74,33 @@ export default function Layout() {
     { to: '/submit',      label: 'Einreichen', icon: <Pencil size={16} strokeWidth={1.75} />,          show: true },
   ]
   const navAdmin: NavItem[] = [
-    { to: '/workflow', label: 'Workflow',      icon: <GitBranch size={16} strokeWidth={1.75} />,   show: can('INNOVATION_MANAGER','REVIEWER','SPONSOR','ADMIN','SUPERADMIN') },
+    { to: '/workflow', label: 'Workflow',      icon: <GitBranch size={16} strokeWidth={1.75} />,   show: hasRole(user.role, WORKFLOW_ROLES) },
     { to: '/settings', label: 'Einstellungen', icon: <SettingsIcon size={16} strokeWidth={1.75} />, show: true },
-    { to: '/admin',    label: 'Admin',         icon: <Shield size={16} strokeWidth={1.75} />,       show: can('ADMIN','SUPERADMIN') },
+    { to: '/admin',    label: 'Admin',         icon: <Shield size={16} strokeWidth={1.75} />,       show: hasRole(user.role, ADMIN_ROLES) },
   ]
 
-  const renderItem = (n: NavItem) => (
+  // Horizontal item for the top bar (≥xl).
+  const renderTopItem = (n: NavItem) => (
+    <NavLink
+      key={n.to}
+      to={n.to}
+      end={n.to === '/'}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-sm font-medium whitespace-nowrap transition-colors',
+          isActive
+            ? 'bg-accent text-accent-foreground'
+            : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
+        )
+      }
+    >
+      {n.icon}
+      {n.label}
+    </NavLink>
+  )
+
+  // Vertical item for the mobile drop-down panel (<xl).
+  const renderMenuItem = (n: NavItem) => (
     <NavLink
       key={n.to}
       to={n.to}
@@ -89,59 +119,37 @@ export default function Layout() {
     </NavLink>
   )
 
-  const sidebar = (
-    <aside
-      className={cn(
-        'w-56 shrink-0 border-r border-border bg-background flex flex-col',
-        'fixed inset-y-0 left-0 z-40 transition-transform md:static md:translate-x-0',
-        menuOpen ? 'translate-x-0 shadow-overlay' : '-translate-x-full md:translate-x-0',
-      )}
-    >
-      <div className="px-4 py-3 border-b border-border space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-background">
+        <div className="flex items-center gap-3 h-14 px-3 md:px-4">
+          {/* Brand */}
+          <div className="flex items-center gap-2 shrink-0">
             <div className="h-8 w-8 rounded bg-primary grid place-items-center text-primary-foreground shrink-0">
               <GeistesblitzLogo size={22} />
             </div>
             <span className="font-semibold text-base tracking-tight text-foreground">geistesblitz</span>
+            <div className="hidden xl:flex items-center gap-2 pl-3 ml-1 border-l border-border text-[11px]">
+              <span className="text-muted-foreground truncate max-w-[10rem]" title={user.tenantName}>{user.tenantName}</span>
+              <Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase shrink-0 text-muted-foreground">
+                {user.tenantPlan}
+              </Badge>
+            </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden -mr-1.5"
-            onClick={() => setMenuOpen(false)}
-            title="Menü schließen"
-            aria-label="Menü schließen"
-          >
-            <X size={16} />
-          </Button>
-        </div>
-        <div className="flex items-center justify-between gap-2 text-[11px]">
-          <span className="text-muted-foreground truncate" title={user.tenantName}>{user.tenantName}</span>
-          <Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase shrink-0 text-muted-foreground">
-            {user.tenantPlan}
-          </Badge>
-        </div>
-      </div>
-      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-3">
-        <div>
-          <div className="px-2.5 mb-1 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/70">Arbeit</div>
-          <div className="space-y-0.5">{navWork.filter((n) => n.show).map(renderItem)}</div>
-        </div>
-        {navAdmin.some((n) => n.show) && (
-          <div>
-            <div className="px-2.5 mb-1 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/70">Verwaltung</div>
-            <div className="space-y-0.5">{navAdmin.filter((n) => n.show).map(renderItem)}</div>
-          </div>
-        )}
-      </nav>
-      <div className="border-t border-border p-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-foreground truncate">{user.displayName}</div>
-            <div className="text-[12px] text-muted-foreground truncate">{ROLE_LABEL_DE[user.role] ?? user.role}</div>
-          </div>
-          <div className="flex items-center gap-0.5">
+
+          {/* Primary nav (desktop) */}
+          <nav className="hidden xl:flex items-center gap-0.5 flex-1 min-w-0">
+            {navWork.filter((n) => n.show).map(renderTopItem)}
+            {navAdmin.some((n) => n.show) && <div className="mx-1.5 h-5 w-px bg-border shrink-0" aria-hidden />}
+            {navAdmin.filter((n) => n.show).map(renderTopItem)}
+          </nav>
+
+          {/* Right cluster */}
+          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+            <div className="hidden sm:block text-right min-w-0 mr-0.5">
+              <div className="text-sm font-semibold text-foreground truncate max-w-[10rem]">{user.displayName}</div>
+              <div className="hidden xl:block text-[12px] text-muted-foreground truncate leading-tight">{ROLE_LABEL_DE[user.role] ?? user.role}</div>
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -154,54 +162,78 @@ export default function Layout() {
             <Button
               variant="ghost"
               size="icon"
+              className="hidden xl:inline-flex"
               onClick={() => { clear(); navigate('/login') }}
               title="Abmelden"
               aria-label="Abmelden"
             >
               <LogOut size={16} />
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="xl:hidden"
+              onClick={() => setMenuOpen((o) => !o)}
+              title={menuOpen ? 'Menü schließen' : 'Menü öffnen'}
+              aria-label={menuOpen ? 'Menü schließen' : 'Menü öffnen'}
+              aria-expanded={menuOpen}
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </Button>
           </div>
         </div>
-      </div>
-    </aside>
-  )
 
-  return (
-    <div className="min-h-screen flex bg-background">
-      {sidebar}
+        {/* Collapsed nav (mobile / tablet) */}
+        {menuOpen && (
+          <div className="xl:hidden border-t border-border bg-background px-2 py-3 space-y-3 shadow-overlay">
+            <div className="flex items-center justify-between gap-2 px-2.5 text-[11px]">
+              <span className="text-muted-foreground truncate" title={user.tenantName}>{user.tenantName}</span>
+              <Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase shrink-0 text-muted-foreground">
+                {user.tenantPlan}
+              </Badge>
+            </div>
+            <div>
+              <div className="px-2.5 mb-1 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/70">Arbeit</div>
+              <div className="space-y-0.5">{navWork.filter((n) => n.show).map(renderMenuItem)}</div>
+            </div>
+            {navAdmin.some((n) => n.show) && (
+              <div>
+                <div className="px-2.5 mb-1 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/70">Verwaltung</div>
+                <div className="space-y-0.5">{navAdmin.filter((n) => n.show).map(renderMenuItem)}</div>
+              </div>
+            )}
+            <div className="border-t border-border pt-3 flex items-center justify-between gap-2 px-1">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-foreground truncate">{user.displayName}</div>
+                <div className="text-[12px] text-muted-foreground truncate">{ROLE_LABEL_DE[user.role] ?? user.role}</div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2"
+                onClick={() => { clear(); navigate('/login') }}
+                title="Abmelden"
+                aria-label="Abmelden"
+              >
+                <LogOut size={16} /> Abmelden
+              </Button>
+            </div>
+          </div>
+        )}
+      </header>
 
+      {/* Backdrop closes the mobile menu */}
       {menuOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/40 z-30 md:hidden"
+          className="fixed inset-0 top-14 z-30 bg-slate-900/40 xl:hidden"
           onClick={() => setMenuOpen(false)}
           aria-hidden
         />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden sticky top-0 z-20 flex items-center justify-between gap-2 px-3 h-14 border-b border-border bg-background">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMenuOpen(true)}
-            title="Menü öffnen"
-            aria-label="Menü öffnen"
-          >
-            <Menu size={20} />
-          </Button>
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded bg-primary grid place-items-center text-primary-foreground shrink-0">
-              <GeistesblitzLogo size={20} />
-            </div>
-            <span className="font-semibold text-base tracking-tight text-foreground">geistesblitz</span>
-          </div>
-          <span className="text-sm font-medium text-foreground truncate max-w-[8rem]">{user.displayName}</span>
-        </header>
-
-        <main className="flex-1 overflow-auto bg-background">
-          <Outlet />
-        </main>
-      </div>
+      <main className="flex-1 overflow-auto bg-background">
+        <Outlet />
+      </main>
     </div>
   )
 }

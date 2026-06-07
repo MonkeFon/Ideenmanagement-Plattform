@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { IdeaApi } from '@/api/endpoints'
@@ -130,6 +130,91 @@ function expandHull(hull: { x: number; y: number }[], margin: number) {
   })
 }
 
+// Uniformly scale + recenter the settled nodes so the graph fills the canvas instead of
+// clumping in the middle. Force-directed layouts produce a good *relative* arrangement, but
+// the absolute size depends on the force constants vs. node count — so we "zoom to fit" the
+// final result (preserving aspect ratio and relative structure). Padding leaves room for
+// node radii and the labels that sit above each node.
+function fitToCanvas(nodes: SimNode[], pad = 80) {
+  if (nodes.length < 2) return
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
+  for (const n of nodes) {
+    if (n.x < x0) x0 = n.x
+    if (n.x > x1) x1 = n.x
+    if (n.y < y0) y0 = n.y
+    if (n.y > y1) y1 = n.y
+  }
+  const bw = x1 - x0, bh = y1 - y0
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2
+  // Guard degenerate axes (e.g. two nodes in a vertical line); cap the upscale so a tiny
+  // 2–3 node graph isn't flung into the far corners.
+  const sx = bw > 1 ? (WIDTH - pad * 2) / bw : Infinity
+  const sy = bh > 1 ? (HEIGHT - pad * 2) / bh : Infinity
+  let scale = Math.min(sx, sy)
+  if (!isFinite(scale)) return
+  scale = Math.max(1, Math.min(scale, 3.2))
+  const gcx = WIDTH / 2, gcy = HEIGHT / 2
+  for (const n of nodes) {
+    n.x = gcx + (n.x - cx) * scale
+    n.y = gcy + (n.y - cy) * scale
+  }
+}
+
+// Run the whole force simulation to convergence in one synchronous pass, mutating the
+// nodes' x/y in place. Doing this *before* the first render (instead of animating one
+// tick per requestAnimationFrame) means the graph paints already laid out — no janky
+// "fly in from random positions" on load. For the graph sizes here (tens of nodes,
+// O(n²) repulsion) this is well under a frame's budget.
+function runLayout(nodes: SimNode[], edges: SimEdge[], byId: Map<string, SimNode>) {
+  const repulsion = 9000
+  const cx = WIDTH / 2, cy = HEIGHT / 2
+  const damping = 0.78
+  for (let t = 0; t < TICKS; t++) {
+    for (let i = 0; i < nodes.length; i++) {
+      const a = nodes[i]
+      for (let j = i + 1; j < nodes.length; j++) {
+        const b = nodes[j]
+        let dx = a.x - b.x
+        let dy = a.y - b.y
+        let dist2 = dx * dx + dy * dy
+        if (dist2 < 1) { dist2 = 1; dx = (Math.random() - 0.5); dy = (Math.random() - 0.5) }
+        const force = repulsion / dist2
+        const dist = Math.sqrt(dist2)
+        const fx = (dx / dist) * force
+        const fy = (dy / dist) * force
+        a.vx += fx; a.vy += fy
+        b.vx -= fx; b.vy -= fy
+      }
+    }
+    for (const e of edges) {
+      const a = byId.get(e.source); const b = byId.get(e.target)
+      if (!a || !b) continue
+      const dx = b.x - a.x, dy = b.y - a.y
+      const dist = Math.sqrt(dx * dx + dy * dy) || 0.01
+      const target = 90 + (1 - e.weight) * 180
+      const k = 0.04 * (0.3 + e.weight)
+      const f = (dist - target) * k
+      const fx = (dx / dist) * f
+      const fy = (dy / dist) * f
+      a.vx += fx; a.vy += fy
+      b.vx -= fx; b.vy -= fy
+    }
+    for (const n of nodes) {
+      n.vx += (cx - n.x) * 0.0015
+      n.vy += (cy - n.y) * 0.0015
+    }
+    for (const n of nodes) {
+      n.vx *= damping; n.vy *= damping
+      n.x += n.vx * TICK_DT
+      n.y += n.vy * TICK_DT
+      n.x = Math.max(20, Math.min(WIDTH - 20, n.x))
+      n.y = Math.max(20, Math.min(HEIGHT - 20, n.y))
+    }
+  }
+  // Spread the settled blob out to fill the canvas.
+  fitToCanvas(nodes)
+}
+
 export default function IdeaGraph() {
   const [threshold, setThreshold] = useState(0.55)
   const [hovered, setHovered] = useState<string | null>(null)
@@ -168,13 +253,17 @@ export default function IdeaGraph() {
       }
     })
     const simEdges: SimEdge[] = edges.map((e) => ({ ...e, weight: e.similarity }))
+    const byId = new Map(simNodes.map((n) => [n.id, n]))
+    // Settle the layout synchronously so the first paint shows the final arrangement.
+    runLayout(simNodes, simEdges, byId)
     return {
       nodes: simNodes,
       edges: simEdges,
-      byId: new Map(simNodes.map((n) => [n.id, n])),
+      byId,
       clusterCount,
     }
-  }, [graphQ.data])
+    // `seed` is included so "Neu anordnen" recomputes a fresh settled layout.
+  }, [graphQ.data, seed])
 
   // Group nodes by cluster for hull rendering. Recomputed each tick via the wrapper render.
   const clustersForRender = useMemo(() => {
@@ -187,68 +276,6 @@ export default function IdeaGraph() {
     }
     return [...groups.entries()].map(([id, nodes]) => ({ id, nodes }))
   }, [sim, /* tick triggers via setTick re-renders */ ])
-
-  const rafRef = useRef<number | null>(null)
-  const remainingTicksRef = useRef(0)
-  useEffect(() => {
-    if (!sim) return
-    remainingTicksRef.current = TICKS
-    const step = () => {
-      if (!sim) return
-      const draggedId = dragging
-      const repulsion = 9000
-      for (let i = 0; i < sim.nodes.length; i++) {
-        const a = sim.nodes[i]
-        for (let j = i + 1; j < sim.nodes.length; j++) {
-          const b = sim.nodes[j]
-          let dx = a.x - b.x
-          let dy = a.y - b.y
-          let dist2 = dx * dx + dy * dy
-          if (dist2 < 1) { dist2 = 1; dx = (Math.random() - 0.5); dy = (Math.random() - 0.5) }
-          const force = repulsion / dist2
-          const dist = Math.sqrt(dist2)
-          const fx = (dx / dist) * force
-          const fy = (dy / dist) * force
-          a.vx += fx; a.vy += fy
-          b.vx -= fx; b.vy -= fy
-        }
-      }
-      for (const e of sim.edges) {
-        const a = sim.byId.get(e.source); const b = sim.byId.get(e.target)
-        if (!a || !b) continue
-        const dx = b.x - a.x, dy = b.y - a.y
-        const dist = Math.sqrt(dx * dx + dy * dy) || 0.01
-        const target = 90 + (1 - e.weight) * 180
-        const k = 0.04 * (0.3 + e.weight)
-        const f = (dist - target) * k
-        const fx = (dx / dist) * f
-        const fy = (dy / dist) * f
-        a.vx += fx; a.vy += fy
-        b.vx -= fx; b.vy -= fy
-      }
-      const cx = WIDTH / 2, cy = HEIGHT / 2
-      for (const n of sim.nodes) {
-        n.vx += (cx - n.x) * 0.0015
-        n.vy += (cy - n.y) * 0.0015
-      }
-      const damping = 0.78
-      for (const n of sim.nodes) {
-        if (n.id === draggedId) { n.vx = 0; n.vy = 0; continue }
-        n.vx *= damping; n.vy *= damping
-        n.x += n.vx * TICK_DT
-        n.y += n.vy * TICK_DT
-        n.x = Math.max(20, Math.min(WIDTH - 20, n.x))
-        n.y = Math.max(20, Math.min(HEIGHT - 20, n.y))
-      }
-      remainingTicksRef.current -= 1
-      setTick((t) => t + 1)
-      if (remainingTicksRef.current > 0) {
-        rafRef.current = requestAnimationFrame(step)
-      }
-    }
-    rafRef.current = requestAnimationFrame(step)
-    return () => { if (rafRef.current != null) { cancelAnimationFrame(rafRef.current); rafRef.current = null } }
-  }, [sim, dragging, seed])
 
   const restart = () => setSeed((s) => s + 1)
 
@@ -359,7 +386,7 @@ export default function IdeaGraph() {
           </div>
         )}
         {sim && sim.nodes.length > 0 && (
-          <div className="relative">
+          <div key={seed} className="relative animate-in fade-in duration-500">
             <svg
               ref={svgRef}
               viewBox={`0 0 ${WIDTH} ${HEIGHT}`}

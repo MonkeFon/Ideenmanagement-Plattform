@@ -8,18 +8,20 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+// Ordered by organisational hierarchy, lowest privilege first:
+// Mitarbeiter → Innovationsmanager → Prüfer → Sponsor → Administrator.
 const DEMO = [
-  { email: 'admin@acme.test',    role: 'Administrator' },
-  { email: 'sponsor@acme.test',  role: 'Sponsor' },
-  { email: 'manager@acme.test',  role: 'Innovationsmanager' },
-  { email: 'reviewer@acme.test', role: 'Prüfer' },
-  { email: 'alice@acme.test',    role: 'Mitarbeiter' },
+  { email: 'alice@testmandant.test',    role: 'Mitarbeiter' },
+  { email: 'manager@testmandant.test',  role: 'Innovationsmanager' },
+  { email: 'reviewer@testmandant.test', role: 'Prüfer' },
+  { email: 'sponsor@testmandant.test',  role: 'Sponsor' },
+  { email: 'admin@testmandant.test',    role: 'Administrator' },
 ]
 
 export default function Login() {
   const navigate = useNavigate()
   const setAuth = useAuth((s) => s.setAuth)
-  const [email, setEmail] = useState('alice@acme.test')
+  const [email, setEmail] = useState('alice@testmandant.test')
   const [password, setPassword] = useState('demo1234')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -60,8 +62,8 @@ export default function Login() {
           </p>
           <ul className="mt-8 space-y-2 text-[13px] text-slate-600 dark:text-slate-300 max-w-md">
             <li className="flex gap-2.5"><span className="text-muted-foreground/70 font-mono">01</span> Rollenbasierter Workflow vom Entwurf bis zur Umsetzung</li>
-            <li className="flex gap-2.5"><span className="text-muted-foreground/70 font-mono">02</span> Zusammengesetzter Prioritäts-Score</li>
-            <li className="flex gap-2.5"><span className="text-muted-foreground/70 font-mono">03</span> RAG-gestützte Verfeinerung &amp; Duplikaterkennung</li>
+            <li className="flex gap-2.5"><span className="text-muted-foreground/70 font-mono">02</span> Zusammengesetzte Prioritätsbewertung</li>
+            <li className="flex gap-2.5"><span className="text-muted-foreground/70 font-mono">03</span> KI-gestützte Verfeinerung &amp; Duplikaterkennung</li>
           </ul>
           <div className="mt-10 text-[11px] uppercase tracking-wider text-muted-foreground/70 font-mono">Prototyp · v0.1</div>
         </section>

@@ -55,8 +55,18 @@ export default function SubmitIdea() {
   // would use because we want to err on the side of warning here.
   const dups = (dupsQ.data ?? []).filter((d) => d.similarity >= 0.6).slice(0, 3)
 
+  // Mirror the backend's @Size minimums so the user gets instant feedback instead
+  // of a 400 round-trip. Keeps low-signal junk out of the embedding corpus.
+  const titleOk = title.trim().length >= 5
+  const descOk = description.trim().length >= 30
+  const canSubmit = titleOk && descOk
+
   async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (!canSubmit) {
+      setError('Bitte geben Sie einen aussagekräftigen Titel (≥ 5 Zeichen) und eine Beschreibung (≥ 30 Zeichen) an.')
+      return
+    }
     setBusy(true); setError(null); setLicenseHint(null)
     try {
       const idea = await IdeaApi.create({
@@ -102,7 +112,7 @@ export default function SubmitIdea() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="z. B. Tickets aus internen Dokumenten automatisch verschlagworten"
-              required maxLength={200}
+              required minLength={5} maxLength={200}
             />
           </div>
           <div>
@@ -113,9 +123,14 @@ export default function SubmitIdea() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Welches Problem löst das? Wer profitiert? Wie könnte die Einführung aussehen?"
-              required maxLength={8000}
+              required minLength={30} maxLength={8000}
             />
-            <div className="mt-1 text-[11px] text-muted-foreground/70 tabular-nums font-mono">{description.length} / 8000</div>
+            <div className="mt-1 flex items-center justify-between text-[11px] font-mono tabular-nums">
+              <span className={descOk ? 'text-muted-foreground/70' : 'text-amber-600 dark:text-amber-400'}>
+                {descOk ? '✓ ausreichend' : `noch ${Math.max(0, 30 - description.trim().length)} Zeichen`}
+              </span>
+              <span className="text-muted-foreground/70">{description.length} / 8000</span>
+            </div>
           </div>
 
           {dups.length > 0 && (
@@ -179,7 +194,7 @@ export default function SubmitIdea() {
           </div>
           {error && <div className="text-[13px] text-destructive">{error}</div>}
           <div className="flex items-center gap-2 pt-1">
-            <Button disabled={busy}>{busy ? <><Spinner size={12} className="text-current" /> Wird gesendet…</> : 'Idee einreichen'}</Button>
+            <Button disabled={busy || !canSubmit}>{busy ? <><Spinner size={12} className="text-current" /> Wird gesendet…</> : 'Idee einreichen'}</Button>
             <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Abbrechen</Button>
           </div>
         </form>
@@ -212,7 +227,7 @@ export default function SubmitIdea() {
           <ol className="mt-3 space-y-2 text-[12px] text-muted-foreground leading-relaxed">
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">01</span>
-              <span>Ihre Idee landet im Status <span className="text-foreground">Eingereicht</span> und ist für Ihr Tenant sichtbar.</span>
+              <span>Ihre Idee erhält den Status <span className="text-foreground">Eingereicht</span> und ist für Ihre Organisation sichtbar.</span>
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">02</span>
@@ -220,7 +235,7 @@ export default function SubmitIdea() {
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">03</span>
-              <span>Prüfer bewerten auf Wirkung, Machbarkeit und Strategie-Fit.</span>
+              <span>Prüfer bewerten nach Wirkung, Machbarkeit und strategischer Passung.</span>
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">04</span>

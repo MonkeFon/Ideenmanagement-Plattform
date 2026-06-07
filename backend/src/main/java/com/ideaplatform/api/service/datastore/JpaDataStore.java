@@ -35,7 +35,9 @@ public class JpaDataStore implements DataStore {
     }
 
     @Override public Optional<Tenant> findTenant(UUID id) { return tenants.findById(id); }
+    @Override public Tenant saveTenant(Tenant t) { return tenants.save(t); }
     @Override public Optional<Plan> findPlanByCode(String c) { return plans.findByCode(c); }
+    @Override public List<Plan> listPlans() { return plans.findAll(); }
 
     @Override public Optional<User> findUserByEmail(String email) { return users.findByEmail(email); }
     @Override public Optional<User> findUserById(UUID id) { return users.findById(id); }

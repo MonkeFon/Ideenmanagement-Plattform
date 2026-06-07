@@ -18,7 +18,9 @@ public interface DataStore {
 
     // tenants & plans
     Optional<Tenant> findTenant(UUID id);
+    Tenant saveTenant(Tenant tenant);
     Optional<Plan> findPlanByCode(String code);
+    List<Plan> listPlans();
 
     // users
     Optional<User> findUserByEmail(String email);

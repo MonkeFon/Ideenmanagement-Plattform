@@ -72,7 +72,9 @@ public class SupabaseDataStore implements DataStore {
 
     // ---- DataStore implementation ----
     @Override public Optional<Tenant> findTenant(UUID id) { return first("tenants", "id=eq." + id, Tenant.class); }
+    @Override public Tenant saveTenant(Tenant t) { return upsert("tenants", t, Tenant.class); }
     @Override public Optional<Plan> findPlanByCode(String c) { return first("plans", "code=eq." + c, Plan.class); }
+    @Override public List<Plan> listPlans() { return list("plans", "order=price_eur.asc", Plan.class); }
 
     @Override public Optional<User> findUserByEmail(String email) { return first("users", "email=eq." + email, User.class); }
     @Override public Optional<User> findUserById(UUID id) { return first("users", "id=eq." + id, User.class); }

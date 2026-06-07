@@ -19,7 +19,7 @@ CREATE INDEX idx_campaigns_tenant ON campaigns(tenant_id);
 ALTER TABLE ideas ADD COLUMN campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL;
 CREATE INDEX idx_ideas_campaign ON ideas(campaign_id);
 
--- Seed three campaigns for Acme that map onto the semantic clusters already in V4
+-- Seed three campaigns for TestMandant that map onto the semantic clusters already in V4
 -- so the graph view, leaderboard, and campaign detail page all tell a consistent story.
 
 INSERT INTO campaigns (id, tenant_id, name, description, color, starts_at, ends_at, created_by) VALUES

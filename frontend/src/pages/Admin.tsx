@@ -10,6 +10,15 @@ import { cn } from '@/lib/utils'
 
 const ROLES = ['EMPLOYEE', 'REVIEWER', 'INNOVATION_MANAGER', 'SPONSOR', 'ADMIN'] as const
 
+const ROLE_LABEL_DE: Record<string, string> = {
+  EMPLOYEE: 'Mitarbeiter',
+  REVIEWER: 'Prüfer',
+  INNOVATION_MANAGER: 'Innovationsmanager',
+  SPONSOR: 'Sponsor',
+  ADMIN: 'Administrator',
+  SUPERADMIN: 'Super-Administrator',
+}
+
 export default function Admin() {
   const qc = useQueryClient()
   const usersQ = useQuery({ queryKey: ['admin-users'], queryFn: () => AdminApi.listUsers() })
@@ -29,7 +38,7 @@ export default function Admin() {
     onError: (err) => {
       const lic = asLicenseViolation(err)
       if (lic) setLicenseHint(`${lic.message} (${lic.reason})`)
-      else setError((err as any)?.response?.data?.message ?? 'Invite failed')
+      else setError((err as any)?.response?.data?.message ?? 'Einladung fehlgeschlagen')
     },
   })
 
@@ -50,7 +59,7 @@ export default function Admin() {
             <div className="mt-1 text-lg font-semibold text-foreground tracking-tight">{usage.planName}</div>
             <div className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">€{usage.priceEur} / Platz / Monat</div>
             <div className="mt-2 flex flex-wrap gap-1">
-              {usage.features.length === 0 && <span className="text-[11px] text-muted-foreground/70">keine Extras</span>}
+              {usage.features.length === 0 && <span className="text-[11px] text-muted-foreground/70">keine Zusatzfunktionen</span>}
               {usage.features.map((f) => (
                 <Badge key={f} variant="outline" className="font-mono text-[10px] tracking-wider uppercase text-foreground/90">{f}</Badge>
               ))}
@@ -66,7 +75,7 @@ export default function Admin() {
         <div className="eyebrow">Benutzer einladen</div>
         {licenseHint && (
           <div className="mt-2 text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-900">
-            {licenseHint} — Upgrade Ihres Tarifs nötig, um weitere Plätze hinzuzufügen.
+            {licenseHint} — für weitere Plätze ist ein höherer Tarif erforderlich.
           </div>
         )}
         <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">
@@ -78,7 +87,7 @@ export default function Admin() {
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
           >
-            {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL_DE[r] ?? r}</option>)}
           </select>
         </div>
         {error && <div className="mt-2 text-[12px] text-destructive">{error}</div>}
@@ -102,7 +111,7 @@ export default function Admin() {
               <tr key={u.id} className="hover:bg-accent/50">
                 <td className="px-4 py-2 font-medium text-foreground">{u.displayName}</td>
                 <td className="px-4 py-2 text-muted-foreground font-mono text-[12px]">{u.email}</td>
-                <td className="px-4 py-2"><Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase text-foreground/90">{u.role}</Badge></td>
+                <td className="px-4 py-2"><Badge variant="outline" className="text-[11px] text-foreground/90">{ROLE_LABEL_DE[u.role] ?? u.role}</Badge></td>
                 <td className="px-4 py-2">{u.active
                   ? <Badge variant="green">aktiv</Badge>
                   : <Badge variant="red">deaktiviert</Badge>}</td>

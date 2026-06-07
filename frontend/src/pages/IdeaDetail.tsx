@@ -19,7 +19,7 @@ import type { ChatMessage, Stage } from '@/types/api'
 const RATING_AXES = [
   { key: 'impact',       label: 'Wirkung' },
   { key: 'feasibility',  label: 'Machbarkeit' },
-  { key: 'strategicFit', label: 'Strategie-Fit' },
+  { key: 'strategicFit', label: 'Strategische Passung' },
 ] as const
 
 export default function IdeaDetail() {
@@ -145,7 +145,7 @@ export default function IdeaDetail() {
     } catch (err) {
       const lic = asLicenseViolation(err)
       if (lic) { setLicenseHint(`${lic.message} (${lic.reason})`); setAiOpen(false) }
-      else setAiError('Verfeinerung fehlgeschlagen — prüfen Sie, ob das LLM erreichbar ist.')
+      else setAiError('Die Verfeinerung ist fehlgeschlagen. Bitte versuchen Sie es erneut.')
     } finally {
       setAiBusy(false)
     }
@@ -320,7 +320,7 @@ export default function IdeaDetail() {
                     <div key={e.id} className="text-[13px]">
                       <div className="font-medium text-foreground">{e.reviewerName}</div>
                       <div className="text-muted-foreground tabular-nums">
-                        Wirkung {e.impact} · Machbarkeit {e.feasibility} · Strategie-Fit {e.strategicFit}
+                        Wirkung {e.impact} · Machbarkeit {e.feasibility} · Strategische Passung {e.strategicFit}
                         <span className="ml-2 font-mono text-foreground">Ø {e.average.toFixed(2)}</span>
                       </div>
                       {e.notes && <div className="text-muted-foreground mt-0.5">"{e.notes}"</div>}
@@ -425,7 +425,7 @@ export default function IdeaDetail() {
             <div className="mt-3 space-y-2">
               {(similarQ.data ?? []).length === 0 && <div className="text-[13px] text-muted-foreground">Keine nahen Treffer.</div>}
               {similarQ.data?.map((s) => (
-                <a key={s.id} href={`/ideas/${s.id}`} className="block hover:bg-accent rounded p-2 -mx-2 transition-colors">
+                <a key={s.id} href={`/ideas/${s.id}`} target="_blank" rel="noopener noreferrer" className="block hover:bg-accent rounded p-2 -mx-2 transition-colors">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-foreground text-[13px] tracking-tight">{s.title}</span>
                     <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{(s.similarity * 100).toFixed(0)}%</span>

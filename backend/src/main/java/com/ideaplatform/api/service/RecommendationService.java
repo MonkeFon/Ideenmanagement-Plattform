@@ -39,7 +39,12 @@ public class RecommendationService {
     public List<SimilarIdeaResponse> similarTo(UUID ideaId, AuthPrincipal me) {
         Idea idea = store.findIdea(ideaId).orElseThrow(() -> new EntityNotFoundException("Idea " + ideaId));
         if (!idea.getTenantId().equals(me.tenantId())) throw new EntityNotFoundException("Idea " + ideaId);
-        return embeddings.findSimilar(me.tenantId(), ideaId, idea.getTitle() + "\n" + idea.getDescription());
+        // Build the query text from the German fields when the locale is German, so the
+        // query vector sits in the same language region as the (German) stored vectors.
+        boolean de = LocaleContext.isGerman();
+        String title = de && idea.getTitleDe() != null ? idea.getTitleDe() : idea.getTitle();
+        String desc  = de && idea.getDescriptionDe() != null ? idea.getDescriptionDe() : idea.getDescription();
+        return embeddings.findSimilar(me.tenantId(), ideaId, title + "\n" + desc);
     }
 
     public List<SimilarIdeaResponse> searchByText(String query, AuthPrincipal me) {
