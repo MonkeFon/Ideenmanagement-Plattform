@@ -50,9 +50,12 @@ public class RecommendationService {
     public List<SimilarIdeaResponse> searchByText(String query, AuthPrincipal me) {
         if (query == null || query.isBlank()) return List.of();
         // pseudo-source id 00000000-... so the exclude filter is a no-op.
-        // 0.45 is the sweet spot for query-prefixed nomic embeddings: low enough that real
-        // matches surface even for short queries, high enough to keep unrelated noise out.
-        return embeddings.findSimilar(me.tenantId(), new UUID(0, 0), query, 0.45);
+        // Hybrid: vector + keyword. The 0.30 vector floor fits bge-m3's (lower) multilingual
+        // cosine distribution; the keyword side additionally surfaces literal-word matches
+        // (e.g. "Spesenbelege OCR" → the "Spesenbelege per OCR" idea) that pure cosine ranks
+        // poorly. A row qualifies if EITHER signal fires, so neither concept nor keyword
+        // queries come back empty.
+        return embeddings.searchHybrid(me.tenantId(), new UUID(0, 0), query, 0.30);
     }
 
     public IdeaGraphResponse graph(double threshold, AuthPrincipal me) {

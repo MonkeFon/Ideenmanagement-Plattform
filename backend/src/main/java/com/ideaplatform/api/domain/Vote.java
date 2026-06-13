@@ -2,12 +2,14 @@ package com.ideaplatform.api.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Filter;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "votes", uniqueConstraints = @UniqueConstraint(columnNames = {"idea_id", "user_id"}))
+@Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Vote {
     @Id

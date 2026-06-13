@@ -24,10 +24,13 @@ ideaplatform:
       audience: "geistesblitz-api"
   embedding:
     provider: ollama          # ollama | openai | mock
-    dimensions: 768            # nomic-embed-text=768, openai text-embedding-3-small=1536
+    dimensions: 1024           # bge-m3=1024, nomic-embed-text=768, openai 3-small=1536
     ollama:
       base-url: "http://127.0.0.1:11434"
-      model: "nomic-embed-text"
+      # bge-m3: multilingual (strong German), 1024-d. Replaces nomic-embed-text, whose
+      # English-primary training compressed German topics into a narrow score band and
+      # hurt relevance ranking on the German-canonical corpus.
+      model: "bge-m3"
       chat-model: "qwen3.5:2b-q4_K_M"
     openai:
       base-url: "https://api.openai.com/v1"
@@ -42,7 +45,9 @@ ideaplatform:
     recency-half-life-days: 30
   rag:
     top-k: 5
-    similarity-threshold: 0.55
+    # Sidebar "similar ideas" threshold. Tuned for bge-m3, whose cosine scores run lower
+    # than nomic's — 0.45 keeps the sidebar to genuinely-close matches without going empty.
+    similarity-threshold: 0.45
 
 logging:
   level:

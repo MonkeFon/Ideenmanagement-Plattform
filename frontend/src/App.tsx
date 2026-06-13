@@ -12,6 +12,8 @@ import Leaderboard from './pages/Leaderboard'
 import Campaigns from './pages/Campaigns'
 import CampaignDetail from './pages/CampaignDetail'
 import Settings from './pages/Settings'
+import Impressum from './pages/Impressum'
+import Datenschutz from './pages/Datenschutz'
 import { useAuth } from '@/store/auth'
 import { Toaster } from '@/components/ui/sonner'
 import { WORKFLOW_ROLES, ADMIN_ROLES, hasRole } from '@/lib/permissions'
@@ -41,6 +43,9 @@ export default function App() {
     <>
       <Routes>
         <Route path="/login" element={<Login />} />
+        {/* Public legal pages — reachable without authentication */}
+        <Route path="/impressum" element={<Impressum />} />
+        <Route path="/datenschutz" element={<Datenschutz />} />
         <Route
           path="/"
           element={

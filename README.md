@@ -15,9 +15,9 @@ A multi-tenant, license-gated platform where employees submit innovation ideas, 
 | Primary DB       | PostgreSQL 16 + `pgvector` (cosine similarity via `<=>`)                          |
 | Alternative DB   | Supabase (PostgREST), switched via Spring profile `supabase`                      |
 | Auth             | JWT (HS384) with a **mock Keycloak introspection adapter**                        |
-| Embeddings       | Pluggable `EmbeddingProvider`: **Ollama** (default, free, 768d) → OpenAI → Mock   |
+| Embeddings       | Pluggable `EmbeddingProvider`: **Ollama** (default, free, `bge-m3` 1024d multilingual) → OpenAI → Mock |
 | LLM (refine + chat) | Same `EmbeddingProvider` interface — Ollama `qwen3.5:2b-q4_K_M` by default     |
-| Tenancy          | Per-row `tenant_id`, explicit scoping in repositories                             |
+| Tenancy          | Per-row `tenant_id`; 3-layer isolation: `TenantContext` → Hibernate filter (all entities) → Postgres RLS |
 | Licensing        | `Plan` (Free / Pro / Enterprise) with seat caps, idea quotas, feature flags, self-service upgrade |
 | Localization     | German-first. Seed content carries DE translations promoted to canonical; `X-Content-Lang` still negotiates per request and defaults to `de` |
 
@@ -55,16 +55,18 @@ score = 0.40 · sigmoid(net_votes / 5)
 ```
 Weights live in `application.yml`; per-tenant overrides are an obvious next step.
 
+**Transparent in the UI.** The idea detail page renders a *Priorität* breakdown that mirrors this formula: each factor (Stimmen, Prüferbewertung, Aktualität, Sponsor-Förderung) shows its normalized value (0–1 bar), its weight, and its weighted contribution, summing to the composite — plus a one-line explanation of the formula. It's visible to every role, so the ranking is never an opaque number. The reviewer evaluation panel likewise shows how each average is formed `(Wirkung + Machbarkeit + Strategische Passung) / 3`, a live average of the current selection, and the combined reviewer average with a note that it feeds 35 % of the priority. *(The breakdown is computed client-side from the same inputs/weights; keep `PRIORITY_WEIGHTS` in `IdeaDetail.tsx` in sync with `ideaplatform.scoring.*` if the backend weights change.)*
+
 ### Voting & evaluation
 - Idempotent up/down voting (`+1`, `-1`, or `0` to clear).
 - Reviewers rate ideas 1–5 on **Impact**, **Feasibility**, **Strategic Fit**; `average = (i+f+s)/3`.
 - Both inputs feed back into the priority score on each change.
 
 ### RAG & semantic search
-- On every create/edit, title + description is embedded by the configured provider and stored as `vector(768)` in `idea_embeddings`.
-- **Prefix-aware embeddings.** For `nomic-embed-text` the document path prepends `search_document: ` and the query path prepends `search_query: ` so vectors live in the right region of the semantic space. Without these prefixes, short queries match generic noise almost as well as relevant ideas. The `EmbeddingProvider` interface exposes `embed()` for stored content and `embedQuery()` for free-text searches; OpenAI and Mock providers leave `embedQuery` as the default delegation.
-- **Top-k similar ideas** sidebar on the idea detail page (cosine, threshold `0.55` for the sidebar — tuned for "highly similar").
-- **Free-text semantic search** on the ideas list page — type a concept, get ranked semantic matches. Uses a lower threshold (`0.45`) than the sidebar so reasonable matches surface even for short queries.
+- On every create/edit, title + description is embedded by the configured provider and stored as `vector(1024)` in `idea_embeddings`. The default model is **`bge-m3`** — multilingual, with strong German separation (it replaced `nomic-embed-text`, whose English-primary training compressed German topics into a narrow score band and hurt ranking on the German-canonical corpus).
+- **Prefix-aware embeddings.** The document path prepends `search_document: ` and the query path prepends `search_query: ` so the two live in comparable regions of the space. The `EmbeddingProvider` interface exposes `embed()` for stored content and `embedQuery()` for free-text searches; OpenAI and Mock providers leave `embedQuery` as the default delegation.
+- **Top-k similar ideas** sidebar on the idea detail page (cosine, threshold `0.45` for the sidebar — tuned for "highly similar" against bge-m3's score distribution).
+- **Free-text semantic search** on the ideas list page — type a concept, get ranked semantic matches. Uses a lower threshold (`0.30`) than the sidebar so reasonable matches surface even for short queries.
 - **Visibility-filtered results.** Both the similar-ideas sidebar and free-text search exclude `DRAFT`, `REJECTED`, and `ARCHIVED` ideas at the SQL layer. A freshly created idea is embedded immediately while still a private DRAFT, so without this filter its title/snippet would leak into other tenant members' search results even though the detail endpoint 404s for them.
 - **AI refine** button (gated by the `rag_refine` plan feature) retrieves the top-k siblings and asks the LLM for sharpening suggestions, duplicate detection, and a rationale.
 - **Refine chat** — multi-turn follow-ups on the same idea, with the same RAG context kept in the prompt and conversation history passed back on every turn.
@@ -100,11 +102,25 @@ Violations return **HTTP 402 Payment Required** with `X-License-Reason` header (
 
 **Self-service plan upgrade.** The `Settings` page renders the three tiers as cards (price, limits, features) with the active plan flagged. The catalogue (`GET /api/subscription/plans`) is readable by any member; switching plans (`PUT /api/subscription/plan`) is restricted to `ADMIN` / `SUPERADMIN`, so only admins see live "Wechseln" buttons. A switch is immediate (the prototype has no payment step — a real billing integration would gate it), renews the 365-day licence window, unlocks the new plan's features instantly, and refreshes the cached profile so the plan badge updates without a re-login.
 
-### Multi-tenancy
-- One Postgres schema, `tenant_id` on every table.
-- JWT carries the tenant id, picked up by a Servlet filter into a `TenantContext` ThreadLocal.
-- Repositories scope by tenant explicitly (e.g. `IdeaRepository.findByTenantIdOrderByCreatedAtDesc`).
-- Cross-tenant access requires `SUPERADMIN`.
+### Multi-tenancy & data isolation
+
+One Postgres schema with `tenant_id` on every tenant-owned table. Isolation is enforced in **three layers** so a single forgotten clause can't leak data across tenants:
+
+1. **Request context.** The JWT carries the tenant id; [`JwtAuthFilter`](backend/src/main/java/com/ideaplatform/api/security/JwtAuthFilter.java) puts it into a `TenantContext` ThreadLocal for the request.
+2. **ORM filter (application layer).** A Hibernate `tenantFilter` (`tenant_id = :tenantId`) is declared on **every** tenant entity — `Idea`, `User`, `Comment`, `Vote`, `Evaluation`, `Campaign`, `WorkflowHistory` — and [`TenantFilterAspect`](backend/src/main/java/com/ideaplatform/api/tenant/TenantFilterAspect.java) enables it per request. So any JPA query is automatically tenant-scoped without each repository remembering to add the clause. The raw-JDBC vector search ([`JdbcEmbeddingStore`](backend/src/main/java/com/ideaplatform/api/service/embedding/JdbcEmbeddingStore.java)), which bypasses Hibernate, scopes by `tenant_id` explicitly in every statement.
+3. **Row-Level Security (database layer, defense-in-depth).** Migration [`V12`](backend/src/main/resources/db/migration/V12__tenant_rls.sql) puts `FORCE ROW LEVEL SECURITY` + a `tenant_isolation` policy on all eight tenant tables. The app publishes the current tenant into the `app.tenant_id` GUC on every pooled-connection borrow via [`TenantAwareDataSource`](backend/src/main/java/com/ideaplatform/api/tenant/TenantAwareDataSource.java); the policy restricts rows to that tenant and is permissive when the GUC is empty (migrations, the on-boot embedding bootstrapper, and the pre-auth login lookup, which run without a tenant in context).
+
+> **Activating the RLS layer.** Superusers bypass RLS unconditionally, and the dev container's role (`geistesblitz`) is a superuser — so in local dev layers 1–2 do the enforcing and RLS is dormant (the policies are installed and ready). In production, run the app as a dedicated **non-superuser** role so RLS actually engages:
+> ```sql
+> CREATE ROLE app_rls LOGIN PASSWORD '…' NOSUPERUSER NOBYPASSRLS;
+> GRANT USAGE ON SCHEMA public TO app_rls;
+> GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_rls;
+> GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO app_rls;
+> ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_rls;
+> ```
+> Point `spring.datasource` at `app_rls` and keep Flyway on the owner role (`spring.flyway.user`) so migrations and `CREATE EXTENSION` still work. `pg_dump` then needs `--enable-row-security` (already set in `scripts/seed-snapshot.sh`).
+
+- Route- and method-level role checks (`@PreAuthorize`, `RequireRole`) gate *actions* on top of the row-level isolation above. Cross-tenant access is reserved for `SUPERADMIN`.
 
 ### Switchable Postgres ↔ Supabase
 Services depend on the [`DataStore`](backend/src/main/java/com/ideaplatform/api/service/datastore/DataStore.java) interface. Two implementations:
@@ -150,7 +166,7 @@ Geistesblitz talks to `http://127.0.0.1:11434` for both embeddings and the refin
 **Option A — native install (recommended).** Install Ollama from <https://ollama.com>, then:
 
 ```bash
-ollama pull nomic-embed-text          # ~274 MB, 768-d embeddings
+ollama pull bge-m3                     # ~1.2 GB, 1024-d multilingual embeddings
 ollama pull qwen3.5:2b-q4_K_M         # ~1.5 GB Q4-quantized 2B chat — fits in low-VRAM laptops
 ```
 
@@ -287,12 +303,12 @@ Notable `ideaplatform.*` knobs in `application.yml`:
 | Key                                              | Default                       | Purpose |
 |--------------------------------------------------|-------------------------------|---------|
 | `embedding.provider`                             | `ollama`                      | `ollama` \| `openai` \| `mock` |
-| `embedding.dimensions`                           | `768`                         | Must match pgvector column (`nomic`=768, OpenAI 3-small=1536) |
+| `embedding.dimensions`                           | `1024`                        | Must match pgvector column (`bge-m3`=1024, `nomic`=768, OpenAI 3-small=1536) |
 | `embedding.ollama.chat-model`                    | `qwen3.5:2b-q4_K_M`           | Switch to a larger model on machines with more VRAM |
 | `scoring.weight-*`                               | 0.40 / 0.35 / 0.15 / 0.10     | Votes / reviewer / recency / sponsor — must sum to 1 |
 | `scoring.recency-half-life-days`                 | `30`                          | Half-life for the recency decay term |
 | `rag.top-k`                                      | `5`                           | Neighbours pulled for similar / refine / chat context |
-| `rag.similarity-threshold`                       | `0.55`                        | Sidebar threshold (free-text search uses `0.45` internally) |
+| `rag.similarity-threshold`                       | `0.45`                        | Sidebar threshold (free-text search uses `0.30` internally) |
 
 Environment variables consumed by `application.yml`:
 
@@ -387,7 +403,7 @@ The Java package is still `com.ideaplatform.api` for historical reasons; this is
   docker compose -f scripts/docker-compose.yml down -v
   docker compose -f scripts/docker-compose.yml up -d postgres
   ```
-- **Ollama returns 404 from the backend, even though `curl` works** — confirm `ollama list` shows `nomic-embed-text` on the same `127.0.0.1:11434` daemon the backend is calling. See the "Port-collision gotcha" above.
+- **Ollama returns 404 from the backend, even though `curl` works** — confirm `ollama list` shows `bge-m3` on the same `127.0.0.1:11434` daemon the backend is calling. See the "Port-collision gotcha" above.
 - **Semantic search returns no / the same 1–2 unrelated results for every query** — either Ollama was down when the ideas were indexed (restart the backend with Ollama healthy; the `EmbeddingBootstrapper` backfills any missing vectors), or embeddings were stored without the `search_document: ` prefix by an older build (re-embed by `PATCH`-ing the affected ideas, which re-runs them through the service layer).
 - **AI refine takes 30+ seconds and produces only a single sentence** — you're on a Qwen reasoning model without `think: false`. The default `qwen3.5:2b-q4_K_M` plus the existing `"think": false` flag and `num_predict: 256` cap keeps a refine call under ~5–10 s on a CPU-only laptop.
 - **`Embedding indexing failed`** in backend logs — RAG is best-effort; the idea is saved either way. Once Ollama is healthy, restart the backend and the `EmbeddingBootstrapper` re-indexes anything still missing a vector.
@@ -405,7 +421,8 @@ The Java package is still `com.ideaplatform.api` for historical reasons; this is
 - **Supabase datastore** — functionally complete but uses per-row sums instead of PostgREST RPCs for `netVotes`. Fine for the prototype; replace with a stored function in production.
 - **`AdminService` duplicate-email check** queries globally, which leaks "email exists" across tenants. Switch to `findByEmailAndTenantId`.
 - **Campaigns** — no UI to detach an idea from a campaign after the fact (the FE select on Submit only sets the value; `PATCH /api/ideas/{id}` with `campaignId: null` is currently a no-op because the service guards on `!= null`).
-- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~310 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
+- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~460 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
+- **Legal pages are templates** — the German footer links to public `/impressum` and `/datenschutz` (DSGVO) pages; contact is `lifon.chun@gmail.de`. The `[ … ]` placeholders (Name, Anschrift) and the Datenschutz wording must be completed and legally reviewed before any public deployment.
 
 ---
 

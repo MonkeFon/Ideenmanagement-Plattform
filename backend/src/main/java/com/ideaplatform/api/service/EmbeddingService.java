@@ -80,6 +80,26 @@ public class EmbeddingService {
         }
     }
 
+    /**
+     * Hybrid free-text search: vector similarity blended with a keyword (full-text) match,
+     * so queries that contain an idea's literal words surface that idea even when the pure
+     * cosine is mediocre. Used by the ideas-list search box.
+     */
+    public List<SimilarIdeaResponse> searchHybrid(UUID tenantId, UUID sourceIdeaId, String queryText, double threshold) {
+        try {
+            float[] vec = provider.embedQuery(queryText);
+            List<SimilarIdeaRow> rows = embeddings.findHybrid(tenantId, sourceIdeaId, vec, queryText, topK, threshold);
+            return rows.stream().map(r -> new SimilarIdeaResponse(
+                    r.id(), r.title(),
+                    r.description().length() > 240 ? r.description().substring(0, 240) + "…" : r.description(),
+                    r.stage(), r.category(), r.similarity()
+            )).toList();
+        } catch (Exception ex) {
+            log.warn("Hybrid search failed: {}", ex.getMessage());
+            return List.of();
+        }
+    }
+
     private static boolean hasText(String s) { return s != null && !s.isBlank(); }
 
     public EmbeddingProvider provider() { return provider; }

@@ -269,9 +269,13 @@ function PlanCard({
   disabledAll: boolean
   onChoose: () => void
 }) {
+  // Free is genuinely free; Enterprise is priced 0 in the seed but is a sales tier,
+  // so it reads "Auf Anfrage" rather than the misleading "Kostenlos".
   const price = plan.priceEur > 0
     ? `${plan.priceEur.toLocaleString('de-DE', { minimumFractionDigits: 0 })} € / Monat`
-    : 'Kostenlos'
+    : plan.code === 'FREE'
+      ? 'Kostenlos'
+      : 'Auf Anfrage'
 
   return (
     <div

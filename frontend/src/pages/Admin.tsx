@@ -57,7 +57,7 @@ export default function Admin() {
           <div className="p-4">
             <div className="eyebrow">Tarif</div>
             <div className="mt-1 text-lg font-semibold text-foreground tracking-tight">{usage.planName}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">€{usage.priceEur} / Platz / Monat</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">€{usage.priceEur} / Account / Monat</div>
             <div className="mt-2 flex flex-wrap gap-1">
               {usage.features.length === 0 && <span className="text-[11px] text-muted-foreground/70">keine Zusatzfunktionen</span>}
               {usage.features.map((f) => (
@@ -66,7 +66,7 @@ export default function Admin() {
             </div>
           </div>
 
-          <UsageMeter label="Plätze" used={usage.seatsUsed} limit={usage.seatLimit} />
+          <UsageMeter label="Accounts" used={usage.seatsUsed} limit={usage.seatLimit} />
           <UsageMeter label="Ideen diesen Monat" used={usage.ideasThisMonth} limit={usage.ideaLimit} />
         </section>
       )}
@@ -75,7 +75,7 @@ export default function Admin() {
         <div className="eyebrow">Benutzer einladen</div>
         {licenseHint && (
           <div className="mt-2 text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded p-2 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-900">
-            {licenseHint} — für weitere Plätze ist ein höherer Tarif erforderlich.
+            {licenseHint} — für weitere Accounts ist ein höherer Tarif erforderlich.
           </div>
         )}
         <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-2">

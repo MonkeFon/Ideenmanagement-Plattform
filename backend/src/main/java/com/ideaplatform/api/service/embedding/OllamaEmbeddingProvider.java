@@ -15,7 +15,7 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Free, self-hosted Ollama backend. Default in dev because it requires no API keys.
- * Expects `nomic-embed-text` (768d) for embeddings and any chat-capable model for refine.
+ * Expects `bge-m3` (1024d, multilingual) for embeddings and any chat-capable model for refine.
  */
 @Component
 @ConditionalOnProperty(name = "ideaplatform.embedding.provider", havingValue = "ollama", matchIfMissing = true)

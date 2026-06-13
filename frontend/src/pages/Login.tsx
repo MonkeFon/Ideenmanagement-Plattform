@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { AuthApi } from '@/api/endpoints'
 import { useAuth } from '@/store/auth'
 import Spinner from '@/components/Spinner'
@@ -7,6 +7,7 @@ import GeistesblitzLogo from '@/components/GeistesblitzLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { GitBranch, BarChart3, Sparkles } from 'lucide-react'
 
 // Ordered by organisational hierarchy, lowest privilege first:
 // Mitarbeiter → Innovationsmanager → Prüfer → Sponsor → Administrator.
@@ -18,6 +19,13 @@ const DEMO = [
   { email: 'admin@testmandant.test',    role: 'Administrator' },
 ]
 
+// Marketing highlights on the hero panel.
+const FEATURES = [
+  { icon: GitBranch, title: 'Rollenbasierter Workflow', body: 'Vom Entwurf bis zur Umsetzung — mit klaren Freigaben in jeder Phase.' },
+  { icon: BarChart3, title: 'Zusammengesetzte Bewertung', body: 'Wirkung, Machbarkeit und strategischer Fit ergeben eine Priorität.' },
+  { icon: Sparkles,  title: 'KI-gestützte Verfeinerung', body: 'Semantische Suche und Duplikaterkennung halten den Kontext lebendig.' },
+]
+
 export default function Login() {
   const navigate = useNavigate()
   const setAuth = useAuth((s) => s.setAuth)
@@ -25,6 +33,8 @@ export default function Login() {
   const [password, setPassword] = useState('demo1234')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => { document.title = 'Anmelden · Geistesblitz' }, [])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -41,40 +51,87 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <header className="px-6 h-14 flex items-center border-b border-border">
-        <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded bg-primary grid place-items-center text-primary-foreground shrink-0">
-            <GeistesblitzLogo size={26} />
-          </div>
-          <span className="font-semibold text-lg tracking-tight text-foreground">geistesblitz</span>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background">
+      {/* ───────────── Hero panel (desktop only) — permanently dark for a premium feel ───────────── */}
+      <section className="relative hidden lg:flex lg:flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white p-12 xl:p-16 lg:border-r border-white/10">
+        {/* Fine grid texture, faded toward the edges */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgba(255,255,255,0.06) 1px, transparent 1px),' +
+              'linear-gradient(to bottom, rgba(255,255,255,0.06) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+            maskImage: 'radial-gradient(ellipse 100% 95% at 50% 30%, black 55%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 100% 95% at 50% 30%, black 55%, transparent 100%)',
+          }}
+          aria-hidden
+        />
+        {/* Soft colour glows — restrained, the only hint of hue on a monochrome brand */}
+        <div className="pointer-events-none absolute -top-32 -left-24 h-96 w-96 rounded-full bg-indigo-500/25 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-32 -right-16 h-96 w-96 rounded-full bg-violet-500/20 blur-3xl" aria-hidden />
 
-      <main className="flex-1 grid lg:grid-cols-[1fr_400px]">
-        <section className="hidden lg:flex flex-col justify-center px-12 xl:px-20 border-r border-border bg-muted">
-          <div className="eyebrow">Ideenmanagement für Unternehmen</div>
-          <h1 className="mt-3 text-3xl xl:text-4xl font-semibold text-foreground tracking-tight leading-tight max-w-lg">
+        {/* Brand */}
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary grid place-items-center text-primary-foreground ring-1 ring-white/10 shrink-0">
+            <GeistesblitzLogo size={28} />
+          </div>
+          <span className="text-lg font-semibold tracking-tight">Geistesblitz</span>
+        </div>
+
+        {/* Hero copy + features */}
+        <div className="relative z-10 max-w-lg">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-indigo-300/80">
+            Ideenmanagement für Unternehmen
+          </div>
+          <h1 className="mt-4 text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.08]">
             Heben Sie die Ideen, die schon in Ihrem Unternehmen schlummern.
           </h1>
-          <p className="mt-4 text-[14px] text-muted-foreground leading-relaxed max-w-md">
-            Einreichen, abstimmen, bewerten, umsetzen — mit semantischer Suche, damit kein Kontext aus früheren Vorschlägen verloren geht.
+          <p className="mt-5 text-[15px] leading-relaxed text-slate-300/90 max-w-md">
+            Einreichen, abstimmen, bewerten, umsetzen — mit semantischer Suche, damit kein
+            Kontext aus früheren Vorschlägen verloren geht.
           </p>
-          <ul className="mt-8 space-y-2 text-[13px] text-slate-600 dark:text-slate-300 max-w-md">
-            <li className="flex gap-2.5"><span className="text-muted-foreground/70 font-mono">01</span> Rollenbasierter Workflow vom Entwurf bis zur Umsetzung</li>
-            <li className="flex gap-2.5"><span className="text-muted-foreground/70 font-mono">02</span> Zusammengesetzte Prioritätsbewertung</li>
-            <li className="flex gap-2.5"><span className="text-muted-foreground/70 font-mono">03</span> KI-gestützte Verfeinerung &amp; Duplikaterkennung</li>
+
+          <ul className="mt-10 space-y-5">
+            {FEATURES.map((f) => (
+              <li key={f.title} className="flex gap-3.5">
+                <div className="h-9 w-9 rounded-lg bg-white/10 border border-white/10 grid place-items-center shrink-0">
+                  <f.icon size={17} strokeWidth={1.75} className="text-white" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-white">{f.title}</div>
+                  <div className="text-[13px] leading-snug text-slate-400">{f.body}</div>
+                </div>
+              </li>
+            ))}
           </ul>
-          <div className="mt-10 text-[11px] uppercase tracking-wider text-muted-foreground/70 font-mono">Prototyp · v0.1</div>
-        </section>
+        </div>
 
-        <section className="flex items-center justify-center p-8">
-          <form onSubmit={submit} className="w-full max-w-sm space-y-5">
-            <div>
-              <h2 className="text-xl font-semibold text-foreground tracking-tight">Anmelden</h2>
-              <p className="text-[13px] text-muted-foreground mt-1">Nutzen Sie ein Demo-Konto, um den Prototyp auszuprobieren.</p>
+        {/* Footer */}
+        <div className="relative z-10 text-[11px] uppercase tracking-wider text-slate-500 font-mono">
+          Prototyp · v0.1
+        </div>
+      </section>
+
+      {/* ───────────── Form panel ───────────── */}
+      <section className="flex-1 flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-sm">
+          {/* Brand (shown only when the hero panel is hidden) */}
+          <div className="lg:hidden flex items-center gap-2.5 mb-10">
+            <div className="h-9 w-9 rounded bg-primary grid place-items-center text-primary-foreground shrink-0">
+              <GeistesblitzLogo size={26} />
             </div>
+            <span className="font-semibold text-lg tracking-tight text-foreground">Geistesblitz</span>
+          </div>
 
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-foreground tracking-tight">Willkommen zurück</h2>
+            <p className="text-[13px] text-muted-foreground mt-1.5">
+              Nutzen Sie ein Demo-Konto, um den Prototyp auszuprobieren.
+            </p>
+          </div>
+
+          <form onSubmit={submit} className="space-y-5">
             <div className="space-y-3">
               <div>
                 <Label htmlFor="email">E-Mail</Label>
@@ -91,29 +148,35 @@ export default function Login() {
             <Button className="w-full" disabled={busy}>
               {busy ? <><Spinner size={12} className="text-current" /> Anmeldung läuft…</> : 'Anmelden'}
             </Button>
-
-            <div className="border-t border-border pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="eyebrow">Demo-Konten</div>
-                <span className="font-mono text-[10px] tracking-wider text-muted-foreground">demo1234</span>
-              </div>
-              <div className="space-y-px">
-                {DEMO.map((d) => (
-                  <button
-                    type="button"
-                    key={d.email}
-                    className="w-full flex justify-between text-left rounded px-2 py-1.5 text-[12px] hover:bg-muted transition-colors"
-                    onClick={() => { setEmail(d.email); setPassword('demo1234') }}
-                  >
-                    <span className="font-mono text-foreground/90">{d.email}</span>
-                    <span className="text-muted-foreground/70">{d.role}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
           </form>
-        </section>
-      </main>
+
+          <div className="mt-8 border-t border-border pt-5">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="eyebrow">Demo-Konten</div>
+              <span className="font-mono text-[10px] tracking-wider text-muted-foreground px-1.5 py-0.5 rounded bg-muted">demo1234</span>
+            </div>
+            <div className="space-y-px">
+              {DEMO.map((d) => (
+                <button
+                  type="button"
+                  key={d.email}
+                  className="group w-full flex items-center justify-between text-left rounded-md px-2.5 py-2 text-[12px] hover:bg-accent transition-colors"
+                  onClick={() => { setEmail(d.email); setPassword('demo1234') }}
+                >
+                  <span className="font-mono text-foreground/90 group-hover:text-foreground transition-colors">{d.email}</span>
+                  <span className="text-muted-foreground/70">{d.role}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
+            <Link to="/impressum" className="hover:text-foreground transition-colors">Impressum</Link>
+            <span aria-hidden>·</span>
+            <Link to="/datenschutz" className="hover:text-foreground transition-colors">Datenschutz</Link>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

@@ -109,7 +109,11 @@ export default function Workflow() {
               <section
                 key={stage}
                 onDragOver={(e) => {
-                  if (isValidTarget) { e.preventDefault(); setOverStage(stage) }
+                  if (isValidTarget) {
+                    e.preventDefault()
+                    e.dataTransfer.dropEffect = 'move' // consistent "move" cursor over valid columns
+                    setOverStage(stage)
+                  }
                 }}
                 onDragLeave={() => setOverStage((s) => (s === stage ? null : s))}
                 onDrop={(e) => { e.preventDefault(); handleDrop(stage) }}
@@ -149,6 +153,23 @@ export default function Workflow() {
                         onDragStart={(e) => {
                           e.dataTransfer.effectAllowed = 'move'
                           e.dataTransfer.setData('text/plain', idea.id)
+                          // Custom drag image: the browser default is a ~50%-alpha snapshot of
+                          // the card, which reads as washed out. Clone the card off-screen with
+                          // an opaque background + stronger shadow and hand that to the drag.
+                          const card = e.currentTarget as HTMLElement
+                          const rect = card.getBoundingClientRect()
+                          const ghost = card.cloneNode(true) as HTMLElement
+                          ghost.dataset.dragGhost = '1'
+                          ghost.style.cssText =
+                            `position:fixed;top:-10000px;left:-10000px;width:${rect.width}px;` +
+                            'box-sizing:border-box;pointer-events:none;margin:0;' +
+                            'background-color:rgb(var(--card));' +
+                            'box-shadow:0 8px 24px rgba(0,0,0,0.28), 0 0 0 1px rgb(var(--border));'
+                          document.body.appendChild(ghost)
+                          e.dataTransfer.setDragImage(ghost, e.clientX - rect.left, e.clientY - rect.top)
+                          // The browser rasterises the image right after dragstart returns;
+                          // removing the clone on the next tick keeps the DOM clean.
+                          setTimeout(() => ghost.remove(), 0)
                           setDraggingId(idea.id)
                           setDraggingFrom(idea.stage)
                         }}
@@ -156,7 +177,9 @@ export default function Workflow() {
                         className={cn(
                           'group rounded-md border border-border bg-card p-2.5 shadow-sm cursor-grab active:cursor-grabbing transition-all',
                           'hover:border-input hover:shadow',
-                          isThisDragging && 'opacity-40',
+                          // Origin slot while dragging: keep it readable (the opaque ghost is
+                          // what follows the cursor) and mark it as the source with a dashed edge.
+                          isThisDragging && 'opacity-60 border-dashed',
                           isPending && 'opacity-60 pointer-events-none',
                         )}
                       >

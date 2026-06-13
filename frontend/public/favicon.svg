@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!--
+    Geistesblitz favicon — the cute ghost mascot on the brand's slate chip.
+    Standalone file, so colours are fixed (no CSS variables): slate-900 chip,
+    white ghost, yellow bolt. Mirrors components/GeistesblitzLogo.tsx.
+  -->
+  <rect width="24" height="24" rx="5.5" fill="#0f172a"/>
+  <g transform="translate(2.2 2.2) scale(0.82)">
+    <path d="M3 11a9 9 0 0 1 18 0v9l-3-2-3 2-3-2-3 2-3-2z" fill="#f8fafc"/>
+    <circle cx="6.6" cy="11.8" r="1.15" fill="#fb7185" opacity="0.55"/>
+    <circle cx="17.4" cy="11.8" r="1.15" fill="#fb7185" opacity="0.55"/>
+    <circle cx="8.6" cy="9.6" r="1.75" fill="#0f172a"/>
+    <circle cx="15.4" cy="9.6" r="1.75" fill="#0f172a"/>
+    <circle cx="7.95" cy="8.95" r="0.6" fill="#f8fafc"/>
+    <circle cx="14.75" cy="8.95" r="0.6" fill="#f8fafc"/>
+    <path d="M10.4 12.4 Q12 13.9 13.6 12.4" fill="none" stroke="#0f172a" stroke-width="0.7" stroke-linecap="round"/>
+    <path d="M13 13.6L9 18L11.5 18L10.5 20.4L15 15.9L12 15.9Z" fill="#facc15" stroke="#854d0e" stroke-width="0.35" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/store/auth'
 import { AuthApi } from '@/api/endpoints'
 import { applyTheme, useTheme, type Theme } from '@/store/theme'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import GeistesblitzLogo from '@/components/GeistesblitzLogo'
+import Footer from '@/components/Footer'
 import { cn } from '@/lib/utils'
 import { WORKFLOW_ROLES, ADMIN_ROLES, hasRole } from '@/lib/permissions'
 import {
-  LayoutDashboard, ListChecks, Network, Trophy, Megaphone,
-  Settings as SettingsIcon, Shield, GitBranch, LogOut, Pencil, Menu, X,
-  Sun, Moon, Monitor,
+  Settings as SettingsIcon, LogOut, Menu, X,
+  Sun, Moon, Monitor, Plus,
 } from 'lucide-react'
 
 const THEME_CYCLE: Record<Theme, Theme> = { auto: 'light', light: 'dark', dark: 'auto' }
@@ -21,6 +21,20 @@ const THEME_ICON: Record<Theme, JSX.Element> = {
   dark:  <Moon    size={14} strokeWidth={1.75} />,
 }
 const THEME_LABEL: Record<Theme, string> = { auto: 'Automatisch', light: 'Hell', dark: 'Dunkel' }
+
+// Browser-tab title per route; detail routes (/ideas/:id, /campaigns/:id) match by prefix.
+function pageTitle(pathname: string): string {
+  if (pathname === '/') return 'Übersicht'
+  if (pathname.startsWith('/ideas')) return 'Ideen'
+  if (pathname.startsWith('/campaigns')) return 'Kampagnen'
+  if (pathname.startsWith('/graph')) return 'Graph'
+  if (pathname.startsWith('/leaderboard')) return 'Rangliste'
+  if (pathname.startsWith('/submit')) return 'Idee einreichen'
+  if (pathname.startsWith('/workflow')) return 'Workflow'
+  if (pathname.startsWith('/settings')) return 'Einstellungen'
+  if (pathname.startsWith('/admin')) return 'Admin'
+  return ''
+}
 
 const ROLE_LABEL_DE: Record<string, string> = {
   EMPLOYEE: 'Mitarbeiter',
@@ -38,7 +52,15 @@ export default function Layout() {
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  useEffect(() => { setMenuOpen(false) }, [location.pathname])
+  // Close the mobile menu and reset scroll on navigation — otherwise the body
+  // scroll position carries over and the next page opens mid-scroll.
+  useEffect(() => { setMenuOpen(false); window.scrollTo(0, 0) }, [location.pathname])
+
+  // Browser-tab title follows the active route.
+  useEffect(() => {
+    const t = pageTitle(location.pathname)
+    document.title = t ? `${t} · Geistesblitz` : 'Geistesblitz'
+  }, [location.pathname])
 
   // On load, re-sync the cached profile with the server so any server-side change
   // (tenant rename, role change, display name) self-heals instead of staying stale
@@ -64,19 +86,17 @@ export default function Layout() {
 
   if (!user) return null
 
-  type NavItem = { to: string; label: string; icon: JSX.Element; show: boolean }
+  type NavItem = { to: string; label: string; show: boolean }
   const navWork: NavItem[] = [
-    { to: '/',            label: 'Übersicht',  icon: <LayoutDashboard size={16} strokeWidth={1.75} />, show: true },
-    { to: '/ideas',       label: 'Ideen',      icon: <ListChecks size={16} strokeWidth={1.75} />,      show: true },
-    { to: '/campaigns',   label: 'Kampagnen',  icon: <Megaphone size={16} strokeWidth={1.75} />,       show: true },
-    { to: '/graph',       label: 'Graph',      icon: <Network size={16} strokeWidth={1.75} />,         show: true },
-    { to: '/leaderboard', label: 'Rangliste',  icon: <Trophy size={16} strokeWidth={1.75} />,          show: true },
-    { to: '/submit',      label: 'Einreichen', icon: <Pencil size={16} strokeWidth={1.75} />,          show: true },
+    { to: '/',            label: 'Übersicht',  show: true },
+    { to: '/ideas',       label: 'Ideen',      show: true },
+    { to: '/campaigns',   label: 'Kampagnen',  show: true },
+    { to: '/graph',       label: 'Graph',      show: true },
+    { to: '/leaderboard', label: 'Rangliste',  show: true },
   ]
   const navAdmin: NavItem[] = [
-    { to: '/workflow', label: 'Workflow',      icon: <GitBranch size={16} strokeWidth={1.75} />,   show: hasRole(user.role, WORKFLOW_ROLES) },
-    { to: '/settings', label: 'Einstellungen', icon: <SettingsIcon size={16} strokeWidth={1.75} />, show: true },
-    { to: '/admin',    label: 'Admin',         icon: <Shield size={16} strokeWidth={1.75} />,       show: hasRole(user.role, ADMIN_ROLES) },
+    { to: '/workflow', label: 'Workflow', show: hasRole(user.role, WORKFLOW_ROLES) },
+    { to: '/admin',    label: 'Admin',    show: hasRole(user.role, ADMIN_ROLES) },
   ]
 
   // Horizontal item for the top bar (≥xl).
@@ -87,14 +107,13 @@ export default function Layout() {
       end={n.to === '/'}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-1.5 px-2.5 py-1.5 rounded text-sm font-medium whitespace-nowrap transition-colors',
+          'flex items-center px-2.5 py-1.5 rounded text-sm font-medium whitespace-nowrap transition-colors',
           isActive
             ? 'bg-accent text-accent-foreground'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
         )
       }
     >
-      {n.icon}
       {n.label}
     </NavLink>
   )
@@ -107,14 +126,13 @@ export default function Layout() {
       end={n.to === '/'}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-2.5 px-2.5 py-2 rounded text-sm font-medium transition-colors',
+          'flex items-center px-2.5 py-2 rounded text-sm font-medium transition-colors',
           isActive
             ? 'bg-accent text-accent-foreground'
             : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
         )
       }
     >
-      {n.icon}
       {n.label}
     </NavLink>
   )
@@ -128,7 +146,7 @@ export default function Layout() {
             <div className="h-8 w-8 rounded bg-primary grid place-items-center text-primary-foreground shrink-0">
               <GeistesblitzLogo size={22} />
             </div>
-            <span className="font-semibold text-base tracking-tight text-foreground">geistesblitz</span>
+            <span className="font-semibold text-base tracking-tight text-foreground">Geistesblitz</span>
             <div className="hidden xl:flex items-center gap-2 pl-3 ml-1 border-l border-border text-[11px]">
               <span className="text-muted-foreground truncate max-w-[10rem]" title={user.tenantName}>{user.tenantName}</span>
               <Badge variant="outline" className="font-mono text-[10px] tracking-wider uppercase shrink-0 text-muted-foreground">
@@ -140,6 +158,10 @@ export default function Layout() {
           {/* Primary nav (desktop) */}
           <nav className="hidden xl:flex items-center gap-0.5 flex-1 min-w-0">
             {navWork.filter((n) => n.show).map(renderTopItem)}
+            {/* Einreichen as primary action, anchored after the work tabs */}
+            <Button asChild size="sm" className="gap-1.5 ml-1.5 shrink-0">
+              <Link to="/submit"><Plus size={14} strokeWidth={2} /> Einreichen</Link>
+            </Button>
             {navAdmin.some((n) => n.show) && <div className="mx-1.5 h-5 w-px bg-border shrink-0" aria-hidden />}
             {navAdmin.filter((n) => n.show).map(renderTopItem)}
           </nav>
@@ -158,6 +180,18 @@ export default function Layout() {
               aria-label={`Design wechseln (aktuell: ${THEME_LABEL[theme]})`}
             >
               {THEME_ICON[theme]}
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="hidden xl:inline-flex"
+              title="Einstellungen"
+              aria-label="Einstellungen"
+            >
+              <NavLink to="/settings" className={({ isActive }) => cn(isActive && 'bg-accent text-accent-foreground')}>
+                <SettingsIcon size={16} strokeWidth={1.75} />
+              </NavLink>
             </Button>
             <Button
               variant="ghost"
@@ -192,6 +226,9 @@ export default function Layout() {
                 {user.tenantPlan}
               </Badge>
             </div>
+            <Button asChild size="sm" className="w-full gap-1.5">
+              <Link to="/submit"><Plus size={14} strokeWidth={2} /> Einreichen</Link>
+            </Button>
             <div>
               <div className="px-2.5 mb-1 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/70">Arbeit</div>
               <div className="space-y-0.5">{navWork.filter((n) => n.show).map(renderMenuItem)}</div>
@@ -207,16 +244,21 @@ export default function Layout() {
                 <div className="text-sm font-semibold text-foreground truncate">{user.displayName}</div>
                 <div className="text-[12px] text-muted-foreground truncate">{ROLE_LABEL_DE[user.role] ?? user.role}</div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2"
-                onClick={() => { clear(); navigate('/login') }}
-                title="Abmelden"
-                aria-label="Abmelden"
-              >
-                <LogOut size={16} /> Abmelden
-              </Button>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button asChild variant="ghost" size="sm" className="gap-2" title="Einstellungen">
+                  <NavLink to="/settings"><SettingsIcon size={16} strokeWidth={1.75} /> Einstellungen</NavLink>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => { clear(); navigate('/login') }}
+                  title="Abmelden"
+                  aria-label="Abmelden"
+                >
+                  <LogOut size={16} /> Abmelden
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -231,9 +273,14 @@ export default function Layout() {
         />
       )}
 
-      <main className="flex-1 overflow-auto bg-background">
+      {/* No overflow-auto here: the page scrolls on the body. An overflow container
+          here would become the sticky context and break in-page sticky headers
+          (e.g. the Ideen table thead), since this element itself never scrolls. */}
+      <main className="flex-1 bg-background">
         <Outlet />
       </main>
+
+      <Footer />
     </div>
   )
 }
