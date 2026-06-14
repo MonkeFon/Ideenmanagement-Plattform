@@ -367,7 +367,7 @@ export default function IdeaDetail() {
             </div>
           </Card>
 
-          <RoleGate allow={['REVIEWER', 'INNOVATION_MANAGER', 'ADMIN']}>
+          <RoleGate allow={['REVIEWER', 'IDEA_MANAGER', 'ADMIN']}>
             <Card className="p-4">
               <div className="flex items-center gap-2">
                 <Star size={14} strokeWidth={1.75} className="text-muted-foreground" />
@@ -433,7 +433,7 @@ export default function IdeaDetail() {
         </div>
 
         <aside className="space-y-4">
-          <RoleGate allow={['INNOVATION_MANAGER', 'REVIEWER', 'ADMIN']}>
+          <RoleGate allow={['IDEA_MANAGER', 'REVIEWER', 'ADMIN']}>
             <Card className="p-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">

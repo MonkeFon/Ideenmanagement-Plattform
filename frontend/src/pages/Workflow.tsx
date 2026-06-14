@@ -87,8 +87,11 @@ export default function Workflow() {
     move.mutate({ id, to })
   }
 
+  // Pin the board to the viewport (minus the h-14 app bar) so it scrolls
+  // internally — horizontal across columns, vertical within each — instead of
+  // growing the page and pushing the horizontal scrollbar below the fold.
   return (
-    <div className="flex h-full flex-col p-4 md:p-8">
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col p-4 md:p-8 max-w-7xl mx-auto w-full">
       <header className="mb-5 shrink-0">
         <div className="eyebrow">Prozess</div>
         <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Workflow-Board</h1>

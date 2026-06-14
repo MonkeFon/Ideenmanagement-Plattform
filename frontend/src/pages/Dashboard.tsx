@@ -133,7 +133,7 @@ export default function Dashboard() {
   myComments.sort((a, b) => (Date.parse(b.comment.createdAt) || 0) - (Date.parse(a.comment.createdAt) || 0))
 
   return (
-    <div className="p-4 md:p-8 space-y-8 max-w-7xl">
+    <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="eyebrow">Übersicht</div>

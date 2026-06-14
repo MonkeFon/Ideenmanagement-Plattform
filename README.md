@@ -32,7 +32,7 @@ Six roles, each with distinct UI surface and API permissions:
 |----------------------|------------------------------------------------------------------------|
 | `EMPLOYEE`           | Submit, edit own DRAFT, comment, vote                                  |
 | `REVIEWER`           | All of EMPLOYEE + score ideas on Impact / Feasibility / Strategic Fit  |
-| `INNOVATION_MANAGER` | Move stages, manage campaigns, run AI refine + chat                    |
+| `IDEA_MANAGER` | Move stages, manage campaigns, run AI refine + chat                    |
 | `SPONSOR`            | Approve/reject at PRIORITIZATION, toggle sponsor boost                 |
 | `ADMIN`              | Manage users, see license usage, all of the above within tenant        |
 | `SUPERADMIN`         | Cross-tenant (vendor staff)                                            |
@@ -73,7 +73,7 @@ Weights live in `application.yml`; per-tenant overrides are an obvious next step
 - **Semantic graph view** of all visible ideas: nodes are ideas, edges are pairs above the chosen threshold, and connected components are colored as clusters (convex hulls drawn via Andrew's monotone-chain algorithm). Drag-aware so panning the graph doesn't accidentally navigate.
 
 ### Campaigns
-- `INNOVATION_MANAGER` / `ADMIN` group ideas around a theme, deadline, or strategic initiative.
+- `IDEA_MANAGER` / `ADMIN` group ideas around a theme, deadline, or strategic initiative.
 - Employees can attach a new idea to a campaign at submit time (or from a campaign's detail page).
 - Deleting a campaign sets each linked idea's `campaign_id` to `NULL` via the `ON DELETE SET NULL` FK — ideas are never lost.
 - Manage endpoints are gated with `@PreAuthorize`, returning **403 Forbidden** for non-managers (not 409).
@@ -211,7 +211,7 @@ All seeded users share password `demo1234`.
 |----------------------|----------------|----------------------|
 | admin@testmandant.test      | TestMandant (Pro)     | `ADMIN`              |
 | sponsor@testmandant.test    | TestMandant (Pro)     | `SPONSOR`            |
-| manager@testmandant.test    | TestMandant (Pro)     | `INNOVATION_MANAGER` |
+| manager@testmandant.test    | TestMandant (Pro)     | `IDEA_MANAGER` |
 | reviewer@testmandant.test   | TestMandant (Pro)     | `REVIEWER`           |
 | alice@testmandant.test      | TestMandant (Pro)     | `EMPLOYEE`           |
 | bob@testmandant.test        | TestMandant (Pro)     | `EMPLOYEE`           |
@@ -229,6 +229,14 @@ Two ways to give every teammate the same starting dataset:
 
 - **Migrations + auto-embed (default, version-controlled).** Just clone → migrate → run, as above. `V1..V10` recreate the schema + curated German content; the bootstrapper fills in vectors. No binary blobs in git, model-agnostic.
 - **Snapshot restore (fast, no Ollama needed).** `scripts/seed-snapshot.sh` dumps the live DB — **including the embedding vectors** — to `scripts/seeds/seed.sql`; `scripts/seed-restore.sh` loads it into a fresh DB. Restores a fully working semantic-search/graph demo in seconds even without an embedding model, at the cost of baking in volatile data (votes, timestamps) and tying the vectors to the model that produced them.
+
+### 9. (Dev) God-mode data console
+
+A hidden in-app data editor for shaping a demo quickly — browse any table, then edit / add / delete rows through a form. It talks to the DB through a raw `JdbcTemplate`, so it **bypasses tenant isolation**: you see and change every tenant's rows.
+
+- **Open it** at [`/dev`](http://localhost:5173/dev) — it is intentionally not linked in the navigation. Any logged-in user can reach it while the flag below is on.
+- **Backend:** [`DevDataController`](backend/src/main/java/com/ideaplatform/api/controller/DevDataController.java) exposes `/api/dev/data/**`. Table and column names are validated against `information_schema`; values are bound as parameters and cast to each column's type. `flyway_schema_history` and `idea_embeddings` are hidden.
+- **⚠️ Dev/demo only.** Gated behind `ideaplatform.dev.data-console.enabled` (default **`false`**; set to `true` in `application.yml` for local demos). When off, every `/api/dev/data/**` route returns 404. **Set it to `false` in any production build.**
 
 ---
 
@@ -309,6 +317,7 @@ Notable `ideaplatform.*` knobs in `application.yml`:
 | `scoring.recency-half-life-days`                 | `30`                          | Half-life for the recency decay term |
 | `rag.top-k`                                      | `5`                           | Neighbours pulled for similar / refine / chat context |
 | `rag.similarity-threshold`                       | `0.45`                        | Sidebar threshold (free-text search uses `0.30` internally) |
+| `dev.data-console.enabled`                       | `false`                       | Exposes the hidden god-mode data editor at `/dev` (`/api/dev/data/**`). Dev/demo only — keep `false` in production |
 
 Environment variables consumed by `application.yml`:
 
@@ -341,7 +350,7 @@ Environment variables consumed by `application.yml`:
 | POST   | `/api/ideas/{id}/chat`                     | Multi-turn follow-up on the same idea (requires `rag_refine`) |
 | GET    | `/api/campaigns`                           | List tenant's campaigns                   |
 | GET    | `/api/campaigns/{id}`                      | Campaign details + linked ideas           |
-| POST   | `/api/campaigns`                           | `INNOVATION_MANAGER` / `ADMIN` only       |
+| POST   | `/api/campaigns`                           | `IDEA_MANAGER` / `ADMIN` only       |
 | PATCH  | `/api/campaigns/{id}`                      | Update campaign (manager / admin)         |
 | DELETE | `/api/campaigns/{id}`                      | Delete (linked ideas get `campaign_id=NULL`) |
 | GET    | `/api/leaderboard`                         | Top ideas + top contributors              |

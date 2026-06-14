@@ -183,7 +183,7 @@ export default function IdeaList() {
   const COLSPAN = semantic ? 9 : 8
 
   return (
-    <div className="p-4 md:p-8 space-y-4 max-w-[100rem]">
+    <div className="p-4 md:p-8 space-y-4 max-w-7xl mx-auto">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="eyebrow">Ideen</div>

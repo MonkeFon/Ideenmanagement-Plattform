@@ -8,12 +8,12 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
-const ROLES = ['EMPLOYEE', 'REVIEWER', 'INNOVATION_MANAGER', 'SPONSOR', 'ADMIN'] as const
+const ROLES = ['EMPLOYEE', 'REVIEWER', 'IDEA_MANAGER', 'SPONSOR', 'ADMIN'] as const
 
 const ROLE_LABEL_DE: Record<string, string> = {
   EMPLOYEE: 'Mitarbeiter',
   REVIEWER: 'Prüfer',
-  INNOVATION_MANAGER: 'Innovationsmanager',
+  IDEA_MANAGER: 'Ideenmanager',
   SPONSOR: 'Sponsor',
   ADMIN: 'Administrator',
   SUPERADMIN: 'Super-Administrator',
@@ -45,7 +45,7 @@ export default function Admin() {
   const usage = usageQ.data
 
   return (
-    <div className="p-4 md:p-8 space-y-5 max-w-6xl">
+    <div className="p-4 md:p-8 space-y-5 max-w-6xl mx-auto">
       <header>
         <div className="eyebrow">Verwaltung</div>
         <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Admin</h1>

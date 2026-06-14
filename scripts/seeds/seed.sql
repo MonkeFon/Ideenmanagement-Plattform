@@ -442,7 +442,7 @@ COPY public.flyway_schema_history (installed_rank, version, description, type, s
 8	8	supabase rpc	SQL	V8__supabase_rpc.sql	343772926	geistesblitz	2026-05-18 07:14:24.150753	16	t
 9	9	search exclude private stages	SQL	V9__search_exclude_private_stages.sql	-665830521	geistesblitz	2026-06-05 15:46:21.731531	11	t
 10	10	german canonical seed	SQL	V10__german_canonical_seed.sql	-159110285	geistesblitz	2026-06-05 19:37:41.484561	9	t
-3	3	seed demo	SQL	V3__seed_demo.sql	-2065373053	geistesblitz	2026-05-15 15:49:48.078004	7	t
+3	3	seed demo	SQL	V3__seed_demo.sql	703353771	geistesblitz	2026-05-15 15:49:48.078004	7	t
 4	4	more seed ideas	SQL	V4__more_seed_ideas.sql	-1151165022	geistesblitz	2026-05-15 16:26:23.425327	8	t
 5	5	campaigns	SQL	V5__campaigns.sql	823168867	geistesblitz	2026-05-17 14:28:54.743969	55	t
 11	11	embedding dims 1024	SQL	V11__embedding_dims_1024.sql	-1835353286	geistesblitz	2026-06-07 06:18:26.004856	73	t
@@ -554,13 +554,13 @@ COPY public.tenants (id, name, slug, plan_id, plan_expires_at, created_at) FROM 
 --
 
 COPY public.users (id, tenant_id, email, display_name, password_hash, role, active, created_at) FROM stdin;
-aaaaaaaa-0000-0000-0000-000000000001	11111111-1111-1111-1111-111111111111	admin@testmandant.test	Ada Admin	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	ADMIN	t	2026-05-15 13:49:48.081908+00
-aaaaaaaa-0000-0000-0000-000000000002	11111111-1111-1111-1111-111111111111	sponsor@testmandant.test	Sven Sponsor	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	SPONSOR	t	2026-05-15 13:49:48.081908+00
-aaaaaaaa-0000-0000-0000-000000000003	11111111-1111-1111-1111-111111111111	manager@testmandant.test	Mira Manager	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	INNOVATION_MANAGER	t	2026-05-15 13:49:48.081908+00
-aaaaaaaa-0000-0000-0000-000000000004	11111111-1111-1111-1111-111111111111	reviewer@testmandant.test	Rob Reviewer	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	REVIEWER	t	2026-05-15 13:49:48.081908+00
-aaaaaaaa-0000-0000-0000-000000000005	11111111-1111-1111-1111-111111111111	alice@testmandant.test	Alice Employee	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	EMPLOYEE	t	2026-05-15 13:49:48.081908+00
+aaaaaaaa-0000-0000-0000-000000000001	11111111-1111-1111-1111-111111111111	admin@testmandant.test	Timo	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	ADMIN	t	2026-05-15 13:49:48.081908+00
+aaaaaaaa-0000-0000-0000-000000000002	11111111-1111-1111-1111-111111111111	sponsor@testmandant.test	Michael	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	SPONSOR	t	2026-05-15 13:49:48.081908+00
+aaaaaaaa-0000-0000-0000-000000000003	11111111-1111-1111-1111-111111111111	manager@testmandant.test	Lifon	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	IDEA_MANAGER	t	2026-05-15 13:49:48.081908+00
+aaaaaaaa-0000-0000-0000-000000000004	11111111-1111-1111-1111-111111111111	reviewer@testmandant.test	Jan	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	REVIEWER	t	2026-05-15 13:49:48.081908+00
+aaaaaaaa-0000-0000-0000-000000000005	11111111-1111-1111-1111-111111111111	alice@testmandant.test	Michel	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	EMPLOYEE	t	2026-05-15 13:49:48.081908+00
 bbbbbbbb-0000-0000-0000-000000000001	22222222-2222-2222-2222-222222222222	owner@globex.test	Glo Owner	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	ADMIN	t	2026-05-15 13:49:48.081908+00
-aaaaaaaa-0000-0000-0000-000000000006	11111111-1111-1111-1111-111111111111	bob@testmandant.test	Bob Employee	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	EMPLOYEE	t	2026-05-15 13:49:48.081908+00
+aaaaaaaa-0000-0000-0000-000000000006	11111111-1111-1111-1111-111111111111	bob@testmandant.test	Hayao	$2a$10$C6qmq0kaaG3s6ttNzeW4QuQAyacKRWhrLj2A0tjTWsLlTJ6qHt8ui	EMPLOYEE	t	2026-05-15 13:49:48.081908+00
 \.
 
 

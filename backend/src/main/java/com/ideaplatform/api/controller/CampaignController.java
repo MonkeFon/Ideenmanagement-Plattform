@@ -15,7 +15,7 @@ import java.util.UUID;
 @RequestMapping("/api/campaigns")
 public class CampaignController {
 
-    private static final String MANAGE = "hasAnyRole('INNOVATION_MANAGER','ADMIN','SUPERADMIN')";
+    private static final String MANAGE = "hasAnyRole('IDEA_MANAGER','ADMIN','SUPERADMIN')";
 
     private final CampaignService campaigns;
 

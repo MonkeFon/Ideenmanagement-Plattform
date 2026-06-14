@@ -41,7 +41,7 @@ export default function Campaigns() {
   const activeCount = campaigns.filter((c) => campaignStatus(c.startsAt, c.endsAt) === 'active').length
 
   return (
-    <div className="p-4 md:p-8 space-y-5 max-w-7xl">
+    <div className="p-4 md:p-8 space-y-5 max-w-7xl mx-auto">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="eyebrow">Initiativen</div>
@@ -50,7 +50,7 @@ export default function Campaigns() {
             Bündeln Sie Ideen rund um ein Thema, eine Frist oder eine strategische Initiative.
           </p>
         </div>
-        <RoleGate allow={['INNOVATION_MANAGER', 'ADMIN', 'SUPERADMIN']}>
+        <RoleGate allow={['IDEA_MANAGER', 'ADMIN', 'SUPERADMIN']}>
           <Button onClick={() => setShowForm((s) => !s)}>
             {showForm ? <><X size={14} strokeWidth={2} /> Abbrechen</> : <><Plus size={14} strokeWidth={2} /> Neue Kampagne</>}
           </Button>
@@ -125,7 +125,7 @@ export default function Campaigns() {
         <Card className="p-8 text-center">
           <Megaphone className="mx-auto text-muted-foreground/70" size={28} strokeWidth={1.5} />
           <div className="mt-2 text-[14px] font-medium text-foreground">Noch keine Kampagnen</div>
-          <p className="text-[12px] text-muted-foreground mt-1">Ein Innovationsmanager oder Administrator kann eine anlegen.</p>
+          <p className="text-[12px] text-muted-foreground mt-1">Ein Ideenmanager oder Administrator kann eine anlegen.</p>
         </Card>
       )}
 

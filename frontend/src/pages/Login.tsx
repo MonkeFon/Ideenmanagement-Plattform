@@ -10,10 +10,10 @@ import { Label } from '@/components/ui/label'
 import { GitBranch, BarChart3, Sparkles } from 'lucide-react'
 
 // Ordered by organisational hierarchy, lowest privilege first:
-// Mitarbeiter → Innovationsmanager → Prüfer → Sponsor → Administrator.
+// Mitarbeiter → Ideenmanager → Prüfer → Sponsor → Administrator.
 const DEMO = [
   { email: 'alice@testmandant.test',    role: 'Mitarbeiter' },
-  { email: 'manager@testmandant.test',  role: 'Innovationsmanager' },
+  { email: 'manager@testmandant.test',  role: 'Ideenmanager' },
   { email: 'reviewer@testmandant.test', role: 'Prüfer' },
   { email: 'sponsor@testmandant.test',  role: 'Sponsor' },
   { email: 'admin@testmandant.test',    role: 'Administrator' },

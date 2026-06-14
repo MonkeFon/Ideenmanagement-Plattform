@@ -39,7 +39,7 @@ function pageTitle(pathname: string): string {
 const ROLE_LABEL_DE: Record<string, string> = {
   EMPLOYEE: 'Mitarbeiter',
   REVIEWER: 'Prüfer',
-  INNOVATION_MANAGER: 'Innovationsmanager',
+  IDEA_MANAGER: 'Ideenmanager',
   SPONSOR: 'Sponsor',
   ADMIN: 'Administrator',
   SUPERADMIN: 'Super-Administrator',
@@ -140,7 +140,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background">
-        <div className="flex items-center gap-3 h-14 px-3 md:px-4">
+        <div className="flex items-center gap-3 h-14 px-4 md:px-8 max-w-7xl mx-auto w-full">
           {/* Brand */}
           <div className="flex items-center gap-2 shrink-0">
             <div className="h-8 w-8 rounded bg-primary grid place-items-center text-primary-foreground shrink-0">

@@ -10,7 +10,7 @@ import type { Role } from '@/types/api'
  * the Workflow board at all — not in the menu and not via a direct URL.
  */
 export const WORKFLOW_ROLES: Role[] = [
-  'REVIEWER', 'INNOVATION_MANAGER', 'SPONSOR', 'ADMIN', 'SUPERADMIN',
+  'REVIEWER', 'IDEA_MANAGER', 'SPONSOR', 'ADMIN', 'SUPERADMIN',
 ]
 
 export const ADMIN_ROLES: Role[] = ['ADMIN', 'SUPERADMIN']

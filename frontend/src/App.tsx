@@ -12,6 +12,7 @@ import Leaderboard from './pages/Leaderboard'
 import Campaigns from './pages/Campaigns'
 import CampaignDetail from './pages/CampaignDetail'
 import Settings from './pages/Settings'
+import DevData from './pages/DevData'
 import Impressum from './pages/Impressum'
 import Datenschutz from './pages/Datenschutz'
 import { useAuth } from '@/store/auth'
@@ -71,6 +72,9 @@ export default function App() {
             path="admin"
             element={<RequireRole roles={ADMIN_ROLES}><Admin /></RequireRole>}
           />
+          {/* Hidden dev-only data console — intentionally not in the nav. Reach it by
+              typing /dev. Backend is gated by ideaplatform.dev.data-console.enabled. */}
+          <Route path="dev" element={<DevData />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -11,6 +11,36 @@ export const AuthApi = {
   me: () => api.get<MeResponse>('/auth/me').then((r) => r.data),
 }
 
+// ── DEV / DEMO ONLY: god-mode data editor (hidden /dev page). Backend is gated
+// behind ideaplatform.dev.data-console.enabled; these calls 404 when it's off.
+export interface DevColumn {
+  column_name: string
+  data_type: string
+  udt_name: string
+  is_nullable: 'YES' | 'NO'
+  column_default: string | null
+}
+export interface DevTableData {
+  table: string
+  columns: DevColumn[]
+  primaryKey: string[]
+  rows: Record<string, unknown>[]
+  total: number
+  limit: number
+  offset: number
+}
+export const DevDataApi = {
+  tables: () => api.get<string[]>('/dev/data/tables').then((r) => r.data),
+  rows: (table: string, params: { limit?: number; offset?: number; orderBy?: string; dir?: string } = {}) =>
+    api.get<DevTableData>(`/dev/data/tables/${table}`, { params }).then((r) => r.data),
+  insert: (table: string, values: Record<string, unknown>) =>
+    api.post<Record<string, unknown>>(`/dev/data/tables/${table}`, values).then((r) => r.data),
+  update: (table: string, key: Record<string, unknown>, values: Record<string, unknown>) =>
+    api.put<Record<string, unknown>>(`/dev/data/tables/${table}`, { key, values }).then((r) => r.data),
+  remove: (table: string, key: Record<string, unknown>) =>
+    api.delete<{ deleted: number }>(`/dev/data/tables/${table}`, { data: { key } }).then((r) => r.data),
+}
+
 export const IdeaApi = {
   list: (stage?: Stage) =>
     api.get<Idea[]>('/ideas', { params: stage ? { stage } : {} }).then((r) => r.data),

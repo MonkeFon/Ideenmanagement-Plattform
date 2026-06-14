@@ -48,6 +48,12 @@ ideaplatform:
     # Sidebar "similar ideas" threshold. Tuned for bge-m3, whose cosine scores run lower
     # than nomic's — 0.45 keeps the sidebar to genuinely-close matches without going empty.
     similarity-threshold: 0.45
+  dev:
+    # DEV / DEMO ONLY. Exposes the hidden god-mode data editor at /dev in the UI
+    # (backed by /api/dev/data/**), which edits any row in any tenant directly,
+    # bypassing tenant isolation. MUST be set to false in any production build.
+    data-console:
+      enabled: true
 
 logging:
   level:

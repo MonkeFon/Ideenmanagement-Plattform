@@ -33,8 +33,8 @@
   --destructive:          225  29  72;   /* rose-600 */
   --destructive-foreground: 255 255 255;
 
-  --border:               226 232 240;   /* slate-200 */
-  --input:                226 232 240;
+  --border:               203 213 225;   /* slate-300 — darker than slate-200 so lines read clearly on white */
+  --input:                203 213 225;
   --ring:                 148 163 184;   /* slate-400 */
 
   --radius: 6px;

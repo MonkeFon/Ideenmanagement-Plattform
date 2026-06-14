@@ -6,7 +6,7 @@ export default function Footer() {
   const year = new Date().getFullYear()
   return (
     <footer className="border-t border-border bg-background">
-      <div className="mx-auto max-w-7xl px-4 md:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px] text-muted-foreground">
+      <div className="mx-auto max-w-7xl px-4 md:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-[12px] text-muted-foreground">
         <div>© {year} {SITE_NAME} · Prototyp</div>
         <nav className="flex items-center gap-4">
           <Link to="/impressum" className="hover:text-foreground transition-colors">Impressum</Link>
