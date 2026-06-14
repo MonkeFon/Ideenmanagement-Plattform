@@ -7,10 +7,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -62,6 +64,24 @@ public class GlobalExceptionHandler {
         log.warn("RAG provider unavailable: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of("error", "rag_unavailable", "message", ex.getMessage()));
+    }
+
+    /**
+     * Path/query parameter has the wrong shape (e.g. {@code /api/ideas/not-a-uuid}).
+     * Without this handler the conversion failure fell into the {@link Exception}
+     * catch-all and surfaced as a 500 — a client mistake reported as a server error.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> typeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", "bad_request", "message", "Ungültiger Parameter: " + ex.getName()));
+    }
+
+    /** Missing or syntactically invalid JSON request body — a 400, not a 500. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> unreadableBody(HttpMessageNotReadableException ex) {
+        return ResponseEntity.badRequest()
+                .body(Map.of("error", "bad_request", "message", "Ungültiger oder fehlender Request-Body."));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

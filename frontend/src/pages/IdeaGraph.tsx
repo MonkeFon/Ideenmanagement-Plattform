@@ -335,7 +335,7 @@ export default function IdeaGraph() {
   const hoveredNode = hovered && sim ? sim.byId.get(hovered) : null
 
   return (
-    <div className="p-4 md:p-8 space-y-5 max-w-7xl">
+    <div className="p-4 md:p-8 space-y-5 max-w-7xl mx-auto">
       <header className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="eyebrow">Graph</div>

@@ -9,12 +9,12 @@ INSERT INTO tenants (id, name, slug, plan_id, plan_expires_at) VALUES
     ('22222222-2222-2222-2222-222222222222', 'Globex', 'globex', (SELECT id FROM free), now() + interval '365 days');
 
 INSERT INTO users (id, tenant_id, email, display_name, password_hash, role) VALUES
-    ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'admin@testmandant.test',    'Ada Admin',     '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'ADMIN'),
-    ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'sponsor@testmandant.test',  'Sven Sponsor',  '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'SPONSOR'),
-    ('aaaaaaaa-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'manager@testmandant.test',  'Mira Manager',  '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'INNOVATION_MANAGER'),
-    ('aaaaaaaa-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'reviewer@testmandant.test', 'Rob Reviewer',  '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'REVIEWER'),
-    ('aaaaaaaa-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'alice@testmandant.test',    'Alice Employee','$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'EMPLOYEE'),
-    ('aaaaaaaa-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'bob@testmandant.test',      'Bob Employee',  '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'EMPLOYEE'),
+    ('aaaaaaaa-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'admin@testmandant.test',    'Timo',          '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'ADMIN'),
+    ('aaaaaaaa-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'sponsor@testmandant.test',  'Michael',       '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'SPONSOR'),
+    ('aaaaaaaa-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'manager@testmandant.test',  'Lifon',         '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'IDEA_MANAGER'),
+    ('aaaaaaaa-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'reviewer@testmandant.test', 'Jan',           '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'REVIEWER'),
+    ('aaaaaaaa-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'alice@testmandant.test',    'Michel',        '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'EMPLOYEE'),
+    ('aaaaaaaa-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'bob@testmandant.test',      'Hayao',         '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'EMPLOYEE'),
     ('bbbbbbbb-0000-0000-0000-000000000001', '22222222-2222-2222-2222-222222222222', 'owner@globex.test',  'Glo Owner',     '$2a$10$3a7yV3Q3O1bV2y8u4yPM2.Pe7VYbY0PqL/SnvT5gIDXg.dnLJgkOC', 'ADMIN');
 
 INSERT INTO ideas (id, tenant_id, author_id, title, description, category, stage, submitted_at) VALUES

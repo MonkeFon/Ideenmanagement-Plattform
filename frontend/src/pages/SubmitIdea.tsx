@@ -88,7 +88,7 @@ export default function SubmitIdea() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto">
       <header className="mb-6">
         <div className="eyebrow">Neu</div>
         <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Idee einreichen</h1>
@@ -239,7 +239,7 @@ export default function SubmitIdea() {
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">04</span>
-              <span>Innovationsmanager:innen verschieben die Idee weiter durch den Workflow.</span>
+              <span>Ideenmanager:innen verschieben die Idee weiter durch den Workflow.</span>
             </li>
           </ol>
         </Card>

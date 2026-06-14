@@ -183,7 +183,7 @@ export default function IdeaList() {
   const COLSPAN = semantic ? 9 : 8
 
   return (
-    <div className="p-4 md:p-8 space-y-4 max-w-[100rem]">
+    <div className="p-4 md:p-8 space-y-4 max-w-7xl mx-auto">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="eyebrow">Ideen</div>
@@ -246,11 +246,13 @@ export default function IdeaList() {
         )}
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-border">
+      {/* Table — overflow-clip (not -auto) so the sticky thead can pin against the page scroll */}
+      <div className="rounded-lg border border-border overflow-clip">
         <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-[12px]">
+          {/* Sticky below the h-14 app bar; opaque bg + hairline shadow stand in for the
+              border-b, which would scroll away under border-collapse. */}
+          <thead className="sticky top-14 z-10 bg-background shadow-[0_1px_0_0_rgb(var(--border))]">
+            <tr className="bg-muted/40 text-left text-[12px]">
               <SortHeader k="title" label="Titel" />
               <SortHeader k="stage" label="Status" />
               <SortHeader k="category" label="Kategorie" className="hidden md:table-cell" />

@@ -38,9 +38,14 @@ fi
 echo "→ Dumping ${DB} from container '${CONTAINER}' → ${OUT}"
 # --no-owner / --no-privileges keep the dump portable across machines/roles.
 # --clean --if-exists makes the dump self-resetting so a restore is repeatable.
+# --enable-row-security: tables use FORCE row-level security (see V12), so the owner is
+# subject to RLS too. With it, pg_dump applies the policies; since this runs without an
+# app.tenant_id GUC the policy is permissive and every tenant's rows are dumped. Without
+# the flag pg_dump would abort with "query would be affected by row-level security policy".
 docker exec "${CONTAINER}" pg_dump \
     -U "${USER}" \
     --no-owner --no-privileges \
+    --enable-row-security \
     --clean --if-exists \
     "${DB}" > "${OUT}"
 

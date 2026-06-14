@@ -99,6 +99,66 @@ public class JdbcEmbeddingStore implements EmbeddingStore {
             vec, tenantId, excludeIdeaId, vec, threshold, vec, k);
     }
 
+    @Override
+    public List<SimilarIdeaRow> findHybrid(UUID tenantId, UUID excludeIdeaId, float[] query,
+                                           String queryText, int k, double threshold) {
+        String vec = toVectorLiteral(query);
+        boolean de = LocaleContext.isGerman();
+        String titleCol = de ? "COALESCE(i.title_de, i.title)" : "i.title";
+        String descCol  = de ? "COALESCE(i.description_de, i.description)" : "i.description";
+        // Text-search config: German stemming/stop-words when the locale is German.
+        String ftsCfg = de ? "german" : "english";
+        // The keyword side searches the localized title+description. `websearch_to_tsquery`
+        // tolerates arbitrary user input (no syntax errors on stray punctuation). We also add
+        // a plain ILIKE bonus on the title so a literal word match ranks even when stemming
+        // wouldn't connect it. Combined score = cosine + 0.3*ts_rank(capped) + 0.15*title-hit.
+        // A row qualifies if the vector clears the threshold OR the keyword side matches at all,
+        // so "Spesenbelege OCR" surfaces the "Spesenbelege per OCR" idea even at low cosine.
+        String doc = "(" + titleCol + " || ' ' || " + descCol + ")";
+        String tsv = "to_tsvector('" + ftsCfg + "', " + doc + ")";
+        String tsq = "websearch_to_tsquery('" + ftsCfg + "', ?)";
+        String sql = """
+            SELECT id, title, description, stage, category, similarity FROM (
+              SELECT i.id,
+                     %s AS title,
+                     %s AS description,
+                     i.stage,
+                     i.category,
+                     (1 - (e.embedding <=> ?::vector))
+                       + 0.30 * LEAST(ts_rank(%s, %s), 1.0)
+                       + CASE WHEN %s ILIKE '%%' || ? || '%%' THEN 0.15 ELSE 0 END
+                       AS similarity,
+                     (1 - (e.embedding <=> ?::vector)) AS vec_sim,
+                     (%s @@ %s) AS kw_hit
+                FROM idea_embeddings e
+                JOIN ideas i ON i.id = e.idea_id
+               WHERE e.tenant_id = ?
+                 AND e.idea_id <> ?
+                 AND i.stage NOT IN ('DRAFT', 'REJECTED', 'ARCHIVED')
+              ) sub
+             WHERE vec_sim >= ? OR kw_hit
+             ORDER BY similarity DESC
+             LIMIT ?
+            """.formatted(titleCol, descCol, tsv, tsq, titleCol, tsv, tsq);
+        return jdbc.query(sql,
+            (rs, rowNum) -> new SimilarIdeaRow(
+                UUID.fromString(rs.getString("id")),
+                rs.getString("title"),
+                rs.getString("description"),
+                rs.getString("stage"),
+                rs.getString("category"),
+                rs.getDouble("similarity")
+            ),
+            // params in statement order:
+            vec,            // cosine in score
+            queryText,      // ts_rank query
+            queryText,      // title ILIKE
+            vec,            // vec_sim
+            queryText,      // kw_hit tsquery
+            tenantId, excludeIdeaId,
+            threshold, k);
+    }
+
     private static String toVectorLiteral(float[] v) {
         StringBuilder sb = new StringBuilder(v.length * 8).append('[');
         for (int i = 0; i < v.length; i++) {

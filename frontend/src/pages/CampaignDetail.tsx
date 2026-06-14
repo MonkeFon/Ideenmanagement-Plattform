@@ -110,7 +110,7 @@ export default function CampaignDetail() {
   const rejected = stats.byStage.get('REJECTED') ?? 0
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl space-y-6">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
       <Link to="/campaigns" className="inline-flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground">
         <ArrowLeft size={12} strokeWidth={2} /> Alle Kampagnen
       </Link>
@@ -138,7 +138,7 @@ export default function CampaignDetail() {
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <Button asChild><Link to={`/submit?campaign=${c.id}`}>Idee einreichen</Link></Button>
-            <RoleGate allow={['INNOVATION_MANAGER', 'ADMIN', 'SUPERADMIN']}>
+            <RoleGate allow={['IDEA_MANAGER', 'ADMIN', 'SUPERADMIN']}>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" size="icon" aria-label="Kampagne löschen" title="Kampagne löschen">

@@ -9,7 +9,7 @@ import { Trophy, Users, ArrowUp, MessageSquare } from 'lucide-react'
 const ROLE_LABEL_DE: Record<string, string> = {
   EMPLOYEE: 'Mitarbeiter',
   REVIEWER: 'Prüfer',
-  INNOVATION_MANAGER: 'Innovationsmanager',
+  IDEA_MANAGER: 'Ideenmanager',
   SPONSOR: 'Sponsor',
   ADMIN: 'Administrator',
   SUPERADMIN: 'Super-Administrator',
@@ -19,7 +19,7 @@ export default function Leaderboard() {
   const q = useQuery({ queryKey: ['leaderboard'], queryFn: () => LeaderboardApi.get() })
 
   return (
-    <div className="p-4 md:p-8 space-y-5 max-w-7xl">
+    <div className="p-4 md:p-8 space-y-5 max-w-7xl mx-auto">
       <header>
         <div className="eyebrow">Rangliste</div>
         <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Rangliste</h1>

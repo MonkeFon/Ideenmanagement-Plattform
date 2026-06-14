@@ -32,4 +32,18 @@ public interface EmbeddingStore {
 
     /** Top-k most similar ideas to the supplied vector, excluding the source idea itself. */
     List<SimilarIdeaRow> findSimilar(UUID tenantId, UUID excludeIdeaId, float[] query, int k, double threshold);
+
+    /**
+     * Hybrid search: blends vector similarity with a keyword (full-text) match on the idea
+     * title/description, so a query that literally contains an idea's words surfaces that
+     * idea even when the pure-vector cosine is mediocre, while conceptual queries still work.
+     * {@code queryText} is the raw user query (for the keyword side); {@code query} is its
+     * embedding (for the vector side). Falls back to vector-only behaviour when an
+     * implementation can't do full-text (see the Supabase RPC store).
+     */
+    default List<SimilarIdeaRow> findHybrid(UUID tenantId, UUID excludeIdeaId, float[] query,
+                                            String queryText, int k, double threshold) {
+        // Safe default: ignore the keyword side. JDBC overrides this with a real blend.
+        return findSimilar(tenantId, excludeIdeaId, query, k, threshold);
+    }
 }

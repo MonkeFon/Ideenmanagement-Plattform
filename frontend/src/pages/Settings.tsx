@@ -40,7 +40,7 @@ const THEME_OPTIONS: { value: Theme; label: string; description: string; icon: J
 const ROLE_LABEL_DE: Record<string, string> = {
   EMPLOYEE: 'Mitarbeiter',
   REVIEWER: 'Prüfer',
-  INNOVATION_MANAGER: 'Innovationsmanager',
+  IDEA_MANAGER: 'Ideenmanager',
   SPONSOR: 'Sponsor',
   ADMIN: 'Administrator',
   SUPERADMIN: 'Super-Administrator',
@@ -91,7 +91,7 @@ export default function Settings() {
     .toUpperCase()
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl space-y-6">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
       <header>
         <div className="eyebrow">Präferenzen</div>
         <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Einstellungen</h1>
@@ -269,9 +269,13 @@ function PlanCard({
   disabledAll: boolean
   onChoose: () => void
 }) {
+  // Free is genuinely free; Enterprise is priced 0 in the seed but is a sales tier,
+  // so it reads "Auf Anfrage" rather than the misleading "Kostenlos".
   const price = plan.priceEur > 0
     ? `${plan.priceEur.toLocaleString('de-DE', { minimumFractionDigits: 0 })} € / Monat`
-    : 'Kostenlos'
+    : plan.code === 'FREE'
+      ? 'Kostenlos'
+      : 'Auf Anfrage'
 
   return (
     <div

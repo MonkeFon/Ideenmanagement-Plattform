@@ -1,5 +1,6 @@
 package com.ideaplatform.api.security;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -36,6 +37,17 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll())
+            // Unauthenticated requests (missing / expired / invalid JWT) must answer 401, not the
+            // Spring default 403 — the SPA's response interceptor only treats 401 as "session
+            // expired → clear token + redirect to /login". A 403 was leaving expired sessions
+            // stranded on blank pages. Authenticated-but-forbidden actions still fall through to
+            // the default AccessDeniedHandler (403), so genuine permission errors are unaffected.
+            .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write(
+                        "{\"error\":\"unauthorized\",\"message\":\"Sitzung abgelaufen oder nicht angemeldet.\"}");
+            }))
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

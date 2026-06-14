@@ -6,12 +6,12 @@
 |--------------------|------------------------------------------------------|-------|
 | `DRAFT`            | author (implicit on create)                          | Owner-only visibility — DRAFTs are excluded from tenant-wide views like the graph |
 | `SUBMITTED`        | author                                               | Open for votes, comments, similarity lookup |
-| `UNDER_REVIEW`     | `INNOVATION_MANAGER`, `ADMIN`                        | Triggers reviewer assignment |
-| `PRIORITIZATION`   | `INNOVATION_MANAGER`                                 | Composite score computed; requires ≥1 reviewer evaluation |
+| `UNDER_REVIEW`     | `IDEA_MANAGER`, `ADMIN`                        | Triggers reviewer assignment |
+| `PRIORITIZATION`   | `IDEA_MANAGER`                                 | Composite score computed; requires ≥1 reviewer evaluation |
 | `APPROVED`         | `SPONSOR`, `ADMIN`                                   | Goes into roadmap |
-| `IN_IMPLEMENTATION`| `INNOVATION_MANAGER`, `ADMIN`                        | Linked to delivery |
-| `DONE`             | `INNOVATION_MANAGER`, `ADMIN`                        | Final |
-| `REJECTED`         | `SPONSOR`, `ADMIN`, `INNOVATION_MANAGER`             | With reason |
+| `IN_IMPLEMENTATION`| `IDEA_MANAGER`, `ADMIN`                        | Linked to delivery |
+| `DONE`             | `IDEA_MANAGER`, `ADMIN`                        | Final |
+| `REJECTED`         | `SPONSOR`, `ADMIN`, `IDEA_MANAGER`             | With reason |
 | `ARCHIVED`         | `ADMIN`                                              | Soft-hide |
 
 The state machine is enforced in [`workflow/IdeaWorkflow.java`](../backend/src/main/java/com/ideaplatform/api/workflow/IdeaWorkflow.java). Every `move(idea, newStage, actor)` call validates:
@@ -22,7 +22,7 @@ The state machine is enforced in [`workflow/IdeaWorkflow.java`](../backend/src/m
 A transition fails fast with **409 Conflict** when the requested move is not legal for the actor or stage.
 
 ## Comments
-- All roles can comment on any non-DRAFT idea they can see. `INNOVATION_MANAGER` / `ADMIN` are explicitly included — earlier prototype builds gated them out, which surprised demo users.
+- All roles can comment on any non-DRAFT idea they can see. `IDEA_MANAGER` / `ADMIN` are explicitly included — earlier prototype builds gated them out, which surprised demo users.
 - Comments are appended via `POST /api/ideas/{id}/comments` with `{ "body": "..." }`.
 
 ## Composite score (PRIORITIZATION)
@@ -54,5 +54,5 @@ Campaigns are a grouping mechanism layered on top of the workflow — they do no
 
 - An idea may belong to at most one campaign, captured in `ideas.campaign_id`.
 - The FK is `ON DELETE SET NULL` — deleting a campaign preserves its ideas but clears the linkage.
-- `INNOVATION_MANAGER` / `ADMIN` create, edit, and delete campaigns via `/api/campaigns`. All other roles can read but not mutate (`@PreAuthorize` returns 403).
+- `IDEA_MANAGER` / `ADMIN` create, edit, and delete campaigns via `/api/campaigns`. All other roles can read but not mutate (`@PreAuthorize` returns 403).
 - Submit and detail pages surface a "Submit for this campaign" entry-point that pre-selects the campaign in the new-idea form.

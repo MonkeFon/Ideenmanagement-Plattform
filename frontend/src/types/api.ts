@@ -1,7 +1,7 @@
 export type Role =
   | 'EMPLOYEE'
   | 'REVIEWER'
-  | 'INNOVATION_MANAGER'
+  | 'IDEA_MANAGER'
   | 'SPONSOR'
   | 'ADMIN'
   | 'SUPERADMIN'

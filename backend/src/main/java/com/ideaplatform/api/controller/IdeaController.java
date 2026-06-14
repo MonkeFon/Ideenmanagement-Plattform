@@ -78,7 +78,7 @@ public class IdeaController {
     }
 
     @PostMapping("/{id}/evaluations")
-    @PreAuthorize("hasAnyRole('REVIEWER','INNOVATION_MANAGER','ADMIN')")
+    @PreAuthorize("hasAnyRole('REVIEWER','IDEA_MANAGER','ADMIN')")
     public EvaluationResponse evaluate(@PathVariable UUID id, @RequestBody EvaluationRequest req) {
         return evals.upsert(id, req, SecurityUtil.current());
     }
@@ -107,14 +107,14 @@ public class IdeaController {
 
     @PostMapping("/{id}/refine")
     @RequiresFeature("rag_refine")
-    @PreAuthorize("hasAnyRole('INNOVATION_MANAGER','REVIEWER','ADMIN')")
+    @PreAuthorize("hasAnyRole('IDEA_MANAGER','REVIEWER','ADMIN')")
     public RefineResponse refine(@PathVariable UUID id) {
         return refine.refine(id, SecurityUtil.current());
     }
 
     @PostMapping("/{id}/chat")
     @RequiresFeature("rag_refine")
-    @PreAuthorize("hasAnyRole('INNOVATION_MANAGER','REVIEWER','ADMIN')")
+    @PreAuthorize("hasAnyRole('IDEA_MANAGER','REVIEWER','ADMIN')")
     public ChatResponse chat(@PathVariable UUID id, @Valid @RequestBody ChatRequest req) {
         return refine.chat(id, req.messages(), SecurityUtil.current());
     }

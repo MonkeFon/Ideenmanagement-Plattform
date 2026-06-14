@@ -28,8 +28,8 @@ public class EvaluationService {
 
     @Transactional
     public EvaluationResponse upsert(UUID ideaId, EvaluationRequest req, AuthPrincipal me) {
-        if (me.role() != Role.REVIEWER && me.role() != Role.INNOVATION_MANAGER && me.role() != Role.ADMIN) {
-            throw new IllegalStateException("Only REVIEWER, INNOVATION_MANAGER, or ADMIN can evaluate");
+        if (me.role() != Role.REVIEWER && me.role() != Role.IDEA_MANAGER && me.role() != Role.ADMIN) {
+            throw new IllegalStateException("Only REVIEWER, IDEA_MANAGER, or ADMIN can evaluate");
         }
         validateRange(req);
         Idea idea = store.findIdea(ideaId).orElseThrow(() -> new EntityNotFoundException("Idea " + ideaId));
