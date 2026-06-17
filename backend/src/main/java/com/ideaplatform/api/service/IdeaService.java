@@ -81,7 +81,15 @@ public class IdeaService {
     }
 
     public List<IdeaResponse> list(Stage stage, AuthPrincipal me) {
-        List<Idea> all = store.listIdeas(me.tenantId(), stage);
+        boolean privileged = me.role() == Role.ADMIN || me.role() == Role.SUPERADMIN;
+        // Drafts are private to their author until submitted — the same rule mustSeeable
+        // enforces for the single-idea GET. Without this filter the list endpoint leaked
+        // every colleague's unsubmitted drafts (title, description, author).
+        List<Idea> all = store.listIdeas(me.tenantId(), stage).stream()
+                .filter(i -> i.getStage() != Stage.DRAFT
+                        || i.getAuthorId().equals(me.userId())
+                        || privileged)
+                .toList();
         // Pre-resolve author names in one shot
         Map<UUID, String> authorNames = new HashMap<>();
         for (Idea i : all) {
@@ -94,8 +102,10 @@ public class IdeaService {
     public List<IdeaResponse> listByCampaign(UUID campaignId, AuthPrincipal me) {
         // Reused by CampaignService — kept here so the toResponse + author resolution
         // logic stays in one place.
+        boolean privileged = me.role() == Role.ADMIN || me.role() == Role.SUPERADMIN;
         return store.listIdeas(me.tenantId(), null).stream()
                 .filter(i -> campaignId.equals(i.getCampaignId()))
+                .filter(i -> i.getStage() != Stage.DRAFT || i.getAuthorId().equals(me.userId()) || privileged)
                 .map(i -> toResponse(i, authorName(i.getAuthorId())))
                 .toList();
     }

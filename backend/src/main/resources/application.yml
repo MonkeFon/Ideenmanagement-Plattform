@@ -10,7 +10,10 @@ spring:
 server:
   port: 8080
   error:
-    include-message: always
+    # Production-safe default: never leak exception text to clients. The demo
+    # (postgres profile) overrides this to `always` in application-postgres.yml so
+    # its SPA error toasts stay useful.
+    include-message: never
 
 ideaplatform:
   security:

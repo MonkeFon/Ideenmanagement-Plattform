@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
-import { Lightbulb, Target, Sparkles, Users, AlertCircle, ArrowRight } from 'lucide-react'
+import { AlertCircle, ArrowRight } from 'lucide-react'
 
 export default function SubmitIdea() {
   const navigate = useNavigate()
@@ -111,7 +111,7 @@ export default function SubmitIdea() {
               className="mt-1.5"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="z. B. Tickets aus internen Dokumenten automatisch verschlagworten"
+              placeholder="Titel der Idee"
               required minLength={5} maxLength={200}
             />
           </div>
@@ -122,14 +122,16 @@ export default function SubmitIdea() {
               className="mt-1.5 min-h-[160px] leading-relaxed"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Welches Problem löst das? Wer profitiert? Wie könnte die Einführung aussehen?"
+              placeholder="Beschreibung der Idee"
               required minLength={30} maxLength={8000}
             />
-            <div className="mt-1 flex items-center justify-between text-[11px] font-mono tabular-nums">
-              <span className={descOk ? 'text-muted-foreground/70' : 'text-amber-600 dark:text-amber-400'}>
-                {descOk ? '✓ ausreichend' : `noch ${Math.max(0, 30 - description.trim().length)} Zeichen`}
+            <div className="mt-2 flex items-center justify-between gap-3 text-[12px]">
+              <span className={descOk ? 'text-emerald-600 dark:text-emerald-500' : 'text-amber-600 dark:text-amber-500'}>
+                {descOk
+                  ? 'Mindestlänge erreicht'
+                  : <>Noch <span className="font-medium tabular-nums">{Math.max(0, 30 - description.trim().length)}</span> Zeichen bis zur Mindestlänge</>}
               </span>
-              <span className="text-muted-foreground/70">{description.length} / 8000</span>
+              <span className="tabular-nums text-muted-foreground/60">{description.length.toLocaleString('de-DE')} / 8.000</span>
             </div>
           </div>
 
@@ -174,7 +176,7 @@ export default function SubmitIdea() {
                 className="mt-1.5"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="Produktivität, Daten, Personal…"
+                placeholder="Kategorie der Idee"
               />
             </div>
             <div>
@@ -202,23 +204,11 @@ export default function SubmitIdea() {
 
       <aside className="space-y-4">
         <Card className="p-4">
-          <div className="flex items-center gap-2">
-            <Lightbulb size={14} strokeWidth={1.75} className="text-muted-foreground" />
-            <div className="eyebrow">Tipps für eine gute Einreichung</div>
-          </div>
+          <div className="eyebrow">Tipps für eine gute Einreichung</div>
           <ul className="mt-3 space-y-3 text-[13px] text-muted-foreground leading-relaxed">
-            <li className="flex gap-2.5">
-              <Target size={14} strokeWidth={1.75} className="text-foreground mt-0.5 shrink-0" />
-              <span><span className="text-foreground font-medium">Beginnen Sie mit dem Problem.</span> Wer ist betroffen, was ist heute mühsam? Konkrete Beispiele schlagen abstrakte Beschreibungen.</span>
-            </li>
-            <li className="flex gap-2.5">
-              <Sparkles size={14} strokeWidth={1.75} className="text-foreground mt-0.5 shrink-0" />
-              <span><span className="text-foreground font-medium">Eine Idee pro Einreichung.</span> Wenn die Lösung mehrere Hebel hat, ist das eher ein Strang als eine Idee — splitten Sie sie auf.</span>
-            </li>
-            <li className="flex gap-2.5">
-              <Users size={14} strokeWidth={1.75} className="text-foreground mt-0.5 shrink-0" />
-              <span><span className="text-foreground font-medium">Nennen Sie den Nutzen messbar.</span> "Spart 3 Stunden pro Woche pro Team" lässt sich priorisieren, "wäre schön" nicht.</span>
-            </li>
+            <li><span className="text-foreground font-medium">Beginnen Sie mit dem Problem.</span> Wer ist betroffen, was ist heute mühsam? Konkrete Beispiele schlagen abstrakte Beschreibungen.</li>
+            <li><span className="text-foreground font-medium">Eine Idee pro Einreichung.</span> Wenn die Lösung mehrere Hebel hat, ist das eher ein Strang als eine Idee — splitten Sie sie auf.</li>
+            <li><span className="text-foreground font-medium">Nennen Sie den Nutzen messbar.</span> "Spart 3 Stunden pro Woche pro Team" lässt sich priorisieren, "wäre schön" nicht.</li>
           </ul>
         </Card>
 

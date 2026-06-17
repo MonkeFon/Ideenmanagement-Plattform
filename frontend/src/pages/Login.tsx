@@ -22,7 +22,7 @@ const DEMO = [
 // Marketing highlights on the hero panel.
 const FEATURES = [
   { icon: GitBranch, title: 'Rollenbasierter Workflow', body: 'Vom Entwurf bis zur Umsetzung — mit klaren Freigaben in jeder Phase.' },
-  { icon: BarChart3, title: 'Zusammengesetzte Bewertung', body: 'Wirkung, Machbarkeit und strategischer Fit ergeben eine Priorität.' },
+  { icon: BarChart3, title: 'Zusammengesetzte Bewertung', body: 'Wirkung, Machbarkeit und strategische Passung ergeben eine Priorität.' },
   { icon: Sparkles,  title: 'KI-gestützte Verfeinerung', body: 'Semantische Suche und Duplikaterkennung halten den Kontext lebendig.' },
 ]
 

@@ -191,6 +191,27 @@ mvn spring-boot:run
 
 On boot, Flyway runs the migrations (`V1` schema → `V10`; highlights: `V5` campaigns, `V7` i18n columns + DE translations, `V8` Supabase RPCs, `V9` excludes private stages from search, `V10` promotes German to canonical) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
 
+#### Run the backend durably (optional)
+
+`mvn spring-boot:run` is fine for active development but dies when the terminal closes or the machine sleeps. For demos, run it as a self-restarting background service instead — no admin rights required:
+
+```powershell
+# Build the runnable jar once, then install the auto-restart supervisor
+mvn -f backend/pom.xml -DskipTests package
+powershell -ExecutionPolicy Bypass -File scripts/install-backend-service.ps1
+```
+
+This drops a launcher in your **Startup folder** (so it auto-starts at every logon) and starts [`scripts/run-backend.ps1`](scripts/run-backend.ps1), a supervisor that keeps `target/ideaplatform-api-*.jar` alive and **restarts it within seconds if it ever exits**. Management:
+
+```powershell
+Get-Content backend/backend.log -Tail 40                              # logs
+powershell -ExecutionPolicy Bypass -File scripts/uninstall-backend-service.ps1   # stop + remove
+```
+
+After changing backend code, rebuild the jar (`mvn -f backend/pom.xml -DskipTests package`) — the supervisor picks up the new jar on its next restart. For a system-level service that runs even when logged out, register a scheduled task from an **elevated** shell (`Register-ScheduledTask`); the no-admin Startup approach above is the default.
+
+The frontend (Vite dev server on :5173) has matching scripts for the same auto-restart + logon-start behaviour: `scripts/install-frontend-service.ps1`, [`scripts/run-frontend.ps1`](scripts/run-frontend.ps1), and `scripts/uninstall-frontend-service.ps1` (logs to `frontend/frontend.log`).
+
 ### 5. Frontend
 
 In a second terminal:
@@ -402,6 +423,24 @@ geistesblitz/
 ```
 
 The Java package is still `com.ideaplatform.api` for historical reasons; this is a cosmetic detail and can be refactored to `com.geistesblitz.api` if desired.
+
+---
+
+## Tests
+
+A focused backend suite covers the security- and correctness-critical logic with no database or Ollama needed (unit / service-layer tests with a mocked `DataStore`, ~1.5 s):
+
+```bash
+mvn -f backend/pom.xml test
+```
+
+| Test class | Covers |
+|------------|--------|
+| `IdeaWorkflowTest` | Role-gated stage machine — who may make each transition (incl. `IDEA_MANAGER`), the `SUPERADMIN` override, illegal stage jumps, archiving |
+| `JwtServiceTest` | JWT issue/verify round-trip + rejection of tampered / expired / wrong-issuer tokens, and the introspection contract the auth filter relies on |
+| `IdeaServiceTest` | Draft privacy (a colleague's `DRAFT` never appears in the list or single-GET; author and admin still see it) and tenant isolation (cross-tenant access → 404) |
+
+The durable-jar build uses `-DskipTests` for speed; run `mvn test` (or `mvn verify`) to execute the suite.
 
 ---
 
