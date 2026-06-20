@@ -6,6 +6,18 @@ A multi-tenant, license-gated platform where employees submit innovation ideas, 
 
 ---
 
+## Screenshots
+
+Captured from the running app against the seeded demo tenant. The shots below are woven into the feature sections that follow; the **complete gallery (18 images, light + dark)** lives in [`docs/screenshots/`](docs/screenshots/README.md).
+
+| Dashboard | Idea list |
+|-----------|-----------|
+| ![Dashboard](docs/screenshots/02-dashboard.png) | ![Idea list](docs/screenshots/03-ideas-list.png) |
+
+*The two primary views: the personal dashboard (trends, your ideas, recent activity) and the filterable, sortable idea list.*
+
+---
+
 ## Stack
 
 | Layer            | Choice                                                                            |
@@ -37,6 +49,9 @@ Six roles, each with distinct UI surface and API permissions:
 | `ADMIN`              | Manage users, see license usage, all of the above within tenant        |
 | `SUPERADMIN`         | Cross-tenant (vendor staff)                                            |
 
+![Login](docs/screenshots/01-login.png)
+*Login with a one-click demo-account picker for each role.*
+
 ### Workflow state machine
 ```
 DRAFT → SUBMITTED → UNDER_REVIEW → PRIORITIZATION → APPROVED → IN_IMPLEMENTATION → DONE
@@ -45,6 +60,9 @@ DRAFT → SUBMITTED → UNDER_REVIEW → PRIORITIZATION → APPROVED → IN_IMPL
 Declared in [`IdeaWorkflow.java`](backend/src/main/java/com/ideaplatform/api/workflow/IdeaWorkflow.java). Every transition is gated by (from-stage, to-stage, actor-role) **server-side**. `PRIORITIZATION` requires at least one reviewer evaluation.
 
 The **Workflow page is a Jira/Trello-style Kanban board**: one column per stage, cards are draggable, and while dragging only the columns the current user is actually allowed to move the card into light up (the rest dim). Drops do an optimistic move and roll back with a toast if the server rejects them. The board route is itself role-gated — `EMPLOYEE`s don't see it (the backend stays the source of truth either way).
+
+![Workflow board](docs/screenshots/07-workflow-board.png)
+*Workflow board — one column per stage; only legal drop targets light up while a card is dragged.*
 
 ### Composite priority scoring
 ```
@@ -56,6 +74,9 @@ score = 0.40 · sigmoid(net_votes / 5)
 Weights live in `application.yml`; per-tenant overrides are an obvious next step.
 
 **Transparent in the UI.** The idea detail page renders a *Priorität* breakdown that mirrors this formula: each factor (Stimmen, Prüferbewertung, Aktualität, Sponsor-Förderung) shows its normalized value (0–1 bar), its weight, and its weighted contribution, summing to the composite — plus a one-line explanation of the formula. It's visible to every role, so the ranking is never an opaque number. The reviewer evaluation panel likewise shows how each average is formed `(Wirkung + Machbarkeit + Strategische Passung) / 3`, a live average of the current selection, and the combined reviewer average with a note that it feeds 35 % of the priority. *(The breakdown is computed client-side from the same inputs/weights; keep `PRIORITY_WEIGHTS` in `IdeaDetail.tsx` in sync with `ideaplatform.scoring.*` if the backend weights change.)*
+
+![Idea detail](docs/screenshots/05-idea-detail.png)
+*Idea detail — transparent priority breakdown, voting, reviewer evaluation, comments, and a similar-ideas sidebar.*
 
 ### Voting & evaluation
 - Idempotent up/down voting (`+1`, `-1`, or `0` to clear).
@@ -72,14 +93,28 @@ Weights live in `application.yml`; per-tenant overrides are an obvious next step
 - **Refine chat** — multi-turn follow-ups on the same idea, with the same RAG context kept in the prompt and conversation history passed back on every turn.
 - **Semantic graph view** of all visible ideas: nodes are ideas, edges are pairs above the chosen threshold, and connected components are colored as clusters (convex hulls drawn via Andrew's monotone-chain algorithm). Drag-aware so panning the graph doesn't accidentally navigate.
 
+| Submit — live duplicate check | Free-text semantic search |
+|-------------------------------|---------------------------|
+| ![Submit idea](docs/screenshots/06-submit-idea.png) | ![Semantic search](docs/screenshots/04-ideas-semantic-search.png) |
+
+![Semantic map](docs/screenshots/08-idea-graph.png)
+*Semantic map — ideas as nodes, similarity edges, and colored clusters of related work (cosine similarity).*
+
 ### Campaigns
 - `IDEA_MANAGER` / `ADMIN` group ideas around a theme, deadline, or strategic initiative.
 - Employees can attach a new idea to a campaign at submit time (or from a campaign's detail page).
 - Deleting a campaign sets each linked idea's `campaign_id` to `NULL` via the `ON DELETE SET NULL` FK — ideas are never lost.
 - Manage endpoints are gated with `@PreAuthorize`, returning **403 Forbidden** for non-managers (not 409).
 
+| Campaigns | Campaign detail |
+|-----------|-----------------|
+| ![Campaigns](docs/screenshots/09-campaigns.png) | ![Campaign detail](docs/screenshots/10-campaign-detail.png) |
+
 ### Leaderboard
 Ranks the highest-priority ideas and the most active contributors in the tenant — submissions, votes cast, comments, evaluations. Sourced from `/api/leaderboard`.
+
+![Leaderboard](docs/screenshots/11-leaderboard.png)
+*Leaderboard — top-ranked ideas and the most active contributors.*
 
 ### German-first content
 - The platform is **German-first**. The frontend's content locale defaults to `de`, and migration `V10` promotes the seeded German text (`title_de` / `description_de` / `name_de`, added in `V7`) into the canonical `title` / `description` / `name` columns — so a fresh `flyway migrate` reproduces the German dataset everyone demos against, with no manual post-seed step.
@@ -91,6 +126,10 @@ Ranks the highest-priority ideas and the most active contributors in the tenant 
 - Flash-free init script in `index.html` reads `localStorage` before the React bundle mounts, so the first paint matches the user's preference.
 - Toggle (`Hell` / `Dunkel` / `Automatisch`) lives at the bottom of the `Settings` page, plus a quick-cycle button in the top bar.
 
+| Dashboard (dark) | Idea list (dark) |
+|------------------|------------------|
+| ![Dashboard dark](docs/screenshots/17-dashboard-dark.png) | ![Idea list dark](docs/screenshots/18-ideas-list-dark.png) |
+
 ### Licensing (server-side enforcement)
 | Plan           | Seats     | Ideas / month | RAG refine | Custom workflow | SSO | Price (demo) |
 |----------------|-----------|---------------|-----------|-----------------|------|--------------|
@@ -101,6 +140,10 @@ Ranks the highest-priority ideas and the most active contributors in the tenant 
 Violations return **HTTP 402 Payment Required** with `X-License-Reason` header (`seat_limit_reached`, `idea_quota_reached`, `feature_not_in_plan`, `plan_expired`). The frontend surfaces an upgrade banner.
 
 **Self-service plan upgrade.** The `Settings` page renders the three tiers as cards (price, limits, features) with the active plan flagged. The catalogue (`GET /api/subscription/plans`) is readable by any member; switching plans (`PUT /api/subscription/plan`) is restricted to `ADMIN` / `SUPERADMIN`, so only admins see live "Wechseln" buttons. A switch is immediate (the prototype has no payment step — a real billing integration would gate it), renews the 365-day licence window, unlocks the new plan's features instantly, and refreshes the cached profile so the plan badge updates without a re-login.
+
+| Plan tiers (Settings) | Admin — users & license usage |
+|-----------------------|-------------------------------|
+| ![Plan tiers](docs/screenshots/13-settings.png) | ![Admin](docs/screenshots/12-admin.png) |
 
 ### Multi-tenancy & data isolation
 
@@ -189,7 +232,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-On boot, Flyway runs the migrations (`V1` schema → `V10`; highlights: `V5` campaigns, `V7` i18n columns + DE translations, `V8` Supabase RPCs, `V9` excludes private stages from search, `V10` promotes German to canonical) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
+On boot, Flyway runs the migrations (`V1` schema → `V13`; highlights: `V5` campaigns, `V7` i18n columns + DE translations, `V8` Supabase RPCs, `V9` excludes private stages from search, `V10` promotes German to canonical, `V12` adds tenant Row-Level Security, `V13` renames the ideamanager role) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
 
 #### Run the backend durably (optional)
 
@@ -240,6 +283,10 @@ All seeded users share password `demo1234`.
 
 The login page has a one-click picker for these accounts.
 
+> **Giving a demo?** [`docs/DEMO.md`](docs/DEMO.md) is a timed ~10-minute run-of-show, and
+> `scripts\demo-prep.ps1` gets every service up and pre-warms the semantic search in one command
+> (`-Reset` restores the clean seed state between rehearsals).
+
 ### 7. Embeddings are indexed automatically
 
 You don't need to do anything. On boot the **`EmbeddingBootstrapper`** (step 4) embeds every seeded idea that lacks a vector, so the "similar ideas" sidebar, free-text search, and the graph all work as soon as the backend is up — provided Ollama is reachable. If Ollama was down at boot, just restart the backend once it's healthy and the bootstrapper backfills the gap (it only touches ideas with no embedding).
@@ -248,7 +295,7 @@ You don't need to do anything. On boot the **`EmbeddingBootstrapper`** (step 4) 
 
 Two ways to give every teammate the same starting dataset:
 
-- **Migrations + auto-embed (default, version-controlled).** Just clone → migrate → run, as above. `V1..V10` recreate the schema + curated German content; the bootstrapper fills in vectors. No binary blobs in git, model-agnostic.
+- **Migrations + auto-embed (default, version-controlled).** Just clone → migrate → run, as above. `V1..V13` recreate the schema + curated German content; the bootstrapper fills in vectors. No binary blobs in git, model-agnostic.
 - **Snapshot restore (fast, no Ollama needed).** `scripts/seed-snapshot.sh` dumps the live DB — **including the embedding vectors** — to `scripts/seeds/seed.sql`; `scripts/seed-restore.sh` loads it into a fresh DB. Restores a fully working semantic-search/graph demo in seconds even without an embedding model, at the cost of baking in volatile data (votes, timestamps) and tying the vectors to the model that produced them.
 
 ### 9. (Dev) God-mode data console
@@ -258,6 +305,9 @@ A hidden in-app data editor for shaping a demo quickly — browse any table, the
 - **Open it** at [`/dev`](http://localhost:5173/dev) — it is intentionally not linked in the navigation. Any logged-in user can reach it while the flag below is on.
 - **Backend:** [`DevDataController`](backend/src/main/java/com/ideaplatform/api/controller/DevDataController.java) exposes `/api/dev/data/**`. Table and column names are validated against `information_schema`; values are bound as parameters and cast to each column's type. `flyway_schema_history` and `idea_embeddings` are hidden.
 - **⚠️ Dev/demo only.** Gated behind `ideaplatform.dev.data-console.enabled` (default **`false`**; set to `true` in `application.yml` for local demos). When off, every `/api/dev/data/**` route returns 404. **Set it to `false` in any production build.**
+
+![Dev data console](docs/screenshots/14-dev-data-console.png)
+*The hidden `/dev` data console — browse and edit any table across tenants (dev/demo only).*
 
 ---
 
@@ -270,10 +320,10 @@ There are two switchover paths. **Pick Path A unless you have a hard reason to a
 Supabase is just Postgres + pgvector under the hood, so pointing the existing JDBC datasource at Supabase's connection pooler keeps every feature working — JPA, Flyway, raw pgvector queries, transactions, the lot. **No Java changes; switching is two env vars and a profile flag.**
 
 ```bash
-# One-time bootstrap (enables pgvector + runs all V1..V10 migrations)
+# One-time bootstrap (enables pgvector + runs all V1..V13 migrations)
 export SUPABASE_HOST=db.<project-ref>.supabase.co
 export SUPABASE_DB_PASSWORD=...
-bash scripts/supabase-bootstrap.sh   # enables pgvector + runs all V1..V10 migrations
+bash scripts/supabase-bootstrap.sh   # enables pgvector + runs all V1..V13 migrations
 
 # Run the backend against Supabase
 cd backend
@@ -287,7 +337,7 @@ The profile is committed at [`backend/src/main/resources/application-supabase-jd
 Use this only when your deployment can't open a direct Postgres connection (edge runtime, hardened egress). It routes all CRUD through PostgREST (`SupabaseDataStore`) and all vector search through Postgres RPC functions (`SupabaseRpcEmbeddingStore`) defined in [`V8__supabase_rpc.sql`](backend/src/main/resources/db/migration/V8__supabase_rpc.sql).
 
 ```bash
-# Bootstrap first (same script — it applies all V1..V10 to Supabase regardless of profile)
+# Bootstrap first (same script — it applies all V1..V13 to Supabase regardless of profile)
 bash scripts/supabase-bootstrap.sh
 
 # Configure + run
@@ -407,7 +457,7 @@ geistesblitz/
 │       │   └── embedding/ EmbeddingProvider + Ollama / OpenAI / Mock
 │       ├── tenant/        TenantContext + LocaleContext + servlet filters
 │       └── workflow/      IdeaWorkflow state machine
-│   └── src/main/resources/db/migration/   V1..V10 (V5 campaigns, V7 i18n, V8 Supabase RPC, V9 search visibility, V10 German-canonical)
+│   └── src/main/resources/db/migration/   V1..V13 (V5 campaigns, V7 i18n, V8 Supabase RPC, V9 search visibility, V10 German-canonical, V11 1024-d embeddings, V12 tenant RLS, V13 ideamanager role)
 ├── frontend/
 │   └── src/
 │       ├── api/           Axios client (sets X-Content-Lang, refreshes /auth/me) + endpoint wrappers
@@ -463,14 +513,18 @@ The durable-jar build uses `-DskipTests` for speed; run `mvn test` (or `mvn veri
 
 ## Known limitations / next steps
 
-- **Tests** — none yet. The service layer has clean seams; JUnit + Testcontainers is the natural pairing.
+- **Integration tests** — a focused unit/service suite already exists (see [Tests](#tests)); the natural next step is Testcontainers-backed integration tests against a real Postgres, plus a frontend/E2E layer.
 - **Idea delete endpoint** — not yet exposed; `DataStore` supports it but `IdeaController` doesn't.
 - **Plan upgrade has no payment step** — `PUT /api/subscription/plan` switches the tenant immediately. A production build would gate it behind a billing provider (Stripe etc.) and a webhook.
 - **Supabase datastore** — functionally complete but uses per-row sums instead of PostgREST RPCs for `netVotes`. Fine for the prototype; replace with a stored function in production.
 - **`AdminService` duplicate-email check** queries globally, which leaks "email exists" across tenants. Switch to `findByEmailAndTenantId`.
 - **Campaigns** — no UI to detach an idea from a campaign after the fact (the FE select on Submit only sets the value; `PATCH /api/ideas/{id}` with `campaignId: null` is currently a no-op because the service guards on `!= null`).
 - **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~460 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
-- **Legal pages are templates** — the German footer links to public `/impressum` and `/datenschutz` (DSGVO) pages; contact is `lifon.chun@gmail.de`. The `[ … ]` placeholders (Name, Anschrift) and the Datenschutz wording must be completed and legally reviewed before any public deployment.
+- **Legal pages are templates** — the German footer links to public `/impressum` and `/datenschutz` (DSGVO) pages; contact is `lifon.chun@gmail.com`. The `[ … ]` placeholders (Name, Anschrift) and the Datenschutz wording must be completed and legally reviewed before any public deployment.
+
+| Impressum | Datenschutz |
+|-----------|-------------|
+| ![Impressum](docs/screenshots/15-impressum.png) | ![Datenschutz](docs/screenshots/16-datenschutz.png) |
 
 ---
 
