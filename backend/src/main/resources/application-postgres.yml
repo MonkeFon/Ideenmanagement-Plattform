@@ -25,3 +25,10 @@ ideaplatform:
     # supabase-jdbc mode. The `supabase` profile flips this to `supabase` to call
     # PostgREST RPCs instead.
     store: jdbc
+
+# Demo/dev override: surface full error messages in responses so the SPA's error
+# toasts stay informative. Production (any non-postgres profile) keeps the safe
+# base default of `never` from application.yml.
+server:
+  error:
+    include-message: always

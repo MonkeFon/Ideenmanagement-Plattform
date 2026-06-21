@@ -26,7 +26,7 @@ const stageRank = (s: Stage) => {
 }
 
 const TIME_RANGES = [
-  { value: 'all', label: 'Alle Zeit', days: null },
+  { value: 'all', label: 'Zeitraum', days: null },
   { value: '1',   label: 'Letzte 24 Stunden', days: 1 },
   { value: '7',   label: 'Letzte 7 Tage', days: 7 },
   { value: '30',  label: 'Letzte 30 Tage', days: 30 },
@@ -199,14 +199,14 @@ export default function IdeaList() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70" size={15} strokeWidth={1.75} />
             <Input
               className="pl-8"
-              placeholder="Filtern nach Titel, Autor, Kategorie… — Enter für semantische Suche"
+              placeholder="Semantische Suche…"
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
           </div>
 
           <select className={SELECT_CLASS} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status filtern">
-            <option value="all">Alle Status</option>
+            <option value="all">Status</option>
             {statusOptions.map((s) => <option key={s} value={s}>{stageLabels[s]}</option>)}
           </select>
 
@@ -215,7 +215,7 @@ export default function IdeaList() {
           </select>
 
           <select className={SELECT_CLASS} value={category} onChange={(e) => setCategory(e.target.value)} aria-label="Kategorie filtern">
-            <option value="all">Alle Kategorien</option>
+            <option value="all">Kategorien</option>
             {categoryOptions.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
 
