@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Idea } from '@/types/api'
 import StageBadge from './StageBadge'
+import { ideaRef } from '@/lib/jira'
 import { Card } from '@/components/ui/card'
 import { ArrowUp, MessageSquare, Star } from 'lucide-react'
 
@@ -9,7 +10,10 @@ export default function IdeaCard({ idea }: { idea: Idea }) {
     <Card asChild className="block p-4 transition-colors hover:border-input">
       <Link to={`/ideas/${idea.id}`}>
         <div className="flex items-start justify-between gap-3">
-          <h3 className="font-medium text-foreground text-[14px] leading-snug tracking-tight">{idea.title}</h3>
+          <div className="min-w-0">
+            <span className="font-mono text-[10px] text-muted-foreground/80 tabular-nums">{ideaRef(idea.reference)}</span>
+            <h3 className="font-medium text-foreground text-[14px] leading-snug tracking-tight">{idea.title}</h3>
+          </div>
           <StageBadge stage={idea.stage} />
         </div>
         <p className="mt-1.5 text-[13px] text-muted-foreground line-clamp-2 leading-relaxed">{idea.description}</p>

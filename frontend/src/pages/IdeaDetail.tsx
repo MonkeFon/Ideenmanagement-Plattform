@@ -14,9 +14,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { jiraKey, jiraPath } from '@/lib/jira'
-import { ArrowUp, ArrowDown, MessageSquare, Send, Wand2, Star, RotateCcw, Gauge, ExternalLink } from 'lucide-react'
-import type { ChatMessage, Stage } from '@/types/api'
+import { ideaRef, jiraPath } from '@/lib/jira'
+import { ArrowUp, ArrowDown, MessageSquare, Send, Wand2, Star, RotateCcw, Gauge, ExternalLink, UserCog, Check } from 'lucide-react'
+import type { ChatMessage, Idea, Stage } from '@/types/api'
 
 const RATING_AXES = [
   { key: 'impact',       label: 'Wirkung' },
@@ -93,6 +93,126 @@ function PriorityCard({ priority }: { priority: Priority }) {
         Priorität = 40% Stimmen + 35% Prüferbewertung + 15% Aktualität + 10% Sponsor-Förderung. Jeder Faktor
         wird auf 0–1 normiert: Stimmen logistisch, die Aktualität halbiert sich alle 30 Tage.
       </p>
+    </Card>
+  )
+}
+
+const REVIEWER_ROLES = ['REVIEWER', 'IDEA_MANAGER', 'ADMIN', 'SUPERADMIN']
+const ASSIGN_ROLES = ['IDEA_MANAGER', 'ADMIN', 'SUPERADMIN']
+
+/**
+ * Assignment pipeline card. Everyone in a workflow role sees who's responsible;
+ * idea managers/admins can (re)assign the reviewer and idea manager, and reviewers
+ * can claim an open review themselves (e.g. to accept a suggestion).
+ */
+function AssignmentCard({ idea, onChanged }: { idea: Idea; onChanged: () => void }) {
+  const user = useAuth((s) => s.user)!
+  const qc = useQueryClient()
+  const canAssign = ASSIGN_ROLES.includes(user.role)
+  const canReview = REVIEWER_ROLES.includes(user.role)
+
+  const assignableQ = useQuery({
+    queryKey: ['assignable-users'],
+    queryFn: () => IdeaApi.assignableUsers(),
+    enabled: canAssign,
+    staleTime: 5 * 60_000,
+  })
+  const reviewerOptions = (assignableQ.data ?? []).filter((u) => REVIEWER_ROLES.includes(u.role))
+  const managerOptions = (assignableQ.data ?? []).filter((u) => ASSIGN_ROLES.includes(u.role))
+
+  const [reviewerId, setReviewerId] = useState(idea.assignedReviewerId ?? '')
+  const [managerId, setManagerId] = useState(idea.assignedManagerId ?? '')
+  useEffect(() => {
+    setReviewerId(idea.assignedReviewerId ?? '')
+    setManagerId(idea.assignedManagerId ?? '')
+  }, [idea.assignedReviewerId, idea.assignedManagerId])
+
+  const refresh = () => { qc.invalidateQueries({ queryKey: ['my-tasks'] }); onChanged() }
+  const assignM = useMutation({
+    mutationFn: () => IdeaApi.assign(idea.id, { reviewerId: reviewerId || null, managerId: managerId || null }),
+    onSuccess: refresh,
+  })
+  const claimM = useMutation({
+    mutationFn: (as: 'reviewer' | 'manager') => IdeaApi.claim(idea.id, as),
+    onSuccess: refresh,
+  })
+
+  const dirty = (reviewerId || '') !== (idea.assignedReviewerId ?? '') || (managerId || '') !== (idea.assignedManagerId ?? '')
+  const reviewerSuggested = idea.preferredReviewerId && idea.preferredReviewerId !== idea.assignedReviewerId
+  const managerSuggested = idea.preferredManagerId && idea.preferredManagerId !== idea.assignedManagerId
+
+  const selectCls = 'mt-1.5 flex h-9 w-full rounded border border-input bg-background px-2.5 py-1.5 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2'
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-2">
+        <UserCog size={14} strokeWidth={1.75} className="text-muted-foreground" />
+        <div className="eyebrow">Zuständigkeit</div>
+      </div>
+
+      {!canAssign ? (
+        // Read-only view for reviewers/sponsors: who's responsible, plus a claim
+        // action for reviewers on an open review.
+        <div className="mt-3 space-y-2.5 text-[13px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground">Prüfer:in</span>
+            <span className="font-medium text-foreground">{idea.assignedReviewerName ?? '—'}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-muted-foreground">Ideenmanager:in</span>
+            <span className="font-medium text-foreground">{idea.assignedManagerName ?? '—'}</span>
+          </div>
+          {canReview && idea.assignedReviewerId !== user.id && (
+            <div className="pt-1">
+              {idea.preferredReviewerId === user.id && (
+                <div className="mb-2 text-[12px] text-foreground bg-primary/10 border border-primary/20 rounded px-2 py-1.5">
+                  Sie wurden als Prüfer:in vorgeschlagen.
+                </div>
+              )}
+              <Button variant="secondary" size="sm" className="w-full" disabled={claimM.isPending} onClick={() => claimM.mutate('reviewer')}>
+                <Check size={14} strokeWidth={2} /> Prüfung übernehmen
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="mt-3 space-y-3">
+          <div>
+            <label htmlFor="assign-reviewer" className="text-[12px] font-medium text-muted-foreground">Prüfer:in</label>
+            <select id="assign-reviewer" className={selectCls} value={reviewerId} onChange={(e) => setReviewerId(e.target.value)}>
+              <option value="">— nicht zugewiesen —</option>
+              {reviewerOptions.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+            </select>
+            {reviewerSuggested && (
+              <button type="button" className="mt-1 text-[11px] text-primary hover:underline" onClick={() => setReviewerId(idea.preferredReviewerId!)}>
+                Vorschlag übernehmen: {idea.preferredReviewerName}
+              </button>
+            )}
+          </div>
+          <div>
+            <label htmlFor="assign-manager" className="text-[12px] font-medium text-muted-foreground">Ideenmanager:in</label>
+            <select id="assign-manager" className={selectCls} value={managerId} onChange={(e) => setManagerId(e.target.value)}>
+              <option value="">— nicht zugewiesen —</option>
+              {managerOptions.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
+            </select>
+            {managerSuggested && (
+              <button type="button" className="mt-1 text-[11px] text-primary hover:underline" onClick={() => setManagerId(idea.preferredManagerId!)}>
+                Vorschlag übernehmen: {idea.preferredManagerName}
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" disabled={!dirty || assignM.isPending} onClick={() => assignM.mutate()}>
+              {assignM.isPending ? <><Spinner size={12} className="text-current" /> Speichern…</> : 'Zuweisung speichern'}
+            </Button>
+            {idea.assignedManagerId !== user.id && (
+              <Button variant="ghost" size="sm" disabled={claimM.isPending} onClick={() => claimM.mutate('manager')}>
+                Mir zuweisen
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </Card>
   )
 }
@@ -263,6 +383,9 @@ export default function IdeaDetail() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="outline" className="font-mono text-[11px] text-muted-foreground tabular-nums" title="Referenz-ID">
+              {ideaRef(idea.reference)}
+            </Badge>
             <StageBadge stage={idea.stage} />
             {idea.sponsorBoost && <Badge variant="gray" className="uppercase tracking-wider text-[10px]">gefördert</Badge>}
             <Badge variant="outline" className="font-mono text-[11px] text-foreground/90 tabular-nums" title="Zusammengesetzte Priorität — Aufschlüsselung weiter unten">
@@ -434,6 +557,12 @@ export default function IdeaDetail() {
         </div>
 
         <aside className="space-y-4">
+          {/* Assignment pipeline — internal to the workflow, so hidden from plain
+              employees (who also don't see the Workflow card). */}
+          <RoleGate allow={WORKFLOW_ROLES}>
+            <AssignmentCard idea={idea} onChanged={refresh} />
+          </RoleGate>
+
           {/* Delivery hand-off: once an idea is in implementation it lives in the
               delivery tool. We surface a (mock) Jira issue link so the demo shows the
               round-trip from idea to ticket. Also shown for DONE — the ticket persists. */}
@@ -441,7 +570,7 @@ export default function IdeaDetail() {
             <Card className="p-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="eyebrow">Umsetzung</div>
-                <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{jiraKey(idea.id)}</span>
+                <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{ideaRef(idea.reference)}</span>
               </div>
               <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">
                 Diese Idee wird im Delivery-Board verfolgt. Im Jira-Vorgang sehen Sie Status,

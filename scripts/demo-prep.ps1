@@ -111,7 +111,7 @@ if (-not (Test-Listen 5173)) {
 # ----------------------------------------------------------------------------
 Step 'Warm-up'
 try {
-  $body = @{ email = 'timo@testmandant.test'; password = 'demo1234' } | ConvertTo-Json
+  $body = @{ email = 'timo@fom.de'; password = 'demo1234' } | ConvertTo-Json
   $tok  = (Invoke-RestMethod -Method Post "$Api/api/auth/login" -ContentType 'application/json' -Body $body).token
   $q    = [uri]::EscapeDataString('Schwachstellen in Bibliotheken automatisch pruefen')
   $hdr  = @{ Authorization = "Bearer $tok" }
@@ -133,6 +133,6 @@ Write-Host "--------------------------------------------------------------" -For
 Write-Host "  App        : $Web   (Login-Auswahl, Passwort: demo1234)"
 Write-Host "  Duplikat   : Zentrale Anzeige von Build- und Deployment-Status   (-> ~90% Treffer)"
 Write-Host "  Suche      : Schwachstellen in Bibliotheken automatisch pruefen   (-> 5 Treffer)"
-Write-Host "  Konten     : michel (Mitarbeiter)  jan (Pruefer)  lifon (Ideenmanager)  michael (Sponsor)  timo (Admin)  -- alle @testmandant.test"
-Write-Host "               owner@globex.test = zweiter Mandant (Free, fuer 402-Demo)"
+Write-Host "  Konten     : michel (Mitarbeiter)  jan (Pruefer)  lifon (Ideenmanager)  michael (Sponsor)  timo (Admin)  -- alle @fom.de"
+Write-Host "               owner@globex.test = zweiter Mandant Globex (Free, fuer 402-Demo)"
 Write-Host "  NICHT zeigen: /dev (God-Mode)`n"

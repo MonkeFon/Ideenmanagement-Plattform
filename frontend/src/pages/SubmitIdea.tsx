@@ -18,11 +18,18 @@ export default function SubmitIdea() {
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
   const [campaignId, setCampaignId] = useState<string>(searchParams.get('campaign') ?? '')
+  const [preferredReviewerId, setPreferredReviewerId] = useState('')
+  const [preferredManagerId, setPreferredManagerId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [licenseHint, setLicenseHint] = useState<string | null>(null)
 
   const campaignsQ = useQuery({ queryKey: ['campaigns'], queryFn: () => CampaignApi.list() })
+  const assignableQ = useQuery({ queryKey: ['assignable-users'], queryFn: () => IdeaApi.assignableUsers() })
+  // Reviewer slot: anyone who can review (reviewer/idea manager/admin). Manager slot:
+  // idea managers + admins only.
+  const reviewerOptions = (assignableQ.data ?? []).filter((u) => ['REVIEWER', 'IDEA_MANAGER', 'ADMIN'].includes(u.role))
+  const managerOptions = (assignableQ.data ?? []).filter((u) => ['IDEA_MANAGER', 'ADMIN'].includes(u.role))
 
   /**
    * Live duplicate detection. As the user types title + description, debounce
@@ -74,6 +81,8 @@ export default function SubmitIdea() {
         description,
         category: category || undefined,
         campaignId: campaignId || undefined,
+        preferredReviewerId: preferredReviewerId || undefined,
+        preferredManagerId: preferredManagerId || undefined,
       })
       navigate(`/ideas/${idea.id}`)
     } catch (err) {
@@ -188,6 +197,39 @@ export default function SubmitIdea() {
                 <option value="">— keine —</option>
                 {campaignsQ.data?.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Optional up-front assignment suggestions. Non-binding — the idea manager
+              confirms or overrides them in the pipeline. */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor="pref-reviewer">Gewünschte:r Prüfer:in <span className="font-normal text-muted-foreground">· optional</span></Label>
+              <select
+                id="pref-reviewer"
+                className="mt-1.5 flex h-9 w-full rounded border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={preferredReviewerId}
+                onChange={(e) => setPreferredReviewerId(e.target.value)}
+              >
+                <option value="">— keine Präferenz —</option>
+                {reviewerOptions.map((u) => (
+                  <option key={u.id} value={u.id}>{u.displayName}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="pref-manager">Gewünschte:r Ideenmanager:in <span className="font-normal text-muted-foreground">· optional</span></Label>
+              <select
+                id="pref-manager"
+                className="mt-1.5 flex h-9 w-full rounded border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                value={preferredManagerId}
+                onChange={(e) => setPreferredManagerId(e.target.value)}
+              >
+                <option value="">— keine Präferenz —</option>
+                {managerOptions.map((u) => (
+                  <option key={u.id} value={u.id}>{u.displayName}</option>
                 ))}
               </select>
             </div>

@@ -1,6 +1,6 @@
 import { api } from './client'
 import type {
-  Campaign, CampaignDetail, ChatMessage, ChatResponse,
+  AssignableUser, Campaign, CampaignDetail, ChatMessage, ChatResponse,
   Comment, Evaluation, Idea, IdeaGraph, Leaderboard, LoginResponse, MeResponse,
   PlanOption, RefineResponse, SimilarIdea, Stage, TenantUsage, WorkflowEvent,
 } from '@/types/api'
@@ -45,8 +45,18 @@ export const IdeaApi = {
   list: (stage?: Stage) =>
     api.get<Idea[]>('/ideas', { params: stage ? { stage } : {} }).then((r) => r.data),
   get: (id: string) => api.get<Idea>(`/ideas/${id}`).then((r) => r.data),
-  create: (payload: { title: string; description: string; category?: string; campaignId?: string }) =>
+  create: (payload: {
+    title: string; description: string; category?: string; campaignId?: string
+    preferredReviewerId?: string; preferredManagerId?: string
+  }) =>
     api.post<Idea>('/ideas', payload).then((r) => r.data),
+  // Assignment pipeline
+  assignableUsers: () => api.get<AssignableUser[]>('/ideas/assignable-users').then((r) => r.data),
+  myTasks: () => api.get<Idea[]>('/ideas/my-tasks').then((r) => r.data),
+  assign: (id: string, payload: { reviewerId: string | null; managerId: string | null }) =>
+    api.patch<Idea>(`/ideas/${id}/assignment`, payload).then((r) => r.data),
+  claim: (id: string, as: 'reviewer' | 'manager') =>
+    api.post<Idea>(`/ideas/${id}/claim`, null, { params: { as } }).then((r) => r.data),
   update: (id: string, payload: Partial<{ title: string; description: string; category: string; campaignId: string }>) =>
     api.patch<Idea>(`/ideas/${id}`, payload).then((r) => r.data),
   vote: (id: string, value: -1 | 0 | 1) =>

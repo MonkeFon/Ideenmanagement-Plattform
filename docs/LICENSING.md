@@ -24,5 +24,5 @@ The platform is sold per-tenant under three plans.
 Violations return **HTTP 402 Payment Required** with `X-License-Reason` header naming the failing check (`seat_limit_reached`, `idea_quota_reached`, `feature_not_in_plan`, `plan_expired`). The frontend surfaces an upgrade banner — see `frontend/src/api/client.ts` for the `asLicenseViolation(err)` helper that callers use to detect license errors and render the upgrade hint.
 
 ## Demo tenants
-- **TestMandant** (`tenant_id = 1111…`) — `Pro` plan, used by every `*@testmandant.test` account. RAG refine + chat available.
+- **FOM** (`tenant_id = 1111…`) — `Pro` plan, used by every `*@fom.de` account. RAG refine + chat available.
 - **Globex** (`tenant_id = 2222…`) — `Free` plan, single `owner@globex.test` account. Refine + chat return 402 with `feature_not_in_plan` so you can demo the upgrade flow.

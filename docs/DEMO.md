@@ -29,12 +29,12 @@ sowie den **rollenbasierten Workflow** sichtbar beweisen.
 
 | Person | Konto | Rolle |
 |--------|-------|-------|
-| **Michel** | `michel@testmandant.test` | Mitarbeiter |
-| **Hayao** | `hayao@testmandant.test` | Mitarbeiter |
-| **Jan** | `jan@testmandant.test` | Prüfer |
-| **Michael** | `michael@testmandant.test` | Sponsor |
-| **Lifon** | `lifon@testmandant.test` | Ideenmanager |
-| **Timo** | `timo@testmandant.test` | Administrator |
+| **Michel** | `michel@fom.de` | Mitarbeiter |
+| **Hayao** | `hayao@fom.de` | Mitarbeiter |
+| **Jan** | `jan@fom.de` | Prüfer |
+| **Michael** | `michael@fom.de` | Sponsor |
+| **Lifon** | `lifon@fom.de` | Ideenmanager |
+| **Timo** | `timo@fom.de` | Administrator |
 | Glo Owner | `owner@globex.test` | Admin im **zweiten Mandanten** (Tarif *Free*) |
 
 Auf der Anmeldeseite gibt es eine **Ein‑Klick‑Auswahl** dieser Konten.

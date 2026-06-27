@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { IdeaApi, SearchApi } from '@/api/endpoints'
 import StageBadge, { stageLabels } from '@/components/StageBadge'
+import { ideaRef } from '@/lib/jira'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -10,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import {
   Search, Sparkles, ArrowUp, ArrowDown, ChevronsUpDown,
-  MessageSquare, ArrowBigUp, X,
+  MessageSquare, ArrowBigUp, X, Plus,
 } from 'lucide-react'
 import type { Idea, Stage } from '@/types/api'
 
@@ -189,7 +190,7 @@ export default function IdeaList() {
           <div className="eyebrow">Ideen</div>
           <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Ideenübersicht</h1>
         </div>
-        <Button asChild><Link to="/submit">Idee einreichen</Link></Button>
+        <Button asChild><Link to="/submit">+ Idee einreichen</Link></Button>
       </header>
 
       {/* Filter toolbar */}
@@ -291,6 +292,7 @@ export default function IdeaList() {
               >
                 <td className="px-3 py-2.5 max-w-[28rem]">
                   <div className="flex items-center gap-2">
+                    <span className="font-mono text-[11px] text-muted-foreground tabular-nums shrink-0">{ideaRef(i.reference)}</span>
                     {i.campaignName && (
                       <span
                         className="h-2 w-2 rounded-full shrink-0"

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { IdeaApi } from '@/api/endpoints'
 import IdeaCard from '@/components/IdeaCard'
@@ -10,11 +10,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useAuth } from '@/store/auth'
+import { hasRole } from '@/lib/permissions'
+import { ideaRef } from '@/lib/jira'
 import {
   Plus, ArrowBigUp, MessageSquare, Lightbulb, Sparkles,
-  ArrowUp, ArrowDown, ChevronsUpDown,
+  ArrowUp, ArrowDown, ChevronsUpDown, ListChecks, Check, Inbox,
 } from 'lucide-react'
-import type { Comment, Idea, Stage } from '@/types/api'
+import type { Comment, Idea, Role, Stage } from '@/types/api'
+
+// Reviewers and idea managers get a personal task board on the dashboard.
+const TASK_ROLES: Role[] = ['REVIEWER', 'IDEA_MANAGER', 'ADMIN', 'SUPERADMIN']
 
 function fmtDate(s: string) {
   const d = new Date(s)
@@ -39,6 +44,121 @@ const stageRank = (s: Stage) => {
 
 type SortKey = 'title' | 'stage' | 'netVotes' | 'commentCount' | 'createdAt'
 type SortDir = 'asc' | 'desc'
+
+/**
+ * "Meine Aufgaben" — the personal task board for reviewers and idea managers.
+ * Splits the caller's ideas into those binding-assigned to them and those merely
+ * *suggested* for them (an open slot they can accept with one click).
+ */
+function MyTasksCard() {
+  const user = useAuth((s) => s.user)!
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const tasksQ = useQuery({ queryKey: ['my-tasks'], queryFn: () => IdeaApi.myTasks() })
+  const tasks = tasksQ.data ?? []
+
+  const assigned = tasks.filter((i) => i.assignedReviewerId === user.id || i.assignedManagerId === user.id)
+  const suggested = tasks.filter(
+    (i) =>
+      i.assignedReviewerId !== user.id &&
+      i.assignedManagerId !== user.id &&
+      ((i.preferredReviewerId === user.id && !i.assignedReviewerId) ||
+        (i.preferredManagerId === user.id && !i.assignedManagerId)),
+  )
+
+  const claimM = useMutation({
+    mutationFn: ({ id, as }: { id: string; as: 'reviewer' | 'manager' }) => IdeaApi.claim(id, as),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-tasks'] })
+      qc.invalidateQueries({ queryKey: ['ideas'] })
+    },
+  })
+
+  function roleBadges(i: Idea) {
+    const roles: string[] = []
+    if (i.assignedReviewerId === user.id || i.preferredReviewerId === user.id) roles.push('Prüfer:in')
+    if (i.assignedManagerId === user.id || i.preferredManagerId === user.id) roles.push('Ideenmanager:in')
+    return roles.join(' · ')
+  }
+
+  function Row({ i, claimable }: { i: Idea; claimable?: boolean }) {
+    return (
+      <li
+        onClick={() => navigate(`/ideas/${i.id}`)}
+        className="group flex items-center gap-3 rounded-md px-2 py-2 -mx-2 cursor-pointer hover:bg-accent/50 transition-colors"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] text-muted-foreground tabular-nums shrink-0">{ideaRef(i.reference)}</span>
+            <span className="font-medium text-foreground text-[13px] tracking-tight truncate group-hover:underline">{i.title}</span>
+            {i.sponsorBoost && <Sparkles size={12} className="text-amber-500 shrink-0" />}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+            <StageBadge stage={i.stage} />
+            <span className="text-foreground/70">{roleBadges(i)}</span>
+          </div>
+        </div>
+        {claimable ? (
+          <div className="flex shrink-0 gap-1.5" onClick={(e) => e.stopPropagation()}>
+            {i.preferredReviewerId === user.id && !i.assignedReviewerId && (
+              <Button size="sm" variant="secondary" disabled={claimM.isPending} onClick={() => claimM.mutate({ id: i.id, as: 'reviewer' })}>
+                <Check size={13} strokeWidth={2} /> Prüfung
+              </Button>
+            )}
+            {i.preferredManagerId === user.id && !i.assignedManagerId && (
+              <Button size="sm" variant="secondary" disabled={claimM.isPending} onClick={() => claimM.mutate({ id: i.id, as: 'manager' })}>
+                <Check size={13} strokeWidth={2} /> Management
+              </Button>
+            )}
+          </div>
+        ) : (
+          <span className="shrink-0 inline-flex items-center gap-1 text-[12px] text-muted-foreground tabular-nums">
+            <ArrowBigUp size={13} />{i.netVotes}
+          </span>
+        )}
+      </li>
+    )
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <ListChecks size={15} strokeWidth={1.75} className="text-muted-foreground" />
+        <div className="eyebrow">Meine Aufgaben</div>
+        {!tasksQ.isLoading && <span className="text-[11px] text-muted-foreground tabular-nums">{assigned.length}</span>}
+      </div>
+
+      {tasksQ.isLoading ? (
+        <div className="space-y-2">{Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+      ) : assigned.length === 0 && suggested.length === 0 ? (
+        <div className="rounded border border-dashed border-border py-8 text-center">
+          <Inbox className="mx-auto text-muted-foreground/50" size={22} strokeWidth={1.5} />
+          <div className="mt-2 text-[13px] font-medium text-foreground">Keine offenen Aufgaben</div>
+          <p className="mt-1 text-[12px] text-muted-foreground">Ihnen ist derzeit keine Idee zugewiesen.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {assigned.length > 0 && (
+            <div>
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70 mb-1">Mir zugewiesen</div>
+              <ul className="divide-y divide-border/60">
+                {assigned.map((i) => <Row key={i.id} i={i} />)}
+              </ul>
+            </div>
+          )}
+          {suggested.length > 0 && (
+            <div>
+              <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70 mb-1">Für mich vorgeschlagen</div>
+              <ul className="divide-y divide-border/60">
+                {suggested.map((i) => <Row key={i.id} i={i} claimable />)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
 
 export default function Dashboard() {
   const user = useAuth((s) => s.user)!
@@ -158,6 +278,12 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {/* Meine Aufgaben + Meine Ideen — side by side for reviewers/idea managers
+          (who have a task board), full-width Meine Ideen for everyone else. */}
+      <div className={cn('grid gap-4 items-start', hasRole(user.role, TASK_ROLES) ? 'lg:grid-cols-2' : 'grid-cols-1')}>
+      {/* Meine Aufgaben — task board for reviewers & idea managers */}
+      {hasRole(user.role, TASK_ROLES) && <MyTasksCard />}
+
       {/* Meine Ideen — sortable table with the per-status summary folded in as chips */}
       <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -206,6 +332,7 @@ export default function Dashboard() {
                     >
                       <td className="px-3 py-2.5 max-w-[28rem]">
                         <div className="flex items-center gap-2">
+                          <span className="font-mono text-[11px] text-muted-foreground tabular-nums shrink-0">{ideaRef(i.reference)}</span>
                           {i.campaignName && (
                             <span
                               className="h-2 w-2 rounded-full shrink-0"
@@ -239,6 +366,7 @@ export default function Dashboard() {
           </>
         )}
       </Card>
+      </div>
 
       {/* Meine Kommentare
       <Card className="p-4">

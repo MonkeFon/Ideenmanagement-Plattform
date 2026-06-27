@@ -8,7 +8,7 @@ A multi-tenant, license-gated platform where employees submit innovation ideas, 
 
 ## Screenshots
 
-Captured from the running app against the seeded demo tenant. The shots below are woven into the feature sections that follow; the **complete gallery (18 images, light + dark)** lives in [`docs/screenshots/`](docs/screenshots/README.md).
+Captured from the running app against the seeded demo data (FOM tenant, teal `#239F91` brand). The shots below are woven into the feature sections that follow; the **complete gallery (23 images, light + dark)** lives in [`docs/screenshots/`](docs/screenshots/README.md).
 
 | Dashboard | Idea list |
 |-----------|-----------|
@@ -61,10 +61,27 @@ Declared in [`IdeaWorkflow.java`](backend/src/main/java/com/ideaplatform/api/wor
 
 The **Workflow page is a Jira/Trello-style Kanban board**: one column per stage, cards are draggable, and while dragging only the columns the current user is actually allowed to move the card into light up (the rest dim). Drops do an optimistic move and roll back with a toast if the server rejects them. The board route is itself role-gated — `EMPLOYEE`s don't see it (the backend stays the source of truth either way).
 
-**Delivery hand-off (mock Jira).** Once an idea reaches `IN_IMPLEMENTATION` (or `DONE`), its detail page shows an *Umsetzung* card with a stable issue key (e.g. `GEIST-482`) and an **In Jira öffnen** button. It opens a full-screen, Atlassian-styled issue view (`/jira/:id`) rendered entirely from the idea's own data — status, sprint, story points, reporter, comments. It's a self-contained frontend mock (no external Jira instance), so the demo can show the round-trip from idea to delivery ticket without leaving the app.
+**Delivery hand-off (mock Jira).** Once an idea reaches `IN_IMPLEMENTATION` (or `DONE`), its detail page shows an *Umsetzung* card with the idea's own reference key (e.g. `GEIST-7`, see *Reference IDs* below) and an **In Jira öffnen** button. It opens a full-screen, Atlassian-styled issue view (`/jira/:id`) rendered entirely from the idea's own data — status, sprint, story points, reporter, comments. It's a self-contained frontend mock (no external Jira instance), so the demo can show the round-trip from idea to delivery ticket without leaving the app.
+
+![Jira hand-off](docs/screenshots/22-jira-handoff.png)
+*Mock Jira issue — generated from the idea's data (status, sprint, story points, reporter, comments).*
 
 ![Workflow board](docs/screenshots/07-workflow-board.png)
 *Workflow board — one column per stage; only legal drop targets light up while a card is dragged.*
+
+### Reference IDs
+Every idea carries a **Jira-style reference key** — a per-tenant sequential number rendered as `GEIST-1`, `GEIST-2`, … — shown on the idea list, detail header, cards and the dashboard. It's assigned at creation time (`MAX(reference)+1` per tenant; backfilled by [`V22`](backend/src/main/resources/db/migration/V22__idea_reference.sql), unique per tenant) and is the **same key the mock Jira hand-off uses**, so an idea and its delivery ticket share one identifier.
+
+### Assignment pipeline
+Every idea can be assigned to a **reviewer** and an **idea manager**, with a two-step "suggest → assign" flow:
+
+- **Preferred (suggested) assignees, set up front.** On the submit form anyone can pick a *gewünschte:r Prüfer:in* and *gewünschte:r Ideenmanager:in* (both optional). These are non-binding hints stored as `preferred_reviewer_id` / `preferred_manager_id`; the picker is validated server-side so a submitter can't suggest someone whose role can't fill the slot.
+- **Binding assignment.** On the idea detail page a *Zuständigkeit* card lets an `IDEA_MANAGER` / `ADMIN` set or clear the actual `assigned_reviewer_id` / `assigned_manager_id` (a one-click *Vorschlag übernehmen* promotes a suggestion). Reviewers and idea managers can also **claim** an open slot themselves (`POST /api/ideas/{id}/claim?as=reviewer|manager`) — the path for accepting a suggestion.
+- **Personal task board.** The dashboard shows a **Meine Aufgaben** card for reviewers and idea managers (side by side with *Meine Ideen*), split into *Mir zugewiesen* (binding) and *Für mich vorgeschlagen* (an open slot they were suggested for, with an inline claim button). Backed by `GET /api/ideas/my-tasks`.
+- **Server-side gating.** Assignment (`PATCH /api/ideas/{id}/assignment`) is `@PreAuthorize`-restricted to idea managers/admins; claiming is restricted to roles that can actually fill the slot — both return **403** otherwise. Slots are `ON DELETE SET NULL`, so removing a user just frees the assignment. Schema + demo seed: [`V21`](backend/src/main/resources/db/migration/V21__idea_assignment.sql).
+
+![Meine Aufgaben](docs/screenshots/23-my-tasks.png)
+*Dashboard task board — ideas assigned to the idea manager, plus suggestions awaiting a one-click claim.*
 
 ### Composite priority scoring
 ```
@@ -257,7 +274,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-On boot, Flyway runs the migrations (`V1` schema → `V15`; highlights: `V5` campaigns, `V7`+`V10` build the German seed, `V8` Supabase RPCs, `V9` excludes private stages from search, `V12` adds tenant Row-Level Security, `V13` renames the ideamanager role, `V14` renames the demo e-mails, `V15` drops the i18n columns) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
+On boot, Flyway runs the migrations (`V1` schema → `V22`; highlights: `V5` campaigns, `V7`+`V10` build the German seed, `V8` Supabase RPCs, `V9` excludes private stages from search, `V12` adds tenant Row-Level Security, `V13` renames the ideamanager role, `V14` renames the demo e-mails, `V15` drops the i18n columns, `V17` curates the ten demo ideas, `V20` adds per-tenant branding (FOM teal), `V21` adds the reviewer/idea-manager assignment pipeline, `V22` adds the per-tenant idea reference key) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
 
 #### Run the backend durably (optional)
 
@@ -298,13 +315,21 @@ All seeded users share password `demo1234`.
 
 | Email                | Tenant         | Role                 |
 |----------------------|----------------|----------------------|
-| timo@testmandant.test       | TestMandant (Pro)     | `ADMIN`              |
-| michael@testmandant.test    | TestMandant (Pro)     | `SPONSOR`            |
-| lifon@testmandant.test      | TestMandant (Pro)     | `IDEA_MANAGER` |
-| jan@testmandant.test        | TestMandant (Pro)     | `REVIEWER`           |
-| michel@testmandant.test     | TestMandant (Pro)     | `EMPLOYEE`           |
-| hayao@testmandant.test      | TestMandant (Pro)     | `EMPLOYEE`           |
+| timo@fom.de       | FOM (Pro)     | `ADMIN`              |
+| michael@fom.de    | FOM (Pro)     | `SPONSOR`            |
+| lifon@fom.de      | FOM (Pro)     | `IDEA_MANAGER` |
+| jan@fom.de        | FOM (Pro)     | `REVIEWER`           |
+| michel@fom.de     | FOM (Pro)     | `EMPLOYEE`           |
+| hayao@fom.de      | FOM (Pro)     | `EMPLOYEE`           |
 | owner@globex.test           | Globex (Free)         | `ADMIN`              |
+
+Each tenant carries a **brand colour** (`tenants.brand_color`) that the frontend applies to the app's `--primary` on login, so the whole colour scheme follows the signed-in tenant — **FOM** is teal `#239F91`, **Globex** is indigo `#4f46e5`. The login page keeps the fixed FOM brand.
+
+| FOM (teal) | Globex (indigo) |
+|------------|-----------------|
+| ![FOM dashboard](docs/screenshots/02-dashboard.png) | ![Globex tenant](docs/screenshots/21-tenant-globex.png) |
+
+*Same app, tenant-dependent colour scheme — and fully isolated data (Globex sees none of FOM's ideas).*
 
 The login page has a one-click picker for these accounts.
 
@@ -488,7 +513,7 @@ geistesblitz/
 │       │   └── embedding/ EmbeddingProvider + Ollama / OpenAI / Mock
 │       ├── tenant/        TenantContext + servlet filter (tenant scoping)
 │       └── workflow/      IdeaWorkflow state machine
-│   └── src/main/resources/db/migration/   V1..V17 (V5 campaigns, V7 i18n seed, V8 Supabase RPC, V9 search visibility, V10 German-canonical, V11 1024-d embeddings, V12 tenant RLS, V13 ideamanager role, V14 demo emails, V15 drop i18n, V16 drop draft stage, V17 curate ten ideas)
+│   └── src/main/resources/db/migration/   V1..V22 (V5 campaigns, V7 i18n seed, V8 Supabase RPC, V9 search visibility, V10 German-canonical, V11 1024-d embeddings, V12 tenant RLS, V13 ideamanager role, V14 demo emails, V15 drop i18n, V16 drop draft stage, V17 curate ten ideas, V18 themed campaigns, V19 meta campaign, V20 tenant branding, V21 idea assignment, V22 idea reference)
 ├── frontend/
 │   └── src/
 │       ├── api/           Axios client (refreshes /auth/me) + endpoint wrappers
@@ -551,7 +576,7 @@ The durable-jar build uses `-DskipTests` for speed; run `mvn test` (or `mvn veri
 - **Supabase datastore** — functionally complete but uses per-row sums instead of PostgREST RPCs for `netVotes`. Fine for the prototype; replace with a stored function in production.
 - **`AdminService` duplicate-email check** queries globally, which leaks "email exists" across tenants. Switch to `findByEmailAndTenantId`.
 - **Campaigns** — no UI to detach an idea from a campaign after the fact (the FE select on Submit only sets the value; `PATCH /api/ideas/{id}` with `campaignId: null` is currently a no-op because the service guards on `!= null`).
-- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~185 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
+- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~210 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
 - **Legal pages are templates** — the German footer links to public `/impressum` and `/datenschutz` (DSGVO) pages; contact is `lifon.chun@gmail.com`. The `[ … ]` placeholders (Name, Anschrift) and the Datenschutz wording must be completed and legally reviewed before any public deployment.
 
 | Impressum | Datenschutz |
