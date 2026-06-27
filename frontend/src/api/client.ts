@@ -1,15 +1,12 @@
 import axios, { AxiosError } from 'axios'
 import { toast } from 'sonner'
 import { useAuth } from '@/store/auth'
-import { useLocale } from '@/store/locale'
 
 export const api = axios.create({ baseURL: '/api' })
 
 api.interceptors.request.use((cfg) => {
   const token = useAuth.getState().token
   if (token) cfg.headers.Authorization = `Bearer ${token}`
-  // Tell the backend which dataset language to serve (English seed vs German translations).
-  cfg.headers['X-Content-Lang'] = useLocale.getState().contentLang
   return cfg
 })
 

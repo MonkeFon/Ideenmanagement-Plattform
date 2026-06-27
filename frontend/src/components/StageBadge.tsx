@@ -6,7 +6,6 @@ import { badgeVariants } from '@/components/ui/badge'
 type BadgeVariant = NonNullable<VariantProps<typeof badgeVariants>['variant']>
 
 const VARIANT: Record<Stage, BadgeVariant> = {
-  DRAFT:              'gray',
   SUBMITTED:          'default',
   UNDER_REVIEW:       'amber',
   PRIORITIZATION:     'amber',
@@ -18,7 +17,6 @@ const VARIANT: Record<Stage, BadgeVariant> = {
 }
 
 const LABEL: Record<Stage, string> = {
-  DRAFT: 'Entwurf',
   SUBMITTED: 'Eingereicht',
   UNDER_REVIEW: 'In Prüfung',
   PRIORITIZATION: 'Priorisierung',

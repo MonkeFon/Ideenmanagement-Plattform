@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Service-layer tests for draft privacy and tenant isolation (DataStore is mocked — no DB). */
+/** Service-layer tests for tenant isolation and idea listing (DataStore is mocked — no DB). */
 class IdeaServiceTest {
 
     private DataStore store;
@@ -59,31 +59,16 @@ class IdeaServiceTest {
     }
 
     @Test
-    void listHidesOtherUsersDraftsFromColleagues() {
-        Idea draftByOther = idea(UUID.randomUUID(), tenantA, otherId, Stage.DRAFT);
-        Idea draftByMe    = idea(UUID.randomUUID(), tenantA, meId,    Stage.DRAFT);
-        Idea submitted    = idea(UUID.randomUUID(), tenantA, otherId, Stage.SUBMITTED);
-        when(store.listIdeas(tenantA, null)).thenReturn(List.of(draftByOther, draftByMe, submitted));
+    void listReturnsAllTenantIdeas() {
+        Idea a = idea(UUID.randomUUID(), tenantA, otherId, Stage.SUBMITTED);
+        Idea b = idea(UUID.randomUUID(), tenantA, meId,    Stage.UNDER_REVIEW);
+        when(store.listIdeas(tenantA, null)).thenReturn(List.of(a, b));
         stubResponseDeps();
 
         List<IdeaResponse> result = service.list(null, principal(meId, tenantA, Role.EMPLOYEE));
 
         assertThat(result).extracting(IdeaResponse::id)
-                .containsExactlyInAnyOrder(draftByMe.getId(), submitted.getId())
-                .doesNotContain(draftByOther.getId());
-    }
-
-    @Test
-    void listShowsAllDraftsToAdmin() {
-        Idea draftByOther = idea(UUID.randomUUID(), tenantA, otherId, Stage.DRAFT);
-        Idea submitted    = idea(UUID.randomUUID(), tenantA, otherId, Stage.SUBMITTED);
-        when(store.listIdeas(tenantA, null)).thenReturn(List.of(draftByOther, submitted));
-        stubResponseDeps();
-
-        List<IdeaResponse> result = service.list(null, principal(meId, tenantA, Role.ADMIN));
-
-        assertThat(result).extracting(IdeaResponse::id)
-                .containsExactlyInAnyOrder(draftByOther.getId(), submitted.getId());
+                .containsExactlyInAnyOrder(a.getId(), b.getId());
     }
 
     @Test
@@ -92,21 +77,5 @@ class IdeaServiceTest {
         when(store.findIdea(id)).thenReturn(Optional.of(idea(id, tenantB, otherId, Stage.SUBMITTED)));
         assertThatThrownBy(() -> service.get(id, principal(meId, tenantA, Role.ADMIN)))
                 .isInstanceOf(EntityNotFoundException.class);
-    }
-
-    @Test
-    void getHidesAnotherUsersDraft() {
-        UUID id = UUID.randomUUID();
-        when(store.findIdea(id)).thenReturn(Optional.of(idea(id, tenantA, otherId, Stage.DRAFT)));
-        assertThatThrownBy(() -> service.get(id, principal(meId, tenantA, Role.EMPLOYEE)))
-                .isInstanceOf(EntityNotFoundException.class);
-    }
-
-    @Test
-    void getReturnsOwnDraft() {
-        UUID id = UUID.randomUUID();
-        when(store.findIdea(id)).thenReturn(Optional.of(idea(id, tenantA, meId, Stage.DRAFT)));
-        stubResponseDeps();
-        assertThat(service.get(id, principal(meId, tenantA, Role.EMPLOYEE)).id()).isEqualTo(id);
     }
 }

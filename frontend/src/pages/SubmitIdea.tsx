@@ -75,8 +75,6 @@ export default function SubmitIdea() {
         category: category || undefined,
         campaignId: campaignId || undefined,
       })
-      // Auto-submit out of DRAFT
-      await IdeaApi.transition(idea.id, 'SUBMITTED', 'Initial submission')
       navigate(`/ideas/${idea.id}`)
     } catch (err) {
       const lic = asLicenseViolation(err)
@@ -206,8 +204,8 @@ export default function SubmitIdea() {
         <Card className="p-4">
           <div className="eyebrow">Tipps für eine gute Einreichung</div>
           <ul className="mt-3 space-y-3 text-[13px] text-muted-foreground leading-relaxed">
-            <li><span className="text-foreground font-medium">Beginnen Sie mit dem Problem.</span> Wer ist betroffen, was ist heute mühsam? Konkrete Beispiele schlagen abstrakte Beschreibungen.</li>
-            <li><span className="text-foreground font-medium">Eine Idee pro Einreichung.</span> Wenn die Lösung mehrere Hebel hat, ist das eher ein Strang als eine Idee — splitten Sie sie auf.</li>
+            <li><span className="text-foreground font-medium">Beginnen Sie mit dem Problem.</span> Wer ist betroffen, was kann verbessert werden? Konkrete Beispiele sind besser als abstrakte Beschreibungen.</li>
+            <li><span className="text-foreground font-medium">Eine Idee pro Einreichung.</span> Wenn die Lösung mehrere Hebel hat, teilen Sie die Einreichung in mehrere Ideen auf.</li>
             <li><span className="text-foreground font-medium">Nennen Sie den Nutzen messbar.</span> "Spart 3 Stunden pro Woche pro Team" lässt sich priorisieren, "wäre schön" nicht.</li>
           </ul>
         </Card>
@@ -225,7 +223,7 @@ export default function SubmitIdea() {
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">03</span>
-              <span>Prüfer bewerten nach Wirkung, Machbarkeit und strategischer Passung.</span>
+              <span>Prüfer bewerten nach Wirkung, Machbarkeit und strategic Fit.</span>
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">04</span>

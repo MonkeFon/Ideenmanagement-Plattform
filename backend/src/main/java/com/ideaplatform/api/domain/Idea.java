@@ -31,12 +31,6 @@ public class Idea {
     @Column(nullable = false, columnDefinition = "text")
     private String description;
 
-    @Column(name = "title_de", length = 200)
-    private String titleDe;
-
-    @Column(name = "description_de", columnDefinition = "text")
-    private String descriptionDe;
-
     @Column(length = 64)
     private String category;
 
@@ -67,7 +61,7 @@ public class Idea {
         OffsetDateTime now = OffsetDateTime.now();
         if (createdAt == null) createdAt = now;
         updatedAt = now;
-        if (stage == null) stage = Stage.DRAFT;
+        if (stage == null) stage = Stage.SUBMITTED;
     }
 
     @PreUpdate

@@ -29,12 +29,12 @@ sowie den **rollenbasierten Workflow** sichtbar beweisen.
 
 | Person | Konto | Rolle |
 |--------|-------|-------|
-| **Michel** | `alice@testmandant.test` | Mitarbeiter |
-| **Hayao** | `bob@testmandant.test` | Mitarbeiter |
-| **Jan** | `reviewer@testmandant.test` | Prüfer |
-| **Michael** | `sponsor@testmandant.test` | Sponsor |
-| **Lifon** | `manager@testmandant.test` | Ideenmanager |
-| **Timo** | `admin@testmandant.test` | Administrator |
+| **Michel** | `michel@testmandant.test` | Mitarbeiter |
+| **Hayao** | `hayao@testmandant.test` | Mitarbeiter |
+| **Jan** | `jan@testmandant.test` | Prüfer |
+| **Michael** | `michael@testmandant.test` | Sponsor |
+| **Lifon** | `lifon@testmandant.test` | Ideenmanager |
+| **Timo** | `timo@testmandant.test` | Administrator |
 | Glo Owner | `owner@globex.test` | Admin im **zweiten Mandanten** (Tarif *Free*) |
 
 Auf der Anmeldeseite gibt es eine **Ein‑Klick‑Auswahl** dieser Konten.
@@ -48,12 +48,12 @@ Auf der Anmeldeseite gibt es eine **Ein‑Klick‑Auswahl** dieser Konten.
 | Zeit | Segment | Wer / Wo | Aktion & Sprechtext |
 |------|---------|----------|---------------------|
 | 0:00–1:00 | **Rahmen** (K) | Folie / Anmeldeseite | „Gute Ideen gehen in Unternehmen verloren, weil ein strukturierter Prozess fehlt." Architektur in einem Satz: *React‑SPA + Spring‑Boot‑API + PostgreSQL/pgvector + lokales Ollama, mandantenfähig mit dreischichtiger Trennung.* |
-| 1:00–1:30 | **Anmeldung** (K) | Michel | Demo‑Auswahl → `alice` → **Dashboard**. „Mitarbeitersicht: Trends, meine Ideen, letzte Aktivität." |
-| 1:30–3:00 | **Einreichen + Duplikaterkennung** (K) | Michel → „Idee einreichen" | Titel exakt: **„Ruhezone für fokussiertes Arbeiten und Pausen"**. Während des Tippens erscheint das Duplikat‑Panel mit **„Ruheraum für Pausen…" ≈ 90 %**. Sprechtext: „Die Erkennung arbeitet **semantisch** — sie sieht die inhaltliche Nähe *trotz anderer Wörter* (Vektor‑Ähnlichkeit), nicht nur Stichwörter." Kurze Beschreibung + Kategorie wählen, **absenden**. |
+| 1:00–1:30 | **Anmeldung** (K) | Michel | Demo‑Auswahl → `michel` → **Dashboard**. „Mitarbeitersicht: Trends, meine Ideen, letzte Aktivität." |
+| 1:30–3:00 | **Einreichen + Duplikaterkennung** (K) | Michel → „Idee einreichen" | Titel exakt: **„Zentrale Anzeige von Build- und Deployment-Status"**. Während des Tippens erscheint das Duplikat‑Panel mit **„Zentrales Dashboard für Build- und Deployment-Status" ≈ 99 %**. Sprechtext: „Die Erkennung arbeitet **semantisch** — sie sieht die inhaltliche Nähe *trotz anderer Wörter* (Vektor‑Ähnlichkeit), nicht nur Stichwörter." Kurze Beschreibung + Kategorie wählen, **absenden**. |
 | 3:00–4:00 | **Transparente Bewertung** (K) | Michel | Eine Idee öffnen → **Priorität‑Aufschlüsselung** (Stimmen / Prüfer / Aktualität / Sponsor mit Gewichten). Eine **Stimme** abgeben. „Das Ranking ist nachvollziehbar, keine Blackbox." |
 | 4:00–5:00 | **Rolle: Prüfer** (K) | Jan | Abmelden → `reviewer`. Idee **bewerten** (Wirkung / Machbarkeit / strategische Passung). „Erst eine Prüferbewertung schaltet die Priorisierungs‑Phase frei." |
 | 5:00–5:45 | **Rolle: Ideenmanager + Workflow** (K) | Lifon | Abmelden → `manager` → **Workflow‑Board**. Karte in die nächste Phase **ziehen** — nur die erlaubten Spalten leuchten auf. „Übergänge sind **serverseitig** rollengeschützt, nicht nur in der Oberfläche ausgeblendet." |
-| 5:45–7:15 | **Semantische Suche + Karte** (K, Höhepunkt) | Lifon/Timo | **Ideen** → Suchfeld: **„Pausen und Konzentration bei der Arbeit verbessern"** → **Suche** → 5 Treffer mit **Ähnlichkeit %**. Dann **Graph** → die **semantische Karte** mit Clustern. „Embeddings entstehen **lokal** (bge‑m3 über Ollama), Ähnlichkeit per pgvector — **keine Daten verlassen das Haus**." |
+| 5:45–7:15 | **Semantische Suche + Karte** (K, Höhepunkt) | Lifon/Timo | **Ideen** → Suchfeld: **„Schwachstellen in Bibliotheken automatisch prüfen"** → **Suche** → 5 Treffer mit **Ähnlichkeit %** (Top‑Treffer: *Abhängigkeiten automatisch auf Sicherheitslücken prüfen*). Dann **Graph** → die **semantische Karte** mit Clustern. „Embeddings entstehen **lokal** (bge‑m3 über Ollama), Ähnlichkeit per pgvector — **keine Daten verlassen das Haus**." |
 | 7:15–8:15 | **Beweis: Sicherheit** (K — *eine* Variante) | — | **(a) Mandantentrennung:** zweites Browser‑Fenster, Anmeldung `owner@globex.test` → komplett **getrennte Daten**. *Optional:* direkte URL zu einer fremden Idee → „nicht gefunden". **(b) Rollenschutz:** als Michel ist **Workflow** im Menü weg, und `/(…)/workflow` direkt eingeben → Umleitung. |
 | 8:15–9:15 | **Rangliste (+ Admin/Lizenz)** (K/O) | Timo | **Rangliste** (Top‑Ideen + aktivste Mitwirkende). *Optional:* **Admin** (Nutzer + Lizenznutzung) oder **Einstellungen** (Tarif‑Karten Free/Pro/Enterprise). |
 | 9:15–10:00 | **Abschluss** (K) | alle | Ein Satz Architektur‑Recap + **ehrliche Team‑Reflexion** (berufsbegleitend gebaut; was wir beim nächsten Mal früher machen würden). „Fragen?" |
@@ -67,14 +67,15 @@ Auf der Anmeldeseite gibt es eine **Ein‑Klick‑Auswahl** dieser Konten.
   **Upgrade‑Banner**. Beweist serverseitige Tarif‑Durchsetzung. *(Vorher einmal testen.)*
 - **KI‑Verfeinerung (Pro).** Als Pro‑Nutzer auf einer Idee „KI‑Verfeinern" → LLM‑Vorschläge.
   ⚠️ **Latenz ~5–15 s** (Ollama/Qwen) — nur zeigen, wenn vorgewärmt, sonst überspringen.
+- **Delivery‑Hand‑off (Jira‑Mock).** Eine Idee in **„In Umsetzung"** (z. B. *Abhängigkeiten automatisch auf Sicherheitslücken prüfen*) oder **„Erledigt"** öffnen → Karte **„Umsetzung"** in der Seitenleiste → **„In Jira öffnen"**. Zeigt einen aus der Idee erzeugten, Jira‑artigen Vorgang (Status, Sprint, Story Points). Sprechtext: „Genehmigte Ideen wandern ins Delivery‑Board — hier als Mock, der Übergang ist aber echt." *(Reiner Frontend‑Mock, kein externes System.)*
 - **Dark Mode.** Schnellumschalter oben in der Leiste — netter 3‑Sekunden‑Effekt zum Schluss.
 
 ---
 
 ## Stolperfallen
 
-- **Nur getestete Suchbegriffe verwenden, nicht live improvisieren.** Manche Anfragen liefern 0
-  Treffer (z. B. „Energie sparen"). Geprüft & gut: die beiden oben genannten Texte.
+- **Nur getestete Suchbegriffe verwenden, nicht live improvisieren.** Themenfremde Anfragen liefern
+  nur schwache Treffer. Geprüft & gut: die beiden oben genannten Texte.
 - **Ollama‑Kaltstart:** der erste Embedding/LLM‑Aufruf ist langsam → `demo-prep.ps1` wärmt vor.
 - **`/dev` nicht zeigen** (God‑Mode, mandantenübergreifend).
 - **„Seite plötzlich leer / abgemeldet"** = JWT abgelaufen (TTL 480 Min). Vor dem Demo frisch anmelden.
@@ -97,6 +98,6 @@ zwischen Proben ausführen.
 
 ## Schnellreferenz (Copy‑Paste)
 
-- **Duplikat‑Titel:** `Ruhezone für fokussiertes Arbeiten und Pausen`  → trifft „Ruheraum für Pausen…" ~90 %
-- **Suchbegriff:** `Pausen und Konzentration bei der Arbeit verbessern`  → 5 Treffer
+- **Duplikat‑Titel:** `Zentrale Anzeige von Build- und Deployment-Status`  → trifft „Zentrales Dashboard für Build- und Deployment-Status" ~99 %
+- **Suchbegriff:** `Schwachstellen in Bibliotheken automatisch prüfen`  → 5 Treffer
 - **App:** http://localhost:5173   ·   **Konten:** siehe Besetzung, Passwort `demo1234`

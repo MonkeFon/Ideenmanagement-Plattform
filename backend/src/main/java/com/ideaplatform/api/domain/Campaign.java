@@ -25,12 +25,6 @@ public class Campaign {
     @Column(nullable = false, columnDefinition = "text")
     private String description;
 
-    @Column(name = "name_de", length = 120)
-    private String nameDe;
-
-    @Column(name = "description_de", columnDefinition = "text")
-    private String descriptionDe;
-
     @Column(nullable = false, length = 16)
     private String color;
 

@@ -24,7 +24,7 @@ export default function Leaderboard() {
         <div className="eyebrow">Rangliste</div>
         <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Rangliste</h1>
         <p className="text-[13px] text-muted-foreground mt-1">
-          Top-Ideen nach Priorität und Netto-Stimmen; Top-Beitragende gewichtet aus Einreichungen, erhaltenen Stimmen, Kommentaren und Bewertungen.
+          Top-Ideen nach Priorität und Stimmen. Top-Beitragende basierend auf Einreichungen, erhaltenen Stimmen, Kommentaren und Bewertungen.
         </p>
       </header>
 

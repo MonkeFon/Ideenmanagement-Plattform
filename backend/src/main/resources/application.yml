@@ -68,3 +68,12 @@ management:
     web:
       exposure:
         include: health,info,metrics
+
+# OpenAPI / Swagger UI (springdoc). UI at /swagger-ui.html, spec at /v3/api-docs.
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha

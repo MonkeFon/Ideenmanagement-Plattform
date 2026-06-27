@@ -10,7 +10,6 @@ import com.ideaplatform.api.dto.SimilarPairRow;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
 import com.ideaplatform.api.service.embedding.EmbeddingStore;
-import com.ideaplatform.api.tenant.LocaleContext;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -39,11 +38,8 @@ public class RecommendationService {
     public List<SimilarIdeaResponse> similarTo(UUID ideaId, AuthPrincipal me) {
         Idea idea = store.findIdea(ideaId).orElseThrow(() -> new EntityNotFoundException("Idea " + ideaId));
         if (!idea.getTenantId().equals(me.tenantId())) throw new EntityNotFoundException("Idea " + ideaId);
-        // Build the query text from the German fields when the locale is German, so the
-        // query vector sits in the same language region as the (German) stored vectors.
-        boolean de = LocaleContext.isGerman();
-        String title = de && idea.getTitleDe() != null ? idea.getTitleDe() : idea.getTitle();
-        String desc  = de && idea.getDescriptionDe() != null ? idea.getDescriptionDe() : idea.getDescription();
+        String title = idea.getTitle();
+        String desc  = idea.getDescription();
         return embeddings.findSimilar(me.tenantId(), ideaId, title + "\n" + desc);
     }
 
@@ -59,18 +55,14 @@ public class RecommendationService {
     }
 
     public IdeaGraphResponse graph(double threshold, AuthPrincipal me) {
-        // DRAFTs are private to the author, so they don't belong on a tenant-wide map.
-        List<Idea> visible = store.listIdeas(me.tenantId(), null).stream()
-                .filter(i -> i.getStage() != Stage.DRAFT)
-                .toList();
+        List<Idea> visible = store.listIdeas(me.tenantId(), null);
         Set<UUID> visibleIds = new HashSet<>(visible.size());
         for (Idea i : visible) visibleIds.add(i.getId());
 
-        boolean de = LocaleContext.isGerman();
         List<GraphNode> nodes = visible.stream()
                 .map(i -> new GraphNode(
                         i.getId(),
-                        de && i.getTitleDe() != null ? i.getTitleDe() : i.getTitle(),
+                        i.getTitle(),
                         i.getStage(),
                         i.getCategory(),
                         store.netVotes(i.getId())))

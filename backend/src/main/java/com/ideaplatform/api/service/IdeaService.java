@@ -5,7 +5,6 @@ import com.ideaplatform.api.dto.IdeaDtos.*;
 import com.ideaplatform.api.license.LicenseService;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
-import com.ideaplatform.api.tenant.LocaleContext;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +42,8 @@ public class IdeaService {
                 .title(req.title())
                 .description(req.description())
                 .category(req.category())
-                .stage(Stage.DRAFT)
+                .stage(Stage.SUBMITTED)
+                .submittedAt(OffsetDateTime.now())
                 .sponsorBoost(false)
                 .campaignId(campaignId)
                 .build();
@@ -55,8 +55,8 @@ public class IdeaService {
     @Transactional
     public IdeaResponse update(UUID id, UpdateIdeaRequest req, AuthPrincipal me) {
         Idea idea = mustOwn(id, me);
-        if (idea.getStage() != Stage.DRAFT && me.role() == Role.EMPLOYEE) {
-            throw new IllegalStateException("Only DRAFT ideas can be edited by the author");
+        if (me.role() == Role.EMPLOYEE) {
+            throw new IllegalStateException("Eingereichte Ideen können von Mitarbeitenden nicht mehr bearbeitet werden");
         }
         if (req.title() != null) idea.setTitle(req.title());
         if (req.description() != null) idea.setDescription(req.description());
@@ -81,15 +81,7 @@ public class IdeaService {
     }
 
     public List<IdeaResponse> list(Stage stage, AuthPrincipal me) {
-        boolean privileged = me.role() == Role.ADMIN || me.role() == Role.SUPERADMIN;
-        // Drafts are private to their author until submitted — the same rule mustSeeable
-        // enforces for the single-idea GET. Without this filter the list endpoint leaked
-        // every colleague's unsubmitted drafts (title, description, author).
-        List<Idea> all = store.listIdeas(me.tenantId(), stage).stream()
-                .filter(i -> i.getStage() != Stage.DRAFT
-                        || i.getAuthorId().equals(me.userId())
-                        || privileged)
-                .toList();
+        List<Idea> all = store.listIdeas(me.tenantId(), stage);
         // Pre-resolve author names in one shot
         Map<UUID, String> authorNames = new HashMap<>();
         for (Idea i : all) {
@@ -102,10 +94,8 @@ public class IdeaService {
     public List<IdeaResponse> listByCampaign(UUID campaignId, AuthPrincipal me) {
         // Reused by CampaignService — kept here so the toResponse + author resolution
         // logic stays in one place.
-        boolean privileged = me.role() == Role.ADMIN || me.role() == Role.SUPERADMIN;
         return store.listIdeas(me.tenantId(), null).stream()
                 .filter(i -> campaignId.equals(i.getCampaignId()))
-                .filter(i -> i.getStage() != Stage.DRAFT || i.getAuthorId().equals(me.userId()) || privileged)
                 .map(i -> toResponse(i, authorName(i.getAuthorId())))
                 .toList();
     }
@@ -124,15 +114,14 @@ public class IdeaService {
 
     public IdeaResponse toResponse(Idea i, String authorName) {
         int net = store.netVotes(i.getId());
-        boolean de = LocaleContext.isGerman();
-        String title       = de && i.getTitleDe()       != null ? i.getTitleDe()       : i.getTitle();
-        String description = de && i.getDescriptionDe() != null ? i.getDescriptionDe() : i.getDescription();
+        String title = i.getTitle();
+        String description = i.getDescription();
         UUID campaignId = i.getCampaignId();
         String campaignName = null, campaignColor = null;
         if (campaignId != null) {
             Optional<Campaign> c = store.findCampaign(campaignId);
             if (c.isPresent()) {
-                campaignName = de && c.get().getNameDe() != null ? c.get().getNameDe() : c.get().getName();
+                campaignName = c.get().getName();
                 campaignColor = c.get().getColor();
             }
         }
@@ -162,11 +151,6 @@ public class IdeaService {
     private Idea mustSeeable(UUID id, AuthPrincipal me) {
         Idea idea = store.findIdea(id).orElseThrow(() -> new EntityNotFoundException("Idea " + id));
         if (!idea.getTenantId().equals(me.tenantId()) && me.role() != Role.SUPERADMIN) {
-            throw new EntityNotFoundException("Idea " + id);
-        }
-        if (idea.getStage() == Stage.DRAFT
-                && !idea.getAuthorId().equals(me.userId())
-                && me.role() != Role.ADMIN && me.role() != Role.SUPERADMIN) {
             throw new EntityNotFoundException("Idea " + id);
         }
         // Touch field to avoid lazy-loading surprises in caller

@@ -14,13 +14,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { ArrowUp, ArrowDown, MessageSquare, Send, Wand2, Star, RotateCcw, Gauge } from 'lucide-react'
+import { jiraKey, jiraPath } from '@/lib/jira'
+import { ArrowUp, ArrowDown, MessageSquare, Send, Wand2, Star, RotateCcw, Gauge, ExternalLink } from 'lucide-react'
 import type { ChatMessage, Stage } from '@/types/api'
 
 const RATING_AXES = [
   { key: 'impact',       label: 'Wirkung' },
   { key: 'feasibility',  label: 'Machbarkeit' },
-  { key: 'strategicFit', label: 'Strategische Passung' },
+  { key: 'strategicFit', label: 'Strategic Fit' },
 ] as const
 
 // Mirrors the backend ScoringService + ideaplatform.scoring.* weights so the UI can show
@@ -50,7 +51,7 @@ function computePriority(opts: {
   const round = Math.round(ageDays)
 
   const factors: PriorityFactor[] = [
-    { key: 'votes', label: 'Stimmen', detail: `Netto ${netVotes > 0 ? '+' : ''}${netVotes}`, weight: PRIORITY_WEIGHTS.votes, value: votesNorm, contribution: PRIORITY_WEIGHTS.votes * votesNorm },
+    { key: 'votes', label: 'Stimmen', detail: `${netVotes > 0 ? '+' : ''}${netVotes} Stimmen`, weight: PRIORITY_WEIGHTS.votes, value: votesNorm, contribution: PRIORITY_WEIGHTS.votes * votesNorm },
     { key: 'reviewer', label: 'Prüferbewertung', detail: evaluations.length ? `Ø ${(reviewerAvg * 5).toFixed(1)} / 5 aus ${evaluations.length} Bewertung${evaluations.length === 1 ? '' : 'en'}` : 'Noch keine Bewertung', weight: PRIORITY_WEIGHTS.reviewer, value: reviewerAvg, contribution: PRIORITY_WEIGHTS.reviewer * reviewerAvg },
     { key: 'recency', label: 'Aktualität', detail: `vor ${round} Tag${round === 1 ? '' : 'en'} eingereicht`, weight: PRIORITY_WEIGHTS.recency, value: recency, contribution: PRIORITY_WEIGHTS.recency * recency },
     { key: 'sponsor', label: 'Sponsor-Förderung', detail: sponsorBoost ? 'Ja' : 'Nein', weight: PRIORITY_WEIGHTS.sponsor, value: boost, contribution: PRIORITY_WEIGHTS.sponsor * boost },
@@ -397,7 +398,7 @@ export default function IdeaDetail() {
               <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
                 <span>Ø Ihrer Auswahl:</span>
                 <span className="font-mono text-foreground tabular-nums">{((rating.impact + rating.feasibility + rating.strategicFit) / 3).toFixed(2)}</span>
-                <span className="text-muted-foreground/70">= (Wirkung + Machbarkeit + Strategische Passung) / 3</span>
+                <span className="text-muted-foreground/70">= (Wirkung + Machbarkeit + Strategic Fit) / 3</span>
               </div>
               <Textarea
                 className="mt-3 min-h-[72px]"
@@ -420,7 +421,7 @@ export default function IdeaDetail() {
                     <div key={e.id} className="text-[13px]">
                       <div className="font-medium text-foreground">{e.reviewerName}</div>
                       <div className="text-muted-foreground tabular-nums">
-                        Wirkung {e.impact} · Machbarkeit {e.feasibility} · Strategische Passung {e.strategicFit}
+                        Wirkung {e.impact} · Machbarkeit {e.feasibility} · Strategic Fit {e.strategicFit}
                         <span className="ml-2 font-mono text-foreground">Ø {e.average.toFixed(2)}</span>
                       </div>
                       {e.notes && <div className="text-muted-foreground mt-0.5">"{e.notes}"</div>}
@@ -433,6 +434,27 @@ export default function IdeaDetail() {
         </div>
 
         <aside className="space-y-4">
+          {/* Delivery hand-off: once an idea is in implementation it lives in the
+              delivery tool. We surface a (mock) Jira issue link so the demo shows the
+              round-trip from idea to ticket. Also shown for DONE — the ticket persists. */}
+          {(idea.stage === 'IN_IMPLEMENTATION' || idea.stage === 'DONE') && (
+            <Card className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="eyebrow">Umsetzung</div>
+                <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{jiraKey(idea.id)}</span>
+              </div>
+              <p className="mt-2 text-[13px] text-muted-foreground leading-relaxed">
+                Diese Idee wird im Delivery-Board verfolgt. Im Jira-Vorgang sehen Sie Status,
+                Sprint und Story Points.
+              </p>
+              <Button asChild variant="secondary" className="mt-3 w-full">
+                <Link to={jiraPath(idea.id)}>
+                  <ExternalLink size={14} strokeWidth={1.75} /> In Jira öffnen
+                </Link>
+              </Button>
+            </Card>
+          )}
+
           <RoleGate allow={['IDEA_MANAGER', 'REVIEWER', 'ADMIN']}>
             <Card className="p-4">
               <div className="flex items-center justify-between gap-2">

@@ -2,7 +2,6 @@ package com.ideaplatform.api.service.embedding;
 
 import com.ideaplatform.api.dto.SimilarIdeaRow;
 import com.ideaplatform.api.dto.SimilarPairRow;
-import com.ideaplatform.api.tenant.LocaleContext;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -64,13 +63,9 @@ public class JdbcEmbeddingStore implements EmbeddingStore {
     @Override
     public List<SimilarIdeaRow> findSimilar(UUID tenantId, UUID excludeIdeaId, float[] query, int k, double threshold) {
         String vec = toVectorLiteral(query);
-        // When the request locale is German, return the translated title/description
-        // (falling back to the original where a translation is missing) so search hits
-        // and snippets render in German rather than the English seed text. The column
-        // expressions are constant — no user input is interpolated.
-        boolean de = LocaleContext.isGerman();
-        String titleCol = de ? "COALESCE(i.title_de, i.title)" : "i.title";
-        String descCol  = de ? "COALESCE(i.description_de, i.description)" : "i.description";
+        // Column expressions are constant — no user input is interpolated.
+        String titleCol = "i.title";
+        String descCol  = "i.description";
         // Only surface tenant-visible ideas. DRAFTs are private to their author (a freshly
         // created idea is indexed immediately while still a DRAFT), and REJECTED/ARCHIVED
         // ideas are retired — none of them should appear in another user's semantic search
@@ -83,7 +78,7 @@ public class JdbcEmbeddingStore implements EmbeddingStore {
               JOIN ideas i ON i.id = e.idea_id
              WHERE e.tenant_id = ?
                AND e.idea_id <> ?
-               AND i.stage NOT IN ('DRAFT', 'REJECTED', 'ARCHIVED')
+               AND i.stage NOT IN ('REJECTED', 'ARCHIVED')
                AND 1 - (e.embedding <=> ?::vector) >= ?
              ORDER BY e.embedding <=> ?::vector
              LIMIT ?
@@ -103,11 +98,10 @@ public class JdbcEmbeddingStore implements EmbeddingStore {
     public List<SimilarIdeaRow> findHybrid(UUID tenantId, UUID excludeIdeaId, float[] query,
                                            String queryText, int k, double threshold) {
         String vec = toVectorLiteral(query);
-        boolean de = LocaleContext.isGerman();
-        String titleCol = de ? "COALESCE(i.title_de, i.title)" : "i.title";
-        String descCol  = de ? "COALESCE(i.description_de, i.description)" : "i.description";
-        // Text-search config: German stemming/stop-words when the locale is German.
-        String ftsCfg = de ? "german" : "english";
+        String titleCol = "i.title";
+        String descCol  = "i.description";
+        // German stemming/stop-words for full-text search.
+        String ftsCfg = "german";
         // The keyword side searches the localized title+description. `websearch_to_tsquery`
         // tolerates arbitrary user input (no syntax errors on stray punctuation). We also add
         // a plain ILIKE bonus on the title so a literal word match ranks even when stemming
@@ -134,7 +128,7 @@ public class JdbcEmbeddingStore implements EmbeddingStore {
                 JOIN ideas i ON i.id = e.idea_id
                WHERE e.tenant_id = ?
                  AND e.idea_id <> ?
-                 AND i.stage NOT IN ('DRAFT', 'REJECTED', 'ARCHIVED')
+                 AND i.stage NOT IN ('REJECTED', 'ARCHIVED')
               ) sub
              WHERE vec_sim >= ? OR kw_hit
              ORDER BY similarity DESC

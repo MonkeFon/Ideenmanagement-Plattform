@@ -29,7 +29,7 @@ function fmtDateShort(s: string) {
 // Pipeline order — drives the status-chip ordering and makes the status column
 // sort by workflow position instead of alphabetically.
 const STAGE_ORDER: Stage[] = [
-  'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION',
+  'SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION',
   'APPROVED', 'IN_IMPLEMENTATION', 'DONE', 'REJECTED', 'ARCHIVED',
 ]
 const stageRank = (s: Stage) => {
@@ -240,7 +240,7 @@ export default function Dashboard() {
         )}
       </Card>
 
-      {/* Meine Kommentare */}
+      {/* Meine Kommentare
       <Card className="p-4">
         <div className="flex items-center justify-between gap-2 mb-3">
           <div className="eyebrow">Meine Kommentare</div>
@@ -270,6 +270,7 @@ export default function Dashboard() {
           </ul>
         )}
       </Card>
+       */}
 
       <section>
         <div className="eyebrow mb-3">Letzte Aktivität</div>

@@ -7,7 +7,6 @@ import com.ideaplatform.api.dto.CampaignDtos.*;
 import com.ideaplatform.api.dto.IdeaDtos.IdeaResponse;
 import com.ideaplatform.api.security.AuthPrincipal;
 import com.ideaplatform.api.service.datastore.DataStore;
-import com.ideaplatform.api.tenant.LocaleContext;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -97,9 +96,8 @@ public class CampaignService {
     }
 
     private CampaignResponse toResponse(Campaign c, String createdByName) {
-        boolean de = LocaleContext.isGerman();
-        String name = de && c.getNameDe() != null ? c.getNameDe() : c.getName();
-        String description = de && c.getDescriptionDe() != null ? c.getDescriptionDe() : c.getDescription();
+        String name = c.getName();
+        String description = c.getDescription();
         return new CampaignResponse(
                 c.getId(), name, description, c.getColor(),
                 c.getStartsAt(), c.getEndsAt(),
