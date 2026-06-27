@@ -157,7 +157,7 @@ export default function Settings() {
               </div>
               <p className="mt-2 text-[13px] text-foreground/90 leading-relaxed max-w-prose">
                 Prototyp einer mandantenfähigen Ideenmanagement-Plattform. Eingereichte Ideen
-                durchlaufen einen rollenbasierten Workflow vom Entwurf bis zur Umsetzung;
+                durchlaufen einen rollenbasierten Workflow von der Einreichung bis zur Umsetzung;
                 semantische Suche und KI-Verfeinerung helfen, Duplikate zu erkennen und
                 Vorschläge zu schärfen.
               </p>

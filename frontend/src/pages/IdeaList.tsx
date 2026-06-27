@@ -17,7 +17,7 @@ import type { Idea, Stage } from '@/types/api'
 // Pipeline order — used both for the status dropdown ordering and for sorting the
 // status column meaningfully (instead of alphabetically).
 const STAGE_ORDER: Stage[] = [
-  'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION',
+  'SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION',
   'APPROVED', 'IN_IMPLEMENTATION', 'DONE', 'REJECTED', 'ARCHIVED',
 ]
 const stageRank = (s: Stage) => {
@@ -187,7 +187,7 @@ export default function IdeaList() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="eyebrow">Ideen</div>
-          <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Alle Ideen</h1>
+          <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Ideenübersicht</h1>
         </div>
         <Button asChild><Link to="/submit">Idee einreichen</Link></Button>
       </header>
@@ -199,7 +199,7 @@ export default function IdeaList() {
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/70" size={15} strokeWidth={1.75} />
             <Input
               className="pl-8"
-              placeholder="Semantische Suche…"
+              placeholder="Begriff für semantische Suche eingeben"
               value={text}
               onChange={(e) => setText(e.target.value)}
             />

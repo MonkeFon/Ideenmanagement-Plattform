@@ -20,24 +20,17 @@ class IdeaWorkflowTest {
     }
 
     @Test
-    void anyAuthorRoleCanSubmitADraft() {
-        for (Role r : new Role[]{Role.EMPLOYEE, Role.REVIEWER, Role.IDEA_MANAGER, Role.SPONSOR, Role.ADMIN}) {
-            assertThat(IdeaWorkflow.canTransition(Stage.DRAFT, Stage.SUBMITTED, r))
-                    .as("role %s should be able to submit a draft", r).isTrue();
-        }
-    }
-
-    @Test
-    void onlySponsorOrAdminApproveAtPrioritization() {
+    void sponsorManagerOrAdminApproveAtPrioritization() {
         assertThat(IdeaWorkflow.canTransition(Stage.PRIORITIZATION, Stage.APPROVED, Role.SPONSOR)).isTrue();
+        assertThat(IdeaWorkflow.canTransition(Stage.PRIORITIZATION, Stage.APPROVED, Role.IDEA_MANAGER)).isTrue();
         assertThat(IdeaWorkflow.canTransition(Stage.PRIORITIZATION, Stage.APPROVED, Role.ADMIN)).isTrue();
-        assertThat(IdeaWorkflow.canTransition(Stage.PRIORITIZATION, Stage.APPROVED, Role.IDEA_MANAGER)).isFalse();
+        assertThat(IdeaWorkflow.canTransition(Stage.PRIORITIZATION, Stage.APPROVED, Role.REVIEWER)).isFalse();
     }
 
     @Test
     void illegalStageJumpIsRejectedForNormalRoles() {
-        assertThat(IdeaWorkflow.canTransition(Stage.DRAFT, Stage.DONE, Role.ADMIN)).isFalse();
-        assertThat(IdeaWorkflow.canTransition(Stage.DRAFT, Stage.DONE, Role.IDEA_MANAGER)).isFalse();
+        assertThat(IdeaWorkflow.canTransition(Stage.SUBMITTED, Stage.DONE, Role.ADMIN)).isFalse();
+        assertThat(IdeaWorkflow.canTransition(Stage.SUBMITTED, Stage.DONE, Role.IDEA_MANAGER)).isFalse();
     }
 
     @Test
@@ -47,7 +40,7 @@ class IdeaWorkflowTest {
 
     @Test
     void superadminOverridesEveryRule() {
-        assertThat(IdeaWorkflow.canTransition(Stage.DRAFT, Stage.DONE, Role.SUPERADMIN)).isTrue();
+        assertThat(IdeaWorkflow.canTransition(Stage.SUBMITTED, Stage.DONE, Role.SUPERADMIN)).isTrue();
         assertThat(IdeaWorkflow.canTransition(Stage.SUBMITTED, Stage.UNDER_REVIEW, Role.SUPERADMIN)).isTrue();
     }
 

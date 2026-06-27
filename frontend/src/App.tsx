@@ -13,6 +13,7 @@ import Campaigns from './pages/Campaigns'
 import CampaignDetail from './pages/CampaignDetail'
 import Settings from './pages/Settings'
 import DevData from './pages/DevData'
+import MockJira from './pages/MockJira'
 import Impressum from './pages/Impressum'
 import Datenschutz from './pages/Datenschutz'
 import { useAuth } from '@/store/auth'
@@ -47,6 +48,16 @@ export default function App() {
         {/* Public legal pages — reachable without authentication */}
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/datenschutz" element={<Datenschutz />} />
+        {/* Mock "Jira" issue view for implemented ideas — full-screen (outside the app
+            Layout) so it reads like a redirect into a separate delivery tool. */}
+        <Route
+          path="/jira/:id"
+          element={
+            <RequireAuth>
+              <MockJira />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/"
           element={

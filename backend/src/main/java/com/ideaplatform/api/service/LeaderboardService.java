@@ -5,7 +5,6 @@ import com.ideaplatform.api.dto.IdeaDtos.LeaderboardResponse;
 import com.ideaplatform.api.dto.IdeaDtos.TopContributor;
 import com.ideaplatform.api.dto.IdeaDtos.TopIdea;
 import com.ideaplatform.api.security.AuthPrincipal;
-import com.ideaplatform.api.tenant.LocaleContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
@@ -38,8 +37,7 @@ public class LeaderboardService {
     }
 
     private List<TopIdea> topIdeas(UUID tenantId) {
-        // COALESCE(title_de, title) picks the German translation when present.
-        String titleExpr = LocaleContext.isGerman() ? "COALESCE(i.title_de, i.title)" : "i.title";
+        String titleExpr = "i.title";
         List<TopIdea> rows = jdbc.query("""
             SELECT i.id, %s AS title, u.display_name AS author_name, i.stage, i.category,
                    COALESCE((SELECT SUM(v.value) FROM votes v WHERE v.idea_id = i.id), 0) AS net_votes,
@@ -48,7 +46,7 @@ public class LeaderboardService {
               FROM ideas i
               JOIN users u ON u.id = i.author_id
              WHERE i.tenant_id = ?
-               AND i.stage NOT IN ('DRAFT', 'REJECTED', 'ARCHIVED')
+               AND i.stage NOT IN ('REJECTED', 'ARCHIVED')
              ORDER BY i.priority_score DESC NULLS LAST,
                       COALESCE((SELECT SUM(v.value) FROM votes v WHERE v.idea_id = i.id), 0) DESC,
                       i.created_at DESC
@@ -72,7 +70,7 @@ public class LeaderboardService {
     private List<TopContributor> topContributors(UUID tenantId) {
         List<Object[]> raw = jdbc.query("""
             SELECT u.id, u.display_name, u.role,
-                   (SELECT COUNT(*) FROM ideas i WHERE i.author_id = u.id AND i.tenant_id = u.tenant_id AND i.stage <> 'DRAFT') AS ideas_submitted,
+                   (SELECT COUNT(*) FROM ideas i WHERE i.author_id = u.id AND i.tenant_id = u.tenant_id) AS ideas_submitted,
                    COALESCE((SELECT SUM(GREATEST(v.value, 0))
                                FROM votes v
                                JOIN ideas i ON i.id = v.idea_id

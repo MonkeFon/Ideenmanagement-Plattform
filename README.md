@@ -2,7 +2,7 @@
 
 A multi-tenant, license-gated platform where employees submit innovation ideas, vote on them, route them through a configurable evaluation workflow, and discover related work via RAG + semantic search.
 
-> **Status**: Working prototype. End-to-end functional, German-first UI and seed data; replace mock providers and tighten security before production use.
+> **Status**: Working prototype. End-to-end functional, German-only UI and seed data; replace mock providers and tighten security before production use.
 
 ---
 
@@ -31,7 +31,7 @@ Captured from the running app against the seeded demo tenant. The shots below ar
 | LLM (refine + chat) | Same `EmbeddingProvider` interface — Ollama `qwen3.5:2b-q4_K_M` by default     |
 | Tenancy          | Per-row `tenant_id`; 3-layer isolation: `TenantContext` → Hibernate filter (all entities) → Postgres RLS |
 | Licensing        | `Plan` (Free / Pro / Enterprise) with seat caps, idea quotas, feature flags, self-service upgrade |
-| Localization     | German-first. Seed content carries DE translations promoted to canonical; `X-Content-Lang` still negotiates per request and defaults to `de` |
+| Localization     | German-only. UI and all content are German; no i18n layer or per-request language negotiation |
 
 ---
 
@@ -42,9 +42,9 @@ Six roles, each with distinct UI surface and API permissions:
 
 | Role                 | Can do                                                                 |
 |----------------------|------------------------------------------------------------------------|
-| `EMPLOYEE`           | Submit, edit own DRAFT, comment, vote                                  |
+| `EMPLOYEE`           | Submit, comment, vote                                  |
 | `REVIEWER`           | All of EMPLOYEE + score ideas on Impact / Feasibility / Strategic Fit  |
-| `IDEA_MANAGER` | Move stages, manage campaigns, run AI refine + chat                    |
+| `IDEA_MANAGER` | Move stages (incl. approve at Prioritization), manage campaigns, run AI refine + chat                    |
 | `SPONSOR`            | Approve/reject at PRIORITIZATION, toggle sponsor boost                 |
 | `ADMIN`              | Manage users, see license usage, all of the above within tenant        |
 | `SUPERADMIN`         | Cross-tenant (vendor staff)                                            |
@@ -54,12 +54,14 @@ Six roles, each with distinct UI surface and API permissions:
 
 ### Workflow state machine
 ```
-DRAFT → SUBMITTED → UNDER_REVIEW → PRIORITIZATION → APPROVED → IN_IMPLEMENTATION → DONE
+SUBMITTED → UNDER_REVIEW → PRIORITIZATION → APPROVED → IN_IMPLEMENTATION → DONE
                                   ↘ REJECTED / ARCHIVED
 ```
 Declared in [`IdeaWorkflow.java`](backend/src/main/java/com/ideaplatform/api/workflow/IdeaWorkflow.java). Every transition is gated by (from-stage, to-stage, actor-role) **server-side**. `PRIORITIZATION` requires at least one reviewer evaluation.
 
 The **Workflow page is a Jira/Trello-style Kanban board**: one column per stage, cards are draggable, and while dragging only the columns the current user is actually allowed to move the card into light up (the rest dim). Drops do an optimistic move and roll back with a toast if the server rejects them. The board route is itself role-gated — `EMPLOYEE`s don't see it (the backend stays the source of truth either way).
+
+**Delivery hand-off (mock Jira).** Once an idea reaches `IN_IMPLEMENTATION` (or `DONE`), its detail page shows an *Umsetzung* card with a stable issue key (e.g. `GEIST-482`) and an **In Jira öffnen** button. It opens a full-screen, Atlassian-styled issue view (`/jira/:id`) rendered entirely from the idea's own data — status, sprint, story points, reporter, comments. It's a self-contained frontend mock (no external Jira instance), so the demo can show the round-trip from idea to delivery ticket without leaving the app.
 
 ![Workflow board](docs/screenshots/07-workflow-board.png)
 *Workflow board — one column per stage; only legal drop targets light up while a card is dragged.*
@@ -83,12 +85,15 @@ Weights live in `application.yml`; per-tenant overrides are an obvious next step
 - Reviewers rate ideas 1–5 on **Impact**, **Feasibility**, **Strategic Fit**; `average = (i+f+s)/3`.
 - Both inputs feed back into the priority score on each change.
 
+![Voting & evaluation](docs/screenshots/20-idea-evaluation.png)
+*Idea detail as a reviewer — up/down voting (top-right) and the Wirkung / Machbarkeit / strategische-Passung evaluation panel.*
+
 ### RAG & semantic search
 - On every create/edit, title + description is embedded by the configured provider and stored as `vector(1024)` in `idea_embeddings`. The default model is **`bge-m3`** — multilingual, with strong German separation (it replaced `nomic-embed-text`, whose English-primary training compressed German topics into a narrow score band and hurt ranking on the German-canonical corpus).
 - **Prefix-aware embeddings.** The document path prepends `search_document: ` and the query path prepends `search_query: ` so the two live in comparable regions of the space. The `EmbeddingProvider` interface exposes `embed()` for stored content and `embedQuery()` for free-text searches; OpenAI and Mock providers leave `embedQuery` as the default delegation.
 - **Top-k similar ideas** sidebar on the idea detail page (cosine, threshold `0.45` for the sidebar — tuned for "highly similar" against bge-m3's score distribution).
 - **Free-text semantic search** on the ideas list page — type a concept, get ranked semantic matches. Uses a lower threshold (`0.30`) than the sidebar so reasonable matches surface even for short queries.
-- **Visibility-filtered results.** Both the similar-ideas sidebar and free-text search exclude `DRAFT`, `REJECTED`, and `ARCHIVED` ideas at the SQL layer. A freshly created idea is embedded immediately while still a private DRAFT, so without this filter its title/snippet would leak into other tenant members' search results even though the detail endpoint 404s for them.
+- **Visibility-filtered results.** Both the similar-ideas sidebar and free-text search exclude `REJECTED` and `ARCHIVED` ideas at the SQL layer, so retired ideas don't surface in semantic results.
 - **AI refine** button (gated by the `rag_refine` plan feature) retrieves the top-k siblings and asks the LLM for sharpening suggestions, duplicate detection, and a rationale.
 - **Refine chat** — multi-turn follow-ups on the same idea, with the same RAG context kept in the prompt and conversation history passed back on every turn.
 - **Semantic graph view** of all visible ideas: nodes are ideas, edges are pairs above the chosen threshold, and connected components are colored as clusters (convex hulls drawn via Andrew's monotone-chain algorithm). Drag-aware so panning the graph doesn't accidentally navigate.
@@ -116,10 +121,12 @@ Ranks the highest-priority ideas and the most active contributors in the tenant 
 ![Leaderboard](docs/screenshots/11-leaderboard.png)
 *Leaderboard — top-ranked ideas and the most active contributors.*
 
-### German-first content
-- The platform is **German-first**. The frontend's content locale defaults to `de`, and migration `V10` promotes the seeded German text (`title_de` / `description_de` / `name_de`, added in `V7`) into the canonical `title` / `description` / `name` columns — so a fresh `flyway migrate` reproduces the German dataset everyone demos against, with no manual post-seed step.
-- The i18n plumbing is still in place: a `LocaleFilter` reads the `X-Content-Lang` header into a `LocaleContext` ThreadLocal, and locale-aware services (incl. semantic search/snippets) call `LocaleContext.isGerman()` to prefer the `*_de` column with English fallback. This keeps the door open for re-introducing a language switch later.
-- The end-user Content-Language toggle was **removed** from `Settings` (the app no longer ships user-facing English content); a persisted-store migration coerces any browser still holding `en` to `de`.
+### German-only content
+- The platform is **German-only**. The UI chrome and all seed content are German; the canonical `title` / `description` / `name` columns hold the German text directly.
+- There is **no i18n layer**. The former `*_de` translation columns, the `LocaleFilter` / `LocaleContext` request plumbing, the `X-Content-Lang` header and the `Settings` language toggle were all removed. Migrations `V7`/`V10` still build the German seed; `V15` drops the now-redundant `_de` columns. Full-text search uses the Postgres `german` configuration.
+
+![German-only content](docs/screenshots/05-idea-detail.png)
+*Oberfläche und Inhalte sind durchgängig deutsch — der deutsche Seed-Content ist kanonisch (`title` / `description`).*
 
 ### Theme: dark mode
 - Class-based Tailwind dark mode (`dark` on `<html>`).
@@ -165,14 +172,32 @@ One Postgres schema with `tenant_id` on every tenant-owned table. Isolation is e
 
 - Route- and method-level role checks (`@PreAuthorize`, `RequireRole`) gate *actions* on top of the row-level isolation above. Cross-tenant access is reserved for `SUPERADMIN`.
 
+![Multi-tenancy](docs/screenshots/21-tenant-globex.png)
+*A second tenant (Globex, Free plan) with its own isolated data — note the tenant badge in the header. Each tenant sees only its own rows.*
+
 ### Switchable Postgres ↔ Supabase
 Services depend on the [`DataStore`](backend/src/main/java/com/ideaplatform/api/service/datastore/DataStore.java) interface. Two implementations:
 - [`JpaDataStore`](backend/src/main/java/com/ideaplatform/api/service/datastore/JpaDataStore.java) — primary, JPA on Postgres (default). Uses `saveAndFlush` on idea creation so the raw-JDBC embedding insert in the same transaction sees the new row's FK target.
 - [`SupabaseDataStore`](backend/src/main/java/com/ideaplatform/api/service/datastore/SupabaseDataStore.java) — REST via PostgREST. Activate with `--spring.profiles.active=supabase`.
 
+![Datastore-agnostic API](docs/screenshots/19-swagger-api.png)
+*The REST API surface is identical whichever datastore is active — the `DataStore` abstraction keeps every caller unchanged.*
+
 ---
 
 ## Run it locally
+
+### Quick start (one command)
+
+On Windows (PowerShell), from the repo root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+```
+
+[`scripts/setup.ps1`](scripts/setup.ps1) does the whole bootstrap: checks prerequisites, builds the backend jar, installs frontend dependencies, pulls the `bge-m3` embedding model, starts Postgres + backend + frontend, warms the semantic search, and prints the demo accounts + URLs. It's re-runnable (skips work already done; `-Rebuild` / `-Reinstall` / `-SkipModels` adjust that). When it finishes, open **http://localhost:5173** (API docs at **/swagger-ui.html** on `:8080`).
+
+The manual, cross-platform steps are spelled out below.
 
 ### Prerequisites
 
@@ -232,7 +257,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-On boot, Flyway runs the migrations (`V1` schema → `V13`; highlights: `V5` campaigns, `V7` i18n columns + DE translations, `V8` Supabase RPCs, `V9` excludes private stages from search, `V10` promotes German to canonical, `V12` adds tenant Row-Level Security, `V13` renames the ideamanager role) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
+On boot, Flyway runs the migrations (`V1` schema → `V15`; highlights: `V5` campaigns, `V7`+`V10` build the German seed, `V8` Supabase RPCs, `V9` excludes private stages from search, `V12` adds tenant Row-Level Security, `V13` renames the ideamanager role, `V14` renames the demo e-mails, `V15` drops the i18n columns) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
 
 #### Run the backend durably (optional)
 
@@ -273,12 +298,12 @@ All seeded users share password `demo1234`.
 
 | Email                | Tenant         | Role                 |
 |----------------------|----------------|----------------------|
-| admin@testmandant.test      | TestMandant (Pro)     | `ADMIN`              |
-| sponsor@testmandant.test    | TestMandant (Pro)     | `SPONSOR`            |
-| manager@testmandant.test    | TestMandant (Pro)     | `IDEA_MANAGER` |
-| reviewer@testmandant.test   | TestMandant (Pro)     | `REVIEWER`           |
-| alice@testmandant.test      | TestMandant (Pro)     | `EMPLOYEE`           |
-| bob@testmandant.test        | TestMandant (Pro)     | `EMPLOYEE`           |
+| timo@testmandant.test       | TestMandant (Pro)     | `ADMIN`              |
+| michael@testmandant.test    | TestMandant (Pro)     | `SPONSOR`            |
+| lifon@testmandant.test      | TestMandant (Pro)     | `IDEA_MANAGER` |
+| jan@testmandant.test        | TestMandant (Pro)     | `REVIEWER`           |
+| michel@testmandant.test     | TestMandant (Pro)     | `EMPLOYEE`           |
+| hayao@testmandant.test      | TestMandant (Pro)     | `EMPLOYEE`           |
 | owner@globex.test           | Globex (Free)         | `ADMIN`              |
 
 The login page has a one-click picker for these accounts.
@@ -400,13 +425,19 @@ Environment variables consumed by `application.yml`:
 
 ## API cheat-sheet
 
+**Interactive docs:** the backend serves an OpenAPI 3 spec + **Swagger UI** at
+**http://localhost:8080/swagger-ui.html** (raw spec at `/v3/api-docs`, YAML at `/v3/api-docs.yaml`).
+Click **Authorize**, paste a token from `POST /api/auth/login`, and try any endpoint live.
+
+![Swagger UI](docs/screenshots/19-swagger-api.png)
+
 | Method | Path                                       | Purpose                                   |
 |-------:|--------------------------------------------|-------------------------------------------|
 | POST   | `/api/auth/login`                          | Exchange email+password for a JWT         |
 | GET    | `/api/auth/me`                             | Current user + tenant + plan              |
 | GET    | `/api/ideas?stage=SUBMITTED`               | List ideas (optional stage filter)        |
-| POST   | `/api/ideas`                               | Create idea (DRAFT; accepts `campaignId`) |
-| GET    | `/api/ideas/{id}`                          | Single idea (locale-aware)                |
+| POST   | `/api/ideas`                               | Create idea (SUBMITTED; accepts `campaignId`) |
+| GET    | `/api/ideas/{id}`                          | Single idea                               |
 | PATCH  | `/api/ideas/{id}`                          | Edit idea (re-embeds)                     |
 | GET    | `/api/ideas/graph?threshold=0.55`          | Nodes + edges for the semantic graph      |
 | POST   | `/api/ideas/{id}/votes`                    | `{ "value": 1 \| -1 \| 0 }`               |
@@ -434,7 +465,7 @@ Environment variables consumed by `application.yml`:
 | GET    | `/api/subscription/plans`                  | Plan catalogue, current plan flagged (any member) |
 | PUT    | `/api/subscription/plan`                   | Change tenant plan `{ "planCode": "PRO" }` (`ADMIN` / `SUPERADMIN`) |
 
-All routes except `/api/auth/login`, `/actuator/health`, `/actuator/info` require a `Bearer` JWT. Locale-aware endpoints honour `X-Content-Lang: en|de` (default: `de`).
+All routes except `/api/auth/login`, `/actuator/health`, `/actuator/info` require a `Bearer` JWT.
 
 ---
 
@@ -455,18 +486,19 @@ geistesblitz/
 │       │   │              Campaign, Leaderboard, Recommendation, Refine
 │       │   ├── datastore/ DataStore interface + JpaDataStore + SupabaseDataStore
 │       │   └── embedding/ EmbeddingProvider + Ollama / OpenAI / Mock
-│       ├── tenant/        TenantContext + LocaleContext + servlet filters
+│       ├── tenant/        TenantContext + servlet filter (tenant scoping)
 │       └── workflow/      IdeaWorkflow state machine
-│   └── src/main/resources/db/migration/   V1..V13 (V5 campaigns, V7 i18n, V8 Supabase RPC, V9 search visibility, V10 German-canonical, V11 1024-d embeddings, V12 tenant RLS, V13 ideamanager role)
+│   └── src/main/resources/db/migration/   V1..V17 (V5 campaigns, V7 i18n seed, V8 Supabase RPC, V9 search visibility, V10 German-canonical, V11 1024-d embeddings, V12 tenant RLS, V13 ideamanager role, V14 demo emails, V15 drop i18n, V16 drop draft stage, V17 curate ten ideas)
 ├── frontend/
 │   └── src/
-│       ├── api/           Axios client (sets X-Content-Lang, refreshes /auth/me) + endpoint wrappers
+│       ├── api/           Axios client (refreshes /auth/me) + endpoint wrappers
 │       ├── components/    Layout (top nav bar), IdeaCard, StageBadge, RoleGate, Spinner, ui/ (shadcn-style primitives)
-│       ├── lib/           permissions, campaign helpers, cn()
+│       ├── lib/           permissions, campaign helpers, jira mock helpers, cn()
 │       ├── pages/         Dashboard (status breakdowns), IdeaList (filterable table),
 │       │                  IdeaDetail, IdeaGraph, Leaderboard, Campaigns, CampaignDetail,
-│       │                  SubmitIdea, Workflow (Kanban board), Settings, Admin, Login
-│       ├── store/         Zustand: auth, theme, locale (all persisted)
+│       │                  SubmitIdea, Workflow (Kanban board), MockJira (delivery hand-off),
+│       │                  Settings, Admin, Login
+│       ├── store/         Zustand: auth, theme (all persisted)
 │       └── types/         API DTO types
 ├── docs/                  Architecture, workflow, and licensing deep-dives
 └── scripts/               docker-compose and dev helpers
@@ -488,7 +520,7 @@ mvn -f backend/pom.xml test
 |------------|--------|
 | `IdeaWorkflowTest` | Role-gated stage machine — who may make each transition (incl. `IDEA_MANAGER`), the `SUPERADMIN` override, illegal stage jumps, archiving |
 | `JwtServiceTest` | JWT issue/verify round-trip + rejection of tampered / expired / wrong-issuer tokens, and the introspection contract the auth filter relies on |
-| `IdeaServiceTest` | Draft privacy (a colleague's `DRAFT` never appears in the list or single-GET; author and admin still see it) and tenant isolation (cross-tenant access → 404) |
+| `IdeaServiceTest` | Tenant isolation (cross-tenant access → 404) and idea listing |
 
 The durable-jar build uses `-DskipTests` for speed; run `mvn test` (or `mvn verify`) to execute the suite.
 
@@ -519,7 +551,7 @@ The durable-jar build uses `-DskipTests` for speed; run `mvn test` (or `mvn veri
 - **Supabase datastore** — functionally complete but uses per-row sums instead of PostgREST RPCs for `netVotes`. Fine for the prototype; replace with a stored function in production.
 - **`AdminService` duplicate-email check** queries globally, which leaks "email exists" across tenants. Switch to `findByEmailAndTenantId`.
 - **Campaigns** — no UI to detach an idea from a campaign after the fact (the FE select on Submit only sets the value; `PATCH /api/ideas/{id}` with `campaignId: null` is currently a no-op because the service guards on `!= null`).
-- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~460 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
+- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~185 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
 - **Legal pages are templates** — the German footer links to public `/impressum` and `/datenschutz` (DSGVO) pages; contact is `lifon.chun@gmail.com`. The `[ … ]` placeholders (Name, Anschrift) and the Datenschutz wording must be completed and legally reviewed before any public deployment.
 
 | Impressum | Datenschutz |

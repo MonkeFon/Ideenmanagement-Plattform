@@ -7,9 +7,9 @@
 │ React + TS  (Vite, Tailwind class-dark, TanStack Query, Zustand) │
 │  - JWT held in memory + persisted Zustand store                  │
 │  - Role-aware routing via <RoleGate>                             │
-│  - Theme + ContentLang stores wire dark mode + X-Content-Lang    │
+│  - Theme store wires class-based dark mode                       │
 └──────────────────────────────────────────────────────────────────┘
-                              │ REST/JSON  (+ X-Content-Lang)
+                              │ REST/JSON
 ┌──────────────────────────────────────────────────────────────────┐
 │ Spring Boot API                                                  │
 │  Controllers → Services → DataStore interface                    │
@@ -18,7 +18,6 @@
 │  Security: JwtAuthFilter ── MockKeycloakAdapter ── @PreAuthorize │
 │  License:  LicenseInterceptor (HandlerInterceptor)               │
 │  Tenancy:  TenantFilter  → TenantContext ThreadLocal             │
-│  Locale:   LocaleFilter  → LocaleContext ThreadLocal             │
 │  RAG:      EmbeddingProvider iface → Ollama / OpenAI / Mock      │
 └──────────────────────────────────────────────────────────────────┘
                               │ JDBC / HTTPS
@@ -61,11 +60,9 @@ Switchover paths:
 - Repositories take `tenantId` explicitly (`findByTenantIdAndId`, `findByTenantIdOrderByCreatedAtDesc`). There is no Hibernate filter at the moment — scoping is by convention plus code review.
 - Cross-tenant access requires `SUPERADMIN`.
 
-## Locale (bilingual seed content)
-- The frontend persists a per-user content language (`en` or `de`) in the Zustand `useLocale` store and the Axios interceptor sends it on every request as `X-Content-Lang`.
-- `LocaleFilter` (mirrors `TenantFilter`) reads the header into `LocaleContext`. Default is English; unknown values fall back to English.
-- `toResponse` mappers (e.g. `IdeaService.toResponse`, `CampaignService.toResponse`) check `LocaleContext.isGerman()` and return `title_de` / `description_de` / `name_de` when present, else the canonical English column.
-- Only seeded rows carry DE columns; user-submitted ideas keep whatever language the author typed in.
+## Language (German-only)
+- The platform is German-only: the UI and all content are German, stored directly in the canonical `title` / `description` / `name` columns.
+- There is no i18n layer — the former `LocaleFilter` / `LocaleContext`, the `X-Content-Lang` header and the `*_de` translation columns were removed (see migration `V15`). Full-text search uses the Postgres `german` configuration.
 
 ## RAG flow
 1. `IdeaService.create()` / `update()` → `EmbeddingService.indexIdeaSafe(idea)`.
@@ -84,7 +81,7 @@ Switchover paths:
 - `temperature: 0.5` (refine) / `0.6` (chat) — lower than default to reduce rambling on small models.
 
 ## Semantic graph
-- `RecommendationService.graph(threshold)` returns nodes (visible non-DRAFT ideas) and edges (similar pairs above the threshold, capped at `MAX_GRAPH_EDGES = 1500`).
+- `RecommendationService.graph(threshold)` returns nodes (visible ideas) and edges (similar pairs above the threshold, capped at `MAX_GRAPH_EDGES = 1500`).
 - The frontend page `IdeaGraph` runs a force-directed simulation, runs union-find on the edges to find connected components, then draws a convex hull (Andrew's monotone-chain) around each component as the cluster outline.
 - Drag is debounced with a 4 px movement threshold so panning the graph doesn't fire the node's click handler and accidentally navigate.
 

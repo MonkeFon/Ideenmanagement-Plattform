@@ -12,24 +12,24 @@ import { GitBranch, BarChart3, Sparkles } from 'lucide-react'
 // Ordered by organisational hierarchy, lowest privilege first:
 // Mitarbeiter → Ideenmanager → Prüfer → Sponsor → Administrator.
 const DEMO = [
-  { email: 'alice@testmandant.test',    role: 'Mitarbeiter' },
-  { email: 'manager@testmandant.test',  role: 'Ideenmanager' },
-  { email: 'reviewer@testmandant.test', role: 'Prüfer' },
-  { email: 'sponsor@testmandant.test',  role: 'Sponsor' },
-  { email: 'admin@testmandant.test',    role: 'Administrator' },
+    { email: 'timo@testmandant.test',    role: 'Mitarbeiter' },
+  { email: 'lifon@testmandant.test',   role: 'Ideenmanager' },
+  { email: 'jan@testmandant.test',     role: 'Prüfer' },
+    { email: 'michel@testmandant.test',  role: 'Sponsor' },
+  { email: 'michael@testmandant.test', role: 'Administrator' },
 ]
 
 // Marketing highlights on the hero panel.
 const FEATURES = [
-  { icon: GitBranch, title: 'Rollenbasierter Workflow', body: 'Vom Entwurf bis zur Umsetzung — mit klaren Freigaben in jeder Phase.' },
-  { icon: BarChart3, title: 'Zusammengesetzte Bewertung', body: 'Wirkung, Machbarkeit und strategische Passung ergeben eine Priorität.' },
-  { icon: Sparkles,  title: 'KI-gestützte Verfeinerung', body: 'Semantische Suche und Duplikaterkennung halten den Kontext lebendig.' },
+  { icon: GitBranch, title: 'Rollenbasierter Workflow', body: 'Mitarbeiter, Sponsoren, Prüfer und Ideenmanager' },
+  { icon: BarChart3, title: 'Zusammengesetzte Bewertung', body: 'Wirkung, Machbarkeit und Strategic Fit bestimmen die Priorität.' },
+  { icon: Sparkles,  title: 'KI-gestützte Verfeinerung', body: 'Semantische Suche und Duplikatserkennung machen Ideen auffindbar und vermeiden Redundanzen.' },
 ]
 
 export default function Login() {
   const navigate = useNavigate()
   const setAuth = useAuth((s) => s.setAuth)
-  const [email, setEmail] = useState('alice@testmandant.test')
+  const [email, setEmail] = useState('michel@testmandant.test')
   const [password, setPassword] = useState('demo1234')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -85,11 +85,10 @@ export default function Login() {
             Ideenmanagement für Unternehmen
           </div>
           <h1 className="mt-4 text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.08]">
-            Heben Sie die Ideen, die schon in Ihrem Unternehmen schlummern.
+            Vom Geistesblitz zur Handlung
           </h1>
           <p className="mt-5 text-[15px] leading-relaxed text-slate-300/90 max-w-md">
-            Einreichen, abstimmen, bewerten, umsetzen — mit semantischer Suche, damit kein
-            Kontext aus früheren Vorschlägen verloren geht.
+            Einreichen, abstimmen, bewerten, umsetzen mit KI-Unterstützung damit keine Ideen verloren gehen.
           </p>
 
           <ul className="mt-10 space-y-5">

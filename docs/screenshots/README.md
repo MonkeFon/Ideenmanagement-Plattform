@@ -22,6 +22,9 @@ Captured from the running application against the seeded demo tenant (signed in 
 | 16 | **Datenschutz** — GDPR privacy statement | [`16-datenschutz.png`](16-datenschutz.png) |
 | 17 | **Dashboard (Dark Mode)** | [`17-dashboard-dark.png`](17-dashboard-dark.png) |
 | 18 | **Ideenübersicht (Dark Mode)** | [`18-ideas-list-dark.png`](18-ideas-list-dark.png) |
+| 19 | **Swagger UI** — interactive OpenAPI 3 docs for all 25 endpoints | [`19-swagger-api.png`](19-swagger-api.png) |
+| 20 | **Voting & evaluation** — reviewer scoring panel on an idea | [`20-idea-evaluation.png`](20-idea-evaluation.png) |
+| 21 | **Multi-tenancy** — a second, isolated tenant (Globex, Free) | [`21-tenant-globex.png`](21-tenant-globex.png) |
 
 ---
 
@@ -78,3 +81,12 @@ Captured from the running application against the seeded demo tenant (signed in 
 
 ### Ideenübersicht — Dark Mode
 ![Idea list dark](18-ideas-list-dark.png)
+
+### API — Swagger UI (OpenAPI 3)
+![Swagger UI](19-swagger-api.png)
+
+### Voting & evaluation (reviewer panel)
+![Evaluation](20-idea-evaluation.png)
+
+### Multi-tenancy — second tenant (Globex)
+![Globex tenant](21-tenant-globex.png)

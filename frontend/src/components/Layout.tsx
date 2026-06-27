@@ -22,7 +22,6 @@ const THEME_ICON: Record<Theme, JSX.Element> = {
 }
 const THEME_LABEL: Record<Theme, string> = { auto: 'Automatisch', light: 'Hell', dark: 'Dunkel' }
 
-// Browser-tab title per route; detail routes (/ideas/:id, /campaigns/:id) match by prefix.
 function pageTitle(pathname: string): string {
   if (pathname === '/') return 'Übersicht'
   if (pathname.startsWith('/ideas')) return 'Ideen'
@@ -52,8 +51,6 @@ export default function Layout() {
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  // Close the mobile menu and reset scroll on navigation — otherwise the body
-  // scroll position carries over and the next page opens mid-scroll.
   useEffect(() => { setMenuOpen(false); window.scrollTo(0, 0) }, [location.pathname])
 
   // Browser-tab title follows the active route.
@@ -62,19 +59,14 @@ export default function Layout() {
     document.title = t ? `${t} · Geistesblitz` : 'Geistesblitz'
   }, [location.pathname])
 
-  // On load, re-sync the cached profile with the server so any server-side change
-  // (tenant rename, role change, display name) self-heals instead of staying stale
-  // in the persisted store until a manual re-login. Silent: a 401 here is handled by
-  // the global response interceptor (clears session + redirects to /login).
   useEffect(() => {
     let cancelled = false
     AuthApi.me()
       .then((fresh) => { if (!cancelled) setUser(fresh) })
-      .catch(() => { /* interceptor handles auth failures; ignore transient errors */ })
+      .catch(() => { })
     return () => { cancelled = true }
   }, [setUser])
 
-  // Keep <html>.dark in sync with the store + OS preference.
   useEffect(() => {
     applyTheme(theme)
     if (theme !== 'auto') return
@@ -91,7 +83,7 @@ export default function Layout() {
     { to: '/',            label: 'Übersicht',  show: true },
     { to: '/ideas',       label: 'Ideen',      show: true },
     { to: '/campaigns',   label: 'Kampagnen',  show: true },
-    { to: '/graph',       label: 'Graph',      show: true },
+    { to: '/graph',       label: 'Ideengraph',      show: true },
     { to: '/leaderboard', label: 'Rangliste',  show: true },
   ]
   const navAdmin: NavItem[] = [

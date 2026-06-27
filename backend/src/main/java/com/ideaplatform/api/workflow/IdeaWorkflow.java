@@ -21,12 +21,11 @@ public final class IdeaWorkflow {
     private static final Map<Stage, Map<Stage, Set<Role>>> RULES = new EnumMap<>(Stage.class);
 
     static {
-        addRule(Stage.DRAFT,              Stage.SUBMITTED,         EnumSet.of(Role.EMPLOYEE, Role.REVIEWER, Role.IDEA_MANAGER, Role.SPONSOR, Role.ADMIN));
         addRule(Stage.SUBMITTED,          Stage.UNDER_REVIEW,      EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN));
         addRule(Stage.SUBMITTED,          Stage.REJECTED,          EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN, Role.SPONSOR));
         addRule(Stage.UNDER_REVIEW,       Stage.PRIORITIZATION,    EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN));
         addRule(Stage.UNDER_REVIEW,       Stage.REJECTED,          EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN, Role.SPONSOR));
-        addRule(Stage.PRIORITIZATION,     Stage.APPROVED,          EnumSet.of(Role.SPONSOR, Role.ADMIN));
+        addRule(Stage.PRIORITIZATION,     Stage.APPROVED,          EnumSet.of(Role.SPONSOR, Role.IDEA_MANAGER, Role.ADMIN));
         addRule(Stage.PRIORITIZATION,     Stage.REJECTED,          EnumSet.of(Role.SPONSOR, Role.ADMIN));
         addRule(Stage.APPROVED,           Stage.IN_IMPLEMENTATION, EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN));
         addRule(Stage.IN_IMPLEMENTATION,  Stage.DONE,              EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN));

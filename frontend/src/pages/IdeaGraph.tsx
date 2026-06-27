@@ -29,7 +29,6 @@ type SimEdge = GraphEdge & { weight: number }
 
 // Stage palette — mid-saturation so it reads on both light and dark backgrounds.
 const STAGE_FILL: Record<Stage, string> = {
-  DRAFT: '#94a3b8',
   SUBMITTED: '#64748b',
   UNDER_REVIEW: '#d97706',
   PRIORITIZATION: '#d97706',
@@ -368,7 +367,6 @@ export default function IdeaGraph() {
       {/* Stage legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
         {(Object.keys(STAGE_FILL) as Stage[])
-          .filter((s) => s !== 'DRAFT')
           .map((s) => (
             <span key={s} className="inline-flex items-center gap-1.5">
               <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: STAGE_FILL[s] }} />

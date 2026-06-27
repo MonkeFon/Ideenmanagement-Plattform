@@ -38,13 +38,9 @@ public class EmbeddingService {
 
     public void indexIdeaSafe(Idea idea) {
         try {
-            // German-first platform: index the German title/description when present
-            // (falling back to the original) so the stored vectors live in the same
-            // language region as the German queries users type. Seeded ideas carry
-            // translations; freshly submitted ones embed whatever the author wrote.
-            String title = hasText(idea.getTitleDe()) ? idea.getTitleDe() : idea.getTitle();
-            String desc  = hasText(idea.getDescriptionDe()) ? idea.getDescriptionDe() : idea.getDescription();
-            String text = title + "\n\n" + desc;
+            // German-only platform: embed the (German) title + description so the stored
+            // vectors live in the same language region as the German queries users type.
+            String text = idea.getTitle() + "\n\n" + idea.getDescription();
             float[] vec = provider.embed(text);
             embeddings.upsert(idea.getId(), idea.getTenantId(), vec, provider.name());
         } catch (Exception ex) {
@@ -99,8 +95,6 @@ public class EmbeddingService {
             return List.of();
         }
     }
-
-    private static boolean hasText(String s) { return s != null && !s.isBlank(); }
 
     public EmbeddingProvider provider() { return provider; }
 }

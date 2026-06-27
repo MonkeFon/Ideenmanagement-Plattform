@@ -7,7 +7,6 @@ export type Role =
   | 'SUPERADMIN'
 
 export type Stage =
-  | 'DRAFT'
   | 'SUBMITTED'
   | 'UNDER_REVIEW'
   | 'PRIORITIZATION'

@@ -4,11 +4,10 @@
 
 | Stage              | Who can move here from previous                      | Notes |
 |--------------------|------------------------------------------------------|-------|
-| `DRAFT`            | author (implicit on create)                          | Owner-only visibility — DRAFTs are excluded from tenant-wide views like the graph |
-| `SUBMITTED`        | author                                               | Open for votes, comments, similarity lookup |
+| `SUBMITTED`        | author (implicit on create)                          | Open for votes, comments, similarity lookup |
 | `UNDER_REVIEW`     | `IDEA_MANAGER`, `ADMIN`                        | Triggers reviewer assignment |
 | `PRIORITIZATION`   | `IDEA_MANAGER`                                 | Composite score computed; requires ≥1 reviewer evaluation |
-| `APPROVED`         | `SPONSOR`, `ADMIN`                                   | Goes into roadmap |
+| `APPROVED`         | `SPONSOR`, `IDEA_MANAGER`, `ADMIN`                                   | Goes into roadmap |
 | `IN_IMPLEMENTATION`| `IDEA_MANAGER`, `ADMIN`                        | Linked to delivery |
 | `DONE`             | `IDEA_MANAGER`, `ADMIN`                        | Final |
 | `REJECTED`         | `SPONSOR`, `ADMIN`, `IDEA_MANAGER`             | With reason |
@@ -22,7 +21,7 @@ The state machine is enforced in [`workflow/IdeaWorkflow.java`](../backend/src/m
 A transition fails fast with **409 Conflict** when the requested move is not legal for the actor or stage.
 
 ## Comments
-- All roles can comment on any non-DRAFT idea they can see. `IDEA_MANAGER` / `ADMIN` are explicitly included — earlier prototype builds gated them out, which surprised demo users.
+- All roles can comment on any idea they can see. `IDEA_MANAGER` / `ADMIN` are explicitly included — earlier prototype builds gated them out, which surprised demo users.
 - Comments are appended via `POST /api/ideas/{id}/comments` with `{ "body": "..." }`.
 
 ## Composite score (PRIORITIZATION)

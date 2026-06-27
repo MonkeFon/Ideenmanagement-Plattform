@@ -52,8 +52,10 @@ if ($LASTEXITCODE -ne 0 -or -not $dv) {
   Warn 'engine down - launching Docker Desktop (this can take a minute)...'
   $dd = "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
   if (Test-Path $dd) { Start-Process $dd }
-  if (Wait-For { docker version --format '{{.Server.Version}}' 2>$null; $LASTEXITCODE -eq 0 } 180) {
-    Ok "engine up ($(docker version --format '{{.Server.Version}}' 2>$null))"
+  # Wait for the Linux engine to actually answer (docker ps), not just the client —
+  # `docker version` can exit 0 with an empty Server.Version while still starting.
+  if (Wait-For { docker ps *> $null; $LASTEXITCODE -eq 0 } 180) {
+    Ok ("engine up (" + (docker version --format '{{.Server.Version}}' 2>$null) + ")")
   } else { Bad 'Docker engine did not come up - start Docker Desktop manually.' }
 } else { Ok "engine up ($dv)" }
 
@@ -109,9 +111,9 @@ if (-not (Test-Listen 5173)) {
 # ----------------------------------------------------------------------------
 Step 'Warm-up'
 try {
-  $body = @{ email = 'admin@testmandant.test'; password = 'demo1234' } | ConvertTo-Json
+  $body = @{ email = 'timo@testmandant.test'; password = 'demo1234' } | ConvertTo-Json
   $tok  = (Invoke-RestMethod -Method Post "$Api/api/auth/login" -ContentType 'application/json' -Body $body).token
-  $q    = [uri]::EscapeDataString('Pausen und Konzentration bei der Arbeit verbessern')
+  $q    = [uri]::EscapeDataString('Schwachstellen in Bibliotheken automatisch pruefen')
   $hdr  = @{ Authorization = "Bearer $tok" }
   # First call warms the cold Ollama query path (can return a partial set); the
   # second is the one we trust and report.
@@ -129,8 +131,8 @@ Write-Host "`n--------------------------------------------------------------" -F
 Write-Host " DEMO BEREIT - siehe docs/DEMO.md fuer das Drehbuch" -ForegroundColor White
 Write-Host "--------------------------------------------------------------" -ForegroundColor DarkGray
 Write-Host "  App        : $Web   (Login-Auswahl, Passwort: demo1234)"
-Write-Host "  Duplikat   : Ruhezone fuer fokussiertes Arbeiten und Pausen   (-> ~90% Treffer)"
-Write-Host "  Suche      : Pausen und Konzentration bei der Arbeit verbessern   (-> 5 Treffer)"
-Write-Host "  Konten     : alice=Michel  reviewer=Jan  manager=Lifon  sponsor=Michael  admin=Timo"
+Write-Host "  Duplikat   : Zentrale Anzeige von Build- und Deployment-Status   (-> ~90% Treffer)"
+Write-Host "  Suche      : Schwachstellen in Bibliotheken automatisch pruefen   (-> 5 Treffer)"
+Write-Host "  Konten     : michel (Mitarbeiter)  jan (Pruefer)  lifon (Ideenmanager)  michael (Sponsor)  timo (Admin)  -- alle @testmandant.test"
 Write-Host "               owner@globex.test = zweiter Mandant (Free, fuer 402-Demo)"
 Write-Host "  NICHT zeigen: /dev (God-Mode)`n"

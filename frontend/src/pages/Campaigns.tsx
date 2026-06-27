@@ -47,7 +47,7 @@ export default function Campaigns() {
           <div className="eyebrow">Initiativen</div>
           <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Kampagnen</h1>
           <p className="text-[13px] text-muted-foreground mt-1">
-            Bündeln Sie Ideen rund um ein Thema, eine Frist oder eine strategische Initiative.
+            Erstellung einer übergeordneten Kampagne.
           </p>
         </div>
         <RoleGate allow={['IDEA_MANAGER', 'ADMIN', 'SUPERADMIN']}>

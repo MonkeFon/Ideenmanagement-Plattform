@@ -35,6 +35,9 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/actuator/health", "/actuator/info").permitAll()
+                // OpenAPI spec + Swagger UI are reachable without a token (dev/demo).
+                .requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml",
+                                 "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll())
             // Unauthenticated requests (missing / expired / invalid JWT) must answer 401, not the

@@ -9,13 +9,12 @@ import type { Idea, Stage } from '@/types/api'
 
 // The forward-flow columns shown on the board, left → right.
 const BOARD_STAGES: Stage[] = [
-  'DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION',
+  'SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION',
   'APPROVED', 'IN_IMPLEMENTATION', 'DONE',
 ]
 
 // Accent colour per column header (matches the StageBadge palette).
 const STAGE_ACCENT: Record<string, string> = {
-  DRAFT:             'bg-slate-400',
   SUBMITTED:         'bg-blue-500',
   UNDER_REVIEW:      'bg-amber-500',
   PRIORITIZATION:    'bg-violet-500',
