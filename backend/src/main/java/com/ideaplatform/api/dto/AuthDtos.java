@@ -13,5 +13,5 @@ public final class AuthDtos {
     public record LoginResponse(String token, MeResponse user) {}
 
     public record MeResponse(UUID id, UUID tenantId, String tenantName, String tenantPlan,
-                             String email, String displayName, Role role) {}
+                             String tenantBrandColor, String email, String displayName, Role role) {}
 }

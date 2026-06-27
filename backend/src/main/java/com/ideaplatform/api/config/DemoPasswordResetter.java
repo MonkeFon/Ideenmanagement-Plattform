@@ -44,12 +44,14 @@ public class DemoPasswordResetter implements CommandLineRunner {
         String hash = encoder.encode(demoPassword);
         int n = 0;
         for (var u : users.findAll()) {
-            if (u.getEmail().endsWith(".test")) {
+            // Demo accounts: the original *.test seed tenants plus the renamed FOM tenant (@fom.de).
+            String email = u.getEmail();
+            if (email.endsWith(".test") || email.endsWith("@fom.de")) {
                 u.setPasswordHash(hash);
                 users.save(u);
                 n++;
             }
         }
-        log.info("Demo password reset for {} *.test accounts (password='{}')", n, demoPassword);
+        log.info("Demo password reset for {} demo accounts (password='{}')", n, demoPassword);
     }
 }

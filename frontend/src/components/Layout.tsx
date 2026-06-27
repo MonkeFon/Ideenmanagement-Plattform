@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useAuth } from '@/store/auth'
 import { AuthApi } from '@/api/endpoints'
 import { applyTheme, useTheme, type Theme } from '@/store/theme'
+import { applyTenantBrand, clearTenantBrand } from '@/lib/tenantTheme'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import GeistesblitzLogo from '@/components/GeistesblitzLogo'
@@ -66,6 +67,13 @@ export default function Layout() {
       .catch(() => { })
     return () => { cancelled = true }
   }, [setUser])
+
+  // Tenant-dependent colour scheme: theme --primary from the signed-in tenant's brand
+  // colour. Clears on logout (Layout unmounts) so the login page keeps the default brand.
+  useEffect(() => {
+    applyTenantBrand(user?.tenantBrandColor)
+    return () => clearTenantBrand()
+  }, [user?.tenantBrandColor])
 
   useEffect(() => {
     applyTheme(theme)

@@ -21,6 +21,8 @@ export interface MeResponse {
   tenantId: string
   tenantName: string
   tenantPlan: string
+  /** Per-tenant brand colour (hex, e.g. "#239F91"); themes the app's --primary. May be null. */
+  tenantBrandColor: string | null
   email: string
   displayName: string
   role: Role
@@ -30,6 +32,8 @@ export interface LoginResponse { token: string; user: MeResponse }
 
 export interface Idea {
   id: string
+  /** Per-tenant sequential reference number, shown as a Jira-style key (e.g. GEIST-7). */
+  reference: number
   authorId: string
   authorName: string
   title: string
@@ -46,6 +50,22 @@ export interface Idea {
   campaignId: string | null
   campaignName: string | null
   campaignColor: string | null
+  /** Assignment pipeline. "preferred" = up-front suggestion, "assigned" = binding. */
+  preferredReviewerId: string | null
+  preferredReviewerName: string | null
+  preferredManagerId: string | null
+  preferredManagerName: string | null
+  assignedReviewerId: string | null
+  assignedReviewerName: string | null
+  assignedManagerId: string | null
+  assignedManagerName: string | null
+}
+
+/** A user who can be assigned as a reviewer or idea manager for an idea. */
+export interface AssignableUser {
+  id: string
+  displayName: string
+  role: Role
 }
 
 export interface Comment {

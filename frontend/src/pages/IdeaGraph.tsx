@@ -28,15 +28,16 @@ type SimNode = GraphNode & {
 type SimEdge = GraphEdge & { weight: number }
 
 // Stage palette — mid-saturation so it reads on both light and dark backgrounds.
+// Distinct per-stage fills, matching the StageBadge / Kanban-board palette.
 const STAGE_FILL: Record<Stage, string> = {
-  SUBMITTED: '#64748b',
-  UNDER_REVIEW: '#d97706',
-  PRIORITIZATION: '#d97706',
-  APPROVED: '#059669',
-  IN_IMPLEMENTATION: '#0891b2',
-  DONE: '#059669',
-  REJECTED: '#e11d48',
-  ARCHIVED: '#94a3b8',
+  SUBMITTED: '#3b82f6',         // blue
+  UNDER_REVIEW: '#d97706',      // amber
+  PRIORITIZATION: '#8b5cf6',    // violet
+  APPROVED: '#059669',          // emerald
+  IN_IMPLEMENTATION: '#06b6d4', // cyan
+  DONE: '#16a34a',              // green
+  REJECTED: '#e11d48',          // rose
+  ARCHIVED: '#94a3b8',          // slate
 }
 
 // Qualitative cluster palette. Cluster -1 (singletons) is rendered with no hull.

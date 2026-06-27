@@ -35,7 +35,7 @@ public class AuthService {
         Tenant tenant = store.findTenant(user.getTenantId()).orElseThrow();
         return new LoginResponse(token, new MeResponse(
                 user.getId(), user.getTenantId(), tenant.getName(), tenant.getPlan().getCode(),
-                user.getEmail(), user.getDisplayName(), user.getRole()
+                tenant.getBrandColor(), user.getEmail(), user.getDisplayName(), user.getRole()
         ));
     }
 
@@ -43,6 +43,6 @@ public class AuthService {
         User u = store.findUserById(userId).orElseThrow();
         Tenant t = store.findTenant(u.getTenantId()).orElseThrow();
         return new MeResponse(u.getId(), u.getTenantId(), t.getName(), t.getPlan().getCode(),
-                u.getEmail(), u.getDisplayName(), u.getRole());
+                t.getBrandColor(), u.getEmail(), u.getDisplayName(), u.getRole());
     }
 }

@@ -12,11 +12,11 @@ import { GitBranch, BarChart3, Sparkles } from 'lucide-react'
 // Ordered by organisational hierarchy, lowest privilege first:
 // Mitarbeiter → Ideenmanager → Prüfer → Sponsor → Administrator.
 const DEMO = [
-    { email: 'timo@testmandant.test',    role: 'Mitarbeiter' },
-  { email: 'lifon@testmandant.test',   role: 'Ideenmanager' },
-  { email: 'jan@testmandant.test',     role: 'Prüfer' },
-    { email: 'michel@testmandant.test',  role: 'Sponsor' },
-  { email: 'michael@testmandant.test', role: 'Administrator' },
+    { email: 'timo@fom.de',    role: 'Mitarbeiter' },
+  { email: 'lifon@fom.de',   role: 'Ideenmanager' },
+  { email: 'jan@fom.de',     role: 'Prüfer' },
+    { email: 'michel@fom.de',  role: 'Sponsor' },
+  { email: 'michael@fom.de', role: 'Administrator' },
 ]
 
 // Marketing highlights on the hero panel.
@@ -29,7 +29,7 @@ const FEATURES = [
 export default function Login() {
   const navigate = useNavigate()
   const setAuth = useAuth((s) => s.setAuth)
-  const [email, setEmail] = useState('michel@testmandant.test')
+  const [email, setEmail] = useState('lifon@fom.de')
   const [password, setPassword] = useState('demo1234')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -53,7 +53,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {/* ───────────── Hero panel (desktop only) — permanently dark for a premium feel ───────────── */}
-      <section className="relative hidden lg:flex lg:flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 text-white p-12 xl:p-16 lg:border-r border-white/10">
+      <section className="relative hidden lg:flex lg:flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0b2521] via-[#0a1815] to-[#050e0d] text-white p-12 xl:p-16 lg:border-r border-white/10">
         {/* Fine grid texture, faded toward the edges */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -68,12 +68,15 @@ export default function Login() {
           aria-hidden
         />
         {/* Soft colour glows — restrained, the only hint of hue on a monochrome brand */}
-        <div className="pointer-events-none absolute -top-32 -left-24 h-96 w-96 rounded-full bg-indigo-500/25 blur-3xl" aria-hidden />
-        <div className="pointer-events-none absolute -bottom-32 -right-16 h-96 w-96 rounded-full bg-violet-500/20 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -top-32 -left-24 h-96 w-96 rounded-full bg-[#239F91]/30 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-32 -right-16 h-96 w-96 rounded-full bg-[#2dd4bf]/15 blur-3xl" aria-hidden />
 
         {/* Brand */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-primary grid place-items-center text-primary-foreground ring-1 ring-white/10 shrink-0">
+          <div
+            className="h-10 w-10 rounded-lg bg-primary grid place-items-center text-primary-foreground ring-1 ring-white/10 shrink-0"
+            style={{ '--primary': '35 159 145' } as React.CSSProperties}
+          >
             <GeistesblitzLogo size={28} />
           </div>
           <span className="text-lg font-semibold tracking-tight">Geistesblitz</span>
@@ -81,7 +84,7 @@ export default function Login() {
 
         {/* Hero copy + features */}
         <div className="relative z-10 max-w-lg">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-indigo-300/80">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6fd3c6]">
             Ideenmanagement für Unternehmen
           </div>
           <h1 className="mt-4 text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.08]">
@@ -94,8 +97,8 @@ export default function Login() {
           <ul className="mt-10 space-y-5">
             {FEATURES.map((f) => (
               <li key={f.title} className="flex gap-3.5">
-                <div className="h-9 w-9 rounded-lg bg-white/10 border border-white/10 grid place-items-center shrink-0">
-                  <f.icon size={17} strokeWidth={1.75} className="text-white" />
+                <div className="h-9 w-9 rounded-lg bg-[#239F91]/15 border border-[#239F91]/30 grid place-items-center shrink-0">
+                  <f.icon size={17} strokeWidth={1.75} className="text-[#6fd3c6]" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-white">{f.title}</div>
@@ -117,7 +120,10 @@ export default function Login() {
         <div className="w-full max-w-sm">
           {/* Brand (shown only when the hero panel is hidden) */}
           <div className="lg:hidden flex items-center gap-2.5 mb-10">
-            <div className="h-9 w-9 rounded bg-primary grid place-items-center text-primary-foreground shrink-0">
+            <div
+              className="h-9 w-9 rounded bg-primary grid place-items-center text-primary-foreground shrink-0"
+              style={{ '--primary': '35 159 145' } as React.CSSProperties}
+            >
               <GeistesblitzLogo size={26} />
             </div>
             <span className="font-semibold text-lg tracking-tight text-foreground">Geistesblitz</span>
@@ -134,17 +140,17 @@ export default function Login() {
             <div className="space-y-3">
               <div>
                 <Label htmlFor="email">E-Mail</Label>
-                <Input id="email" className="mt-1.5" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Input id="email" className="mt-1.5 focus-visible:ring-[#239F91]" value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
                 <Label htmlFor="password">Passwort</Label>
-                <Input id="password" className="mt-1.5" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input id="password" className="mt-1.5 focus-visible:ring-[#239F91]" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
             </div>
 
             {error && <div className="text-[13px] text-destructive">{error}</div>}
 
-            <Button className="w-full" disabled={busy}>
+            <Button className="w-full bg-[#239F91] text-white hover:bg-[#1d8478]" disabled={busy}>
               {busy ? <><Spinner size={12} className="text-current" /> Anmeldung läuft…</> : 'Anmelden'}
             </Button>
           </form>

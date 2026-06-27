@@ -1,5 +1,6 @@
 package com.ideaplatform.api.dto;
 
+import com.ideaplatform.api.domain.Role;
 import com.ideaplatform.api.domain.Stage;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -19,7 +20,10 @@ public final class IdeaDtos {
             @NotBlank @Size(min = 30, max = 8000, message = "Beschreibung muss mindestens 30 Zeichen haben")
             String description,
             @Size(max = 64) String category,
-            UUID campaignId) {}
+            UUID campaignId,
+            // Optional up-front assignment suggestions (non-binding).
+            UUID preferredReviewerId,
+            UUID preferredManagerId) {}
 
     public record UpdateIdeaRequest(
             @Size(min = 5, max = 200, message = "Titel muss mindestens 5 Zeichen haben")
@@ -31,6 +35,7 @@ public final class IdeaDtos {
 
     public record IdeaResponse(
             UUID id,
+            Integer reference,
             UUID authorId,
             String authorName,
             String title,
@@ -46,9 +51,25 @@ public final class IdeaDtos {
             OffsetDateTime createdAt,
             UUID campaignId,
             String campaignName,
-            String campaignColor) {}
+            String campaignColor,
+            // Assignment pipeline (nullable). preferred = up-front suggestion,
+            // assigned = the binding pipeline assignment.
+            UUID preferredReviewerId,
+            String preferredReviewerName,
+            UUID preferredManagerId,
+            String preferredManagerName,
+            UUID assignedReviewerId,
+            String assignedReviewerName,
+            UUID assignedManagerId,
+            String assignedManagerName) {}
 
     public record StageTransitionRequest(Stage to, String reason) {}
+
+    /** Set (or clear, with null) the binding reviewer/idea-manager assignment. */
+    public record AssignmentRequest(UUID reviewerId, UUID managerId) {}
+
+    /** A user who can be picked as a reviewer or idea manager for an idea. */
+    public record AssignableUser(UUID id, String displayName, Role role) {}
 
     public record EvaluationRequest(
             short impact,
