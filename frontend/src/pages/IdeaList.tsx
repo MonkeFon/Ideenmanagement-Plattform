@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { cn } from '@/lib/utils'
+import { cn, simPct } from '@/lib/utils'
 import {
   Search, Sparkles, ArrowUp, ArrowDown, ChevronsUpDown,
   MessageSquare, ArrowBigUp, X, Plus,
@@ -185,12 +185,12 @@ export default function IdeaList() {
 
   return (
     <div className="p-4 md:p-8 space-y-4 max-w-7xl mx-auto">
-      <header className="flex flex-wrap items-center justify-between gap-3">
+      <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="eyebrow">Ideen</div>
           <h1 className="mt-1 text-xl font-semibold text-foreground tracking-tight">Ideenübersicht</h1>
         </div>
-        <Button asChild><Link to="/submit">+ Idee einreichen</Link></Button>
+        <Button asChild className="gap-1.5"><Link to="/submit"><Plus size={16} strokeWidth={2} /> Idee einreichen</Link></Button>
       </header>
 
       {/* Filter toolbar */}
@@ -323,7 +323,7 @@ export default function IdeaList() {
                 </td>
                 {semantic && (
                   <td className="px-3 py-2.5 text-right tabular-nums font-medium text-foreground">
-                    {((semantic.get(i.id) ?? 0) * 100).toFixed(0)}%
+                    {simPct(semantic.get(i.id))}%
                   </td>
                 )}
                 <td className="px-3 py-2.5 hidden md:table-cell text-muted-foreground truncate max-w-[10rem]">{i.authorName}</td>
