@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
+import { cn, simPct } from '@/lib/utils'
 import { ideaRef, jiraPath } from '@/lib/jira'
 import { ArrowUp, ArrowDown, MessageSquare, Send, Wand2, Star, RotateCcw, Gauge, ExternalLink, UserCog, Check } from 'lucide-react'
 import type { ChatMessage, Idea, Stage } from '@/types/api'
@@ -685,11 +685,11 @@ export default function IdeaDetail() {
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-medium text-foreground text-[13px] tracking-tight leading-snug">{s.title}</span>
                     {/* similarity strength */}
-                    <span className="inline-flex items-center gap-1.5 shrink-0 mt-0.5" title={`${(s.similarity * 100).toFixed(0)}% Übereinstimmung`}>
+                    <span className="inline-flex items-center gap-1.5 shrink-0 mt-0.5" title={`${simPct(s.similarity)}% Übereinstimmung`}>
                       <span className="h-1 w-8 rounded-full bg-muted overflow-hidden" aria-hidden>
-                        <span className="block h-full rounded-full bg-primary/70" style={{ width: `${Math.round(s.similarity * 100)}%` }} />
+                        <span className="block h-full rounded-full bg-primary/70" style={{ width: `${simPct(s.similarity)}%` }} />
                       </span>
-                      <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{(s.similarity * 100).toFixed(0)}%</span>
+                      <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{simPct(s.similarity)}%</span>
                     </span>
                   </div>
                   {/* metadata: stage + category */}

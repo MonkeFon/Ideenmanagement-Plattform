@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card } from '@/components/ui/card'
+import { simPct } from '@/lib/utils'
 import { AlertCircle, ArrowRight } from 'lucide-react'
 
 export default function SubmitIdea() {
@@ -167,7 +168,7 @@ export default function SubmitIdea() {
                         <div className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{d.snippet}</div>
                       </div>
                       <span className="font-mono text-[11px] text-amber-700 dark:text-amber-300 tabular-nums shrink-0 mt-0.5">
-                        {(d.similarity * 100).toFixed(0)}%
+                        {simPct(d.similarity)}%
                       </span>
                     </Link>
                   </li>
