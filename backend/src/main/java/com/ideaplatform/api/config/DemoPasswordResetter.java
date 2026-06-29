@@ -10,13 +10,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-/**
- * Ensures the seeded demo users have a known-good password ("demo1234") on every boot
- * of the postgres profile. Without this, the seeded BCrypt hash in V3 could drift if
- * anyone re-rolls it; this guarantees the README's demo accounts always work locally.
- *
- * Production deployments should use a different profile that excludes this bean.
- */
 @Component
 @Profile("postgres")
 @Order(10)
@@ -44,7 +37,7 @@ public class DemoPasswordResetter implements CommandLineRunner {
         String hash = encoder.encode(demoPassword);
         int n = 0;
         for (var u : users.findAll()) {
-            // Demo accounts: the original *.test seed tenants plus the renamed FOM tenant (@fom.de).
+
             String email = u.getEmail();
             if (email.endsWith(".test") || email.endsWith("@fom.de")) {
                 u.setPasswordHash(hash);

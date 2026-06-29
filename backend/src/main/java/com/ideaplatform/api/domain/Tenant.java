@@ -20,7 +20,6 @@ public class Tenant {
     @Column(nullable = false, unique = true, length = 64)
     private String slug;
 
-    /** Per-tenant brand colour (hex, e.g. "#239F91"); the frontend themes --primary from it. */
     @Column(name = "brand_color", length = 16)
     private String brandColor;
 

@@ -12,15 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Computes leaderboard rankings via SQL aggregates. We keep these in raw JDBC for two reasons:
- *   1) The contributor score is a weighted blend across four tables — clearest as one CTE query.
- *   2) The result set is bounded (10 + 10) so we don't need pagination plumbing yet.
- */
 @Service
 public class LeaderboardService {
 
-    /** Score weights — tuned so submitting an idea outweighs a single comment but not a flood of votes. */
     private static final int W_IDEA = 5;
     private static final int W_VOTE = 1;
     private static final int W_COMMENT = 1;
@@ -91,7 +85,6 @@ public class LeaderboardService {
             },
             tenantId);
 
-        // Compute score + rank in Java so the weights live in one place (no SQL constant duplication).
         List<TopContributor> sorted = new ArrayList<>(raw.size());
         for (Object[] r : raw) {
             int ideas = (int) r[3];

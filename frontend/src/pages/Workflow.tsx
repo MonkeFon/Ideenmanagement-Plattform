@@ -7,13 +7,11 @@ import { cn } from '@/lib/utils'
 import { MessageSquare, ChevronUp, Sparkles, GripVertical } from 'lucide-react'
 import type { Idea, Stage } from '@/types/api'
 
-// The forward-flow columns shown on the board, left → right.
 const BOARD_STAGES: Stage[] = [
   'SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION',
   'APPROVED', 'IN_IMPLEMENTATION', 'DONE',
 ]
 
-// Accent colour per column header (matches the StageBadge palette).
 const STAGE_ACCENT: Record<string, string> = {
   SUBMITTED:         'bg-blue-500',
   UNDER_REVIEW:      'bg-amber-500',
@@ -29,14 +27,13 @@ export default function Workflow() {
   const ideasQ = useQuery({ queryKey: ['ideas'], queryFn: () => IdeaApi.list() })
 
   const ideas = ideasQ.data ?? []
-  const allowed = stagesQ.data // Record<Stage, Stage[]> | undefined
+  const allowed = stagesQ.data
 
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [draggingFrom, setDraggingFrom] = useState<Stage | null>(null)
   const [overStage, setOverStage] = useState<Stage | null>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
 
-  // Group ideas by stage once per data change.
   const byStage = useMemo(() => {
     const map: Record<string, Idea[]> = {}
     for (const s of BOARD_STAGES) map[s] = []
@@ -44,17 +41,16 @@ export default function Workflow() {
     return map
   }, [ideas])
 
-  // Structural validity (role checks are enforced by the backend on drop).
   function canMove(from: Stage | null, to: Stage): boolean {
     if (!from || from === to) return false
-    if (!allowed) return true // map not loaded yet → let the server decide
+    if (!allowed) return true
     return (allowed[from] ?? []).includes(to)
   }
 
   const move = useMutation({
     mutationFn: ({ id, to }: { id: string; to: Stage }) =>
       IdeaApi.transition(id, to, 'Per Kanban-Board verschoben'),
-    // Optimistically move the card to the target column.
+
     onMutate: async ({ id, to }) => {
       setPendingId(id)
       await qc.cancelQueries({ queryKey: ['ideas'] })
@@ -65,8 +61,7 @@ export default function Workflow() {
       return { prev }
     },
     onError: (_err, _vars, ctx) => {
-      // Roll back; the global axios interceptor already surfaced a toast
-      // (e.g. "Keine Berechtigung" for a 403).
+
       if (ctx?.prev) qc.setQueryData(['ideas'], ctx.prev)
     },
     onSettled: () => {
@@ -86,9 +81,6 @@ export default function Workflow() {
     move.mutate({ id, to })
   }
 
-  // Pin the board to the viewport (minus the h-14 app bar) so it scrolls
-  // internally — horizontal across columns, vertical within each — instead of
-  // growing the page and pushing the horizontal scrollbar below the fold.
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col p-4 md:p-8 max-w-7xl mx-auto w-full">
       <header className="mb-5 shrink-0">
@@ -113,7 +105,7 @@ export default function Workflow() {
                 onDragOver={(e) => {
                   if (isValidTarget) {
                     e.preventDefault()
-                    e.dataTransfer.dropEffect = 'move' // consistent "move" cursor over valid columns
+                    e.dataTransfer.dropEffect = 'move'
                     setOverStage(stage)
                   }
                 }}
@@ -155,9 +147,7 @@ export default function Workflow() {
                         onDragStart={(e) => {
                           e.dataTransfer.effectAllowed = 'move'
                           e.dataTransfer.setData('text/plain', idea.id)
-                          // Custom drag image: the browser default is a ~50%-alpha snapshot of
-                          // the card, which reads as washed out. Clone the card off-screen with
-                          // an opaque background + stronger shadow and hand that to the drag.
+
                           const card = e.currentTarget as HTMLElement
                           const rect = card.getBoundingClientRect()
                           const ghost = card.cloneNode(true) as HTMLElement
@@ -169,8 +159,7 @@ export default function Workflow() {
                             'box-shadow:0 8px 24px rgba(0,0,0,0.28), 0 0 0 1px rgb(var(--border));'
                           document.body.appendChild(ghost)
                           e.dataTransfer.setDragImage(ghost, e.clientX - rect.left, e.clientY - rect.top)
-                          // The browser rasterises the image right after dragstart returns;
-                          // removing the clone on the next tick keeps the DOM clean.
+
                           setTimeout(() => ghost.remove(), 0)
                           setDraggingId(idea.id)
                           setDraggingFrom(idea.stage)
@@ -179,8 +168,7 @@ export default function Workflow() {
                         className={cn(
                           'group rounded-md border border-border bg-card p-2.5 shadow-sm cursor-grab active:cursor-grabbing transition-all',
                           'hover:border-input hover:shadow',
-                          // Origin slot while dragging: keep it readable (the opaque ghost is
-                          // what follows the cursor) and mark it as the source with a dashed edge.
+
                           isThisDragging && 'opacity-60 border-dashed',
                           isPending && 'opacity-60 pointer-events-none',
                         )}

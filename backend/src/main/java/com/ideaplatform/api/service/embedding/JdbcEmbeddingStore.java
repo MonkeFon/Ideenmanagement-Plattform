@@ -9,11 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Vector search via raw JDBC + pgvector. Active for both {@code postgres} and
- * {@code supabase-jdbc} profiles (anything with a real JDBC datasource pointing at a
- * Postgres + pgvector). Hibernate cannot generate the {@code <=>} operator on its own.
- */
 @Repository
 @ConditionalOnProperty(name = "ideaplatform.embedding.store", havingValue = "jdbc", matchIfMissing = true)
 public class JdbcEmbeddingStore implements EmbeddingStore {
@@ -63,14 +58,10 @@ public class JdbcEmbeddingStore implements EmbeddingStore {
     @Override
     public List<SimilarIdeaRow> findSimilar(UUID tenantId, UUID excludeIdeaId, float[] query, int k, double threshold) {
         String vec = toVectorLiteral(query);
-        // Column expressions are constant — no user input is interpolated.
+
         String titleCol = "i.title";
         String descCol  = "i.description";
-        // Only surface tenant-visible ideas. DRAFTs are private to their author (a freshly
-        // created idea is indexed immediately while still a DRAFT), and REJECTED/ARCHIVED
-        // ideas are retired — none of them should appear in another user's semantic search
-        // or in the "similar ideas" sidebar. Without this filter a private draft leaks its
-        // title + snippet tenant-wide even though GET /ideas/{id} 404s for non-authors.
+
         return jdbc.query("""
             SELECT i.id, %s AS title, %s AS description, i.stage, i.category,
                    1 - (e.embedding <=> ?::vector) AS similarity
@@ -100,14 +91,9 @@ public class JdbcEmbeddingStore implements EmbeddingStore {
         String vec = toVectorLiteral(query);
         String titleCol = "i.title";
         String descCol  = "i.description";
-        // German stemming/stop-words for full-text search.
+
         String ftsCfg = "german";
-        // The keyword side searches the localized title+description. `websearch_to_tsquery`
-        // tolerates arbitrary user input (no syntax errors on stray punctuation). We also add
-        // a plain ILIKE bonus on the title so a literal word match ranks even when stemming
-        // wouldn't connect it. Combined score = cosine + 0.3*ts_rank(capped) + 0.15*title-hit.
-        // A row qualifies if the vector clears the threshold OR the keyword side matches at all,
-        // so "Spesenbelege OCR" surfaces the "Spesenbelege per OCR" idea even at low cosine.
+
         String doc = "(" + titleCol + " || ' ' || " + descCol + ")";
         String tsv = "to_tsvector('" + ftsCfg + "', " + doc + ")";
         String tsq = "websearch_to_tsquery('" + ftsCfg + "', ?)";
@@ -143,12 +129,12 @@ public class JdbcEmbeddingStore implements EmbeddingStore {
                 rs.getString("category"),
                 rs.getDouble("similarity")
             ),
-            // params in statement order:
-            vec,            // cosine in score
-            queryText,      // ts_rank query
-            queryText,      // title ILIKE
-            vec,            // vec_sim
-            queryText,      // kw_hit tsquery
+
+            vec,
+            queryText,
+            queryText,
+            vec,
+            queryText,
             tenantId, excludeIdeaId,
             threshold, k);
     }

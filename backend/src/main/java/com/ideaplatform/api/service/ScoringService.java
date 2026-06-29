@@ -10,11 +10,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Computes the composite priority score for an idea. Pure function of (votes, reviews, age, boost).
- * Weights and decay parameter live in application.yml so a tenant-level override layer can be added
- * without changing this class.
- */
 @Service
 public class ScoringService {
 
@@ -44,12 +39,12 @@ public class ScoringService {
         int net = store.netVotes(ideaId);
         List<Evaluation> evals = store.listEvaluations(ideaId);
 
-        double votesNorm = 1.0 / (1.0 + Math.exp(-net / 5.0));       // logistic, in [0,1]
+        double votesNorm = 1.0 / (1.0 + Math.exp(-net / 5.0));
         double reviewerAvg = evals.isEmpty() ? 0 :
                 evals.stream().mapToDouble(Evaluation::average).average().orElse(0) / 5.0;
         double ageDays = submittedAt == null ? 0 :
                 ChronoUnit.DAYS.between(submittedAt, OffsetDateTime.now());
-        double recency = Math.pow(0.5, ageDays / halfLifeDays);     // 1 at submit, halves every halfLifeDays
+        double recency = Math.pow(0.5, ageDays / halfLifeDays);
         double boost = sponsorBoost ? 1.0 : 0.0;
 
         return  wVotes    * votesNorm

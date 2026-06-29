@@ -3,11 +3,6 @@ import { Link } from 'react-router-dom'
 import GeistesblitzLogo from '@/components/GeistesblitzLogo'
 import Footer from '@/components/Footer'
 
-/**
- * Public, auth-free chrome for the legal pages (Impressum, Datenschutz). Minimal brand
- * header + a readable article column + the shared footer. Reachable when logged out, as
- * legally-required pages must be.
- */
 export default function LegalLayout({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-background">

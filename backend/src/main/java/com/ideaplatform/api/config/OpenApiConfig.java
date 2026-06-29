@@ -11,11 +11,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-/**
- * OpenAPI 3 metadata for the Swagger UI (served at /swagger-ui.html, spec at
- * /v3/api-docs). Declares a bearer-JWT scheme so the "Authorize" button lets you
- * paste a token from POST /api/auth/login and try the protected endpoints.
- */
 @Configuration
 public class OpenApiConfig {
 

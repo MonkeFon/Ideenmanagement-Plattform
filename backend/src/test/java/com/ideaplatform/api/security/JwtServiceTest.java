@@ -12,10 +12,8 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Unit tests for JWT issue/verify and the introspection adapter the auth filter relies on. */
 class JwtServiceTest {
 
-    // ≥ 48 bytes so the HMAC key is strong enough for the signing algorithm.
     private static final String SECRET = "test-secret-test-secret-test-secret-test-secret-0123456789";
     private static final String ISSUER = "geistesblitz-test";
 
@@ -57,7 +55,7 @@ class JwtServiceTest {
 
     @Test
     void expiredTokenIsRejected() {
-        JwtService svc = jwt(-1); // expiration set one minute in the past
+        JwtService svc = jwt(-1);
         String token = svc.issue(user(Role.EMPLOYEE));
         assertThatThrownBy(() -> svc.parse(token)).isInstanceOf(JwtException.class);
     }

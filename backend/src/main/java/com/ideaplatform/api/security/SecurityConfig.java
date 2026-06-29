@@ -35,16 +35,12 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**", "/actuator/health", "/actuator/info").permitAll()
-                // OpenAPI spec + Swagger UI are reachable without a token (dev/demo).
+
                 .requestMatchers("/v3/api-docs/**", "/v3/api-docs.yaml",
                                  "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().denyAll())
-            // Unauthenticated requests (missing / expired / invalid JWT) must answer 401, not the
-            // Spring default 403 — the SPA's response interceptor only treats 401 as "session
-            // expired → clear token + redirect to /login". A 403 was leaving expired sessions
-            // stranded on blank pages. Authenticated-but-forbidden actions still fall through to
-            // the default AccessDeniedHandler (403), so genuine permission errors are unaffected.
+
             .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json;charset=UTF-8");

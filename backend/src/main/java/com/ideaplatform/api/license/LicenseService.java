@@ -11,7 +11,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
 
-/** Centralises license / plan checks so controllers stay thin. */
 @Service
 public class LicenseService {
 

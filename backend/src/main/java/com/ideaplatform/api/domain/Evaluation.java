@@ -26,13 +26,13 @@ public class Evaluation {
     private UUID reviewerId;
 
     @Column(nullable = false)
-    private short impact;            // 1..5
+    private short impact;
 
     @Column(nullable = false)
-    private short feasibility;       // 1..5
+    private short feasibility;
 
     @Column(name = "strategic_fit", nullable = false)
-    private short strategicFit;      // 1..5
+    private short strategicFit;
 
     @Column(columnDefinition = "text")
     private String notes;

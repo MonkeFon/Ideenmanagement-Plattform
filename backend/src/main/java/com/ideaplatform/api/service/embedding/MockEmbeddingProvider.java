@@ -7,10 +7,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Random;
 
-/**
- * Deterministic stub for offline development and tests — derives a stable hash-based vector
- * from the text so identical inputs always embed identically.
- */
 @Component
 @ConditionalOnProperty(name = "ideaplatform.embedding.provider", havingValue = "mock")
 public class MockEmbeddingProvider implements EmbeddingProvider {

@@ -43,17 +43,12 @@ public class JpaDataStore implements DataStore {
     @Override public Optional<User> findUserById(UUID id) { return users.findById(id); }
     @Override public User saveUser(User u) { return users.save(u); }
     @Override public List<User> listUsersForTenant(UUID tenantId) {
-        // Explicit tenant scoping. We do not rely on the Hibernate session filter for this
-        // call because open-in-view is disabled, which means the session enabled inside the
-        // servlet filter is not guaranteed to be the same as the one a downstream
-        // @Transactional method opens. Explicit beats clever.
+
         return users.findByTenantId(tenantId);
     }
 
     @Override public Idea saveIdea(Idea i) {
-        // saveAndFlush — the embedding indexer that runs immediately after uses raw JDBC
-        // and would otherwise hit a FK violation on idea_embeddings.idea_id because Hibernate
-        // hasn't flushed the parent INSERT yet.
+
         return ideas.saveAndFlush(i);
     }
     @Override public Optional<Idea> findIdea(UUID id) { return ideas.findById(id); }

@@ -10,16 +10,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.time.OffsetDateTime;
 import java.util.*;
 
-/**
- * Alternative data layer that talks to Supabase via PostgREST instead of JDBC/JPA.
- * Useful when the customer's deployment target is Supabase Cloud and direct DB
- * access is gated. All operations are tenant-scoped via PostgREST filter params;
- * Supabase RLS policies should mirror those filters in production.
- *
- * NOTE: This implementation is *functionally complete for the prototype* but
- * deliberately thin — it does not implement query optimisations. For workloads
- * where the JPA implementation flexes (joins, aggregations), prefer JPA.
- */
 @Component
 @ConditionalOnProperty(name = "ideaplatform.datastore.impl", havingValue = "supabase")
 public class SupabaseDataStore implements DataStore {
@@ -41,7 +31,6 @@ public class SupabaseDataStore implements DataStore {
         this.mapper = mapper;
     }
 
-    // ---- helpers ----
     private <T> Optional<T> first(String table, String filter, Class<T> type) {
         List<Map<String, Object>> rows = client.get()
                 .uri(uri -> uri.path("/" + table).query(filter + "&limit=1").build())
@@ -70,7 +59,6 @@ public class SupabaseDataStore implements DataStore {
         return mapper.convertValue(rows.get(0), type);
     }
 
-    // ---- DataStore implementation ----
     @Override public Optional<Tenant> findTenant(UUID id) { return first("tenants", "id=eq." + id, Tenant.class); }
     @Override public Tenant saveTenant(Tenant t) { return upsert("tenants", t, Tenant.class); }
     @Override public Optional<Plan> findPlanByCode(String c) { return first("plans", "code=eq." + c, Plan.class); }
@@ -98,7 +86,7 @@ public class SupabaseDataStore implements DataStore {
                 .retrieve().toBodilessEntity().block();
     }
     @Override public int netVotes(UUID ideaId) {
-        // PostgREST has no aggregate by default; fall back to per-row sum.
+
         List<Vote> all = list("votes", "idea_id=eq." + ideaId, Vote.class);
         int n = 0; for (Vote v : all) n += v.getValue(); return n;
     }
@@ -119,7 +107,6 @@ public class SupabaseDataStore implements DataStore {
         return list("workflow_history", "idea_id=eq." + ideaId + "&order=created_at.asc", WorkflowHistory.class);
     }
 
-    // ---- campaigns ----
     @Override public Optional<Campaign> findCampaign(UUID id) {
         return first("campaigns", "id=eq." + id, Campaign.class);
     }
@@ -130,7 +117,7 @@ public class SupabaseDataStore implements DataStore {
         return list("campaigns", "tenant_id=eq." + tenantId + "&order=created_at.desc", Campaign.class);
     }
     @Override public boolean campaignNameTakenInTenant(UUID tenantId, String name) {
-        // PostgREST has no SELECT-EXISTS shortcut; a limit-1 lookup is sufficient.
+
         return !list("campaigns", "tenant_id=eq." + tenantId + "&name=eq." + name + "&limit=1", Campaign.class).isEmpty();
     }
     @Override public Campaign saveCampaign(Campaign c) { return upsert("campaigns", c, Campaign.class); }
@@ -142,7 +129,7 @@ public class SupabaseDataStore implements DataStore {
         return list("ideas", "tenant_id=eq." + tenantId + "&campaign_id=eq." + campaignId + "&order=created_at.desc", Idea.class);
     }
     @Override public long countIdeasInCampaign(UUID campaignId) {
-        // No PostgREST aggregate by default — fall back to size of a thin list.
+
         return list("ideas", "campaign_id=eq." + campaignId + "&select=id", Idea.class).size();
     }
 

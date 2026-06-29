@@ -12,10 +12,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.UUID;
 
-/**
- * Enables Hibernate's tenant filter on every request once the JWT filter has populated
- * {@link TenantContext}. SUPERADMIN bypasses by clearing the tenant id explicitly.
- */
 @Component
 @Order(20)
 public class TenantFilterAspect extends OncePerRequestFilter {

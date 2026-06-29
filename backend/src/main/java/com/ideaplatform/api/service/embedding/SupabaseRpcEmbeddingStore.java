@@ -13,19 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Vector search via Supabase PostgREST RPC. Active only under the {@code supabase}
- * profile where no JDBC datasource is configured. Delegates to three SQL functions
- * defined in {@code V8__supabase_rpc.sql}:
- * <ul>
- *   <li>{@code upsert_idea_embedding(idea uuid, tenant uuid, embedding vector, model text)}</li>
- *   <li>{@code match_idea_embeddings(tenant uuid, exclude_idea uuid, query vector, k int, threshold float)}</li>
- *   <li>{@code idea_embedding_pairs(tenant uuid, threshold float, max_pairs int)}</li>
- * </ul>
- *
- * <p>The same SQL file applies cleanly to local Postgres too, so flipping back from
- * Supabase mode requires no schema reset.
- */
 @Component
 @ConditionalOnProperty(name = "ideaplatform.embedding.store", havingValue = "supabase")
 public class SupabaseRpcEmbeddingStore implements EmbeddingStore {

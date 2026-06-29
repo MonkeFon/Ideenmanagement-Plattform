@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CONTACT_EMAIL, SITE_NAME } from '@/lib/legal'
 
-/** Slim site footer with the legally-required German links (Impressum, Datenschutz) + contact. */
 export default function Footer() {
   const year = new Date().getFullYear()
   return (

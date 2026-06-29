@@ -46,7 +46,6 @@ const ROLE_LABEL_DE: Record<string, string> = {
   SUPERADMIN: 'Super-Administrator',
 }
 
-// Human-readable labels for the plan feature flags.
 const FEATURE_LABEL: Record<string, string> = {
   rag_refine: 'KI-Verfeinerung & Chat',
   sso: 'Single Sign-On (SSO)',
@@ -72,8 +71,8 @@ export default function Settings() {
     onSuccess: async (usage) => {
       toast.success('Tarif geändert', { description: `Ihr Mandant nutzt jetzt den Tarif „${usage.planName}".` })
       qc.invalidateQueries({ queryKey: ['plans'] })
-      // Refresh the cached profile so the plan badge in the header/account updates immediately.
-      try { setUser(await AuthApi.me()) } catch { /* interceptor handles auth errors */ }
+
+      try { setUser(await AuthApi.me()) } catch {  }
     },
     onError: (err: any) => {
       toast.error('Tarifwechsel fehlgeschlagen', {
@@ -100,7 +99,6 @@ export default function Settings() {
         </p>
       </header>
 
-      {/* Account + About sit side-by-side and balance each other out. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-4 md:p-5 space-y-4">
           <div className="eyebrow">Konto</div>
@@ -175,7 +173,6 @@ export default function Settings() {
         </Card>
       </div>
 
-      {/* Subscription / plan upgrade */}
       <Card className="p-4 md:p-5 space-y-4">
         <div>
           <div className="eyebrow flex items-center gap-2">
@@ -185,7 +182,7 @@ export default function Settings() {
           <p className="text-[13px] text-muted-foreground mt-1">
             {isAdmin
               ? 'Wählen Sie den passenden Tarif für Ihren Mandanten. Höhere Tarife schalten zusätzliche Funktionen frei.'
-              : 'Der aktuelle Tarif Ihres Mandanten. Tarifwechsel sind Administrator:innen vorbehalten.'}
+              : 'Der aktuelle Tarif Ihres Mandanten. Tarifwechsel sind Administratoren vorbehalten.'}
           </p>
         </div>
 
@@ -211,7 +208,6 @@ export default function Settings() {
         )}
       </Card>
 
-      {/* Appearance lives at the bottom — least-changed setting, lowest priority. */}
       <Card className="p-4 md:p-5 space-y-4">
         <div>
           <div className="eyebrow">Erscheinungsbild</div>
@@ -269,8 +265,7 @@ function PlanCard({
   disabledAll: boolean
   onChoose: () => void
 }) {
-  // Free is genuinely free; Enterprise is priced 0 in the seed but is a sales tier,
-  // so it reads "Auf Anfrage" rather than the misleading "Kostenlos".
+
   const price = plan.priceEur > 0
     ? `${plan.priceEur.toLocaleString('de-DE', { minimumFractionDigits: 0 })} € / Monat`
     : plan.code === 'FREE'
@@ -316,7 +311,7 @@ function PlanCard({
             {pending ? <><Spinner size={12} className="text-current" /> Wird gewechselt…</> : <><ArrowUp size={14} strokeWidth={2} /> Wechseln</>}
           </Button>
         ) : (
-          <Button variant="outline" className="w-full" disabled title="Tarifwechsel sind Administrator:innen vorbehalten">
+          <Button variant="outline" className="w-full" disabled title="Tarifwechsel sind Administratoren vorbehalten">
             Nur durch Admin
           </Button>
         )}

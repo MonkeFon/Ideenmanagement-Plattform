@@ -24,10 +24,10 @@ public class Plan {
     private String displayName;
 
     @Column(name = "seat_limit")
-    private Integer seatLimit;          // null = unlimited
+    private Integer seatLimit;
 
     @Column(name = "idea_limit")
-    private Integer ideaLimit;          // null = unlimited (per month)
+    private Integer ideaLimit;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")

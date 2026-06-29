@@ -25,8 +25,6 @@ public class Idea {
     @Column(name = "author_id", nullable = false)
     private UUID authorId;
 
-    // Per-tenant sequential reference number, rendered as a Jira-style key (e.g.
-    // GEIST-7) in the UI. Assigned on create; see V22__idea_reference.sql.
     @Column(name = "reference")
     private Integer reference;
 
@@ -55,9 +53,6 @@ public class Idea {
     @Column(name = "campaign_id")
     private UUID campaignId;
 
-    // Assignment pipeline — see V21__idea_assignment.sql. "preferred" is a non-binding
-    // up-front suggestion (usually from the submitter); "assigned" is the actual
-    // pipeline assignment that drives the reviewer/idea-manager task board.
     @Column(name = "preferred_reviewer_id")
     private UUID preferredReviewerId;
 

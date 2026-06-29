@@ -1,9 +1,5 @@
 import animate from 'tailwindcss-animate'
 
-/** @type {import('tailwindcss').Config} */
-// shadcn/ui-compatible config. Colour tokens map to CSS variables defined in
-// src/styles/index.css that flip between light and dark on `html.dark`.
-// Use shadcn primitives in src/components/ui/ for buttons, inputs, badges, etc.
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   darkMode: 'class',
@@ -60,7 +56,7 @@ export default {
         mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       boxShadow: {
-        // Only used on the mobile drawer overlay; cards/buttons have no shadow.
+
         overlay: '0 8px 32px rgba(15, 23, 42, 0.12)',
       },
       keyframes: {

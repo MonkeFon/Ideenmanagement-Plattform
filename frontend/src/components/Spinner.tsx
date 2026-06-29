@@ -1,9 +1,5 @@
 import clsx from 'clsx'
 
-/**
- * Minimal loading indicator — a 1px-stroked rotating arc.
- * Sized in px so it works inside both small buttons and large empty states.
- */
 export default function Spinner({
   size = 16,
   className,
@@ -33,7 +29,6 @@ export default function Spinner({
   )
 }
 
-/** Centered spinner for full-page / large empty states. */
 export function PageSpinner({ label = 'Wird geladen…' }: { label?: string }) {
   return (
     <div className="flex items-center justify-center py-10">

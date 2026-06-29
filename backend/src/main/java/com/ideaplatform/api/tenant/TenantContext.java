@@ -2,7 +2,6 @@ package com.ideaplatform.api.tenant;
 
 import java.util.UUID;
 
-/** ThreadLocal carrying the current tenant id, populated by the auth filter. */
 public final class TenantContext {
 
     private static final ThreadLocal<UUID> TENANT = new ThreadLocal<>();

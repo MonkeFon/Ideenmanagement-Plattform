@@ -1,11 +1,6 @@
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
-/**
- * Visual stand-in for an IdeaCard during page-level loading.
- * Reserves the same vertical space (~120 px) so the layout doesn't thrash
- * when real cards arrive.
- */
 export default function IdeaCardSkeleton() {
   return (
     <Card className="p-4 space-y-3">

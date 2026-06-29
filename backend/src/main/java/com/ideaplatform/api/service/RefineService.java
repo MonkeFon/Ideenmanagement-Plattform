@@ -17,12 +17,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Implements the "refine my idea" RAG flow:
- *   1. Pull top-k similar past ideas from the tenant's vector index.
- *   2. Call the configured LLM with those as context.
- *   3. Parse the response into a structured suggestions list.
- */
 @Service
 public class RefineService {
 
@@ -64,11 +58,6 @@ public class RefineService {
         return parse(llmRaw, related);
     }
 
-    /**
-     * Free-form follow-up chat about an idea. Stateless — the caller passes the conversation
-     * history each turn; the system prompt is rebuilt from the idea + freshly retrieved
-     * similar ideas so the assistant always sees the latest tenant context.
-     */
     public ChatResponse chat(UUID ideaId, List<ChatMessage> history, AuthPrincipal me) {
         Idea idea = store.findIdea(ideaId).orElseThrow(() -> new EntityNotFoundException("Idea " + ideaId));
         if (!idea.getTenantId().equals(me.tenantId())) throw new EntityNotFoundException("Idea " + ideaId);
@@ -109,7 +98,7 @@ public class RefineService {
             else if (t.toLowerCase().startsWith("rationale:")) rationale = t.substring(10).trim();
         }
         if (suggestions.isEmpty() && !raw.isBlank()) {
-            // model returned free text; surface it whole as a single suggestion
+
             suggestions.add(raw.strip());
         }
         return new RefineResponse(suggestions, related, rationale);

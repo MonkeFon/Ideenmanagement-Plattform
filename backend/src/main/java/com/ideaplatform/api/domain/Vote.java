@@ -26,7 +26,7 @@ public class Vote {
     private UUID userId;
 
     @Column(nullable = false)
-    private short value;          // +1 upvote, -1 downvote
+    private short value;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
