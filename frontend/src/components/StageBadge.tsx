@@ -1,15 +1,6 @@
 import type { Stage } from '@/types/api'
 import { cn } from '@/lib/utils'
 
-/**
- * Workflow-stage chip — a coloured status pill in a restrained, professional palette:
- * a soft tinted background with matching darker text and a subtle inset ring, rather
- * than a fully saturated badge. Each stage keeps its own hue (matching the Kanban board
- * accents in Workflow.tsx and the graph fills in IdeaGraph.tsx) so a stage looks the
- * same everywhere, but the muted tints keep the table readable and don't compete with
- * the tenant brand (--primary). Dark-mode variants use a translucent tint so the chips
- * stay legible on dark surfaces.
- */
 const STAGE_STYLE: Record<Stage, string> = {
   SUBMITTED:
     'bg-blue-50 text-blue-700 ring-blue-600/15 dark:bg-blue-500/10 dark:text-blue-300 dark:ring-blue-400/20',

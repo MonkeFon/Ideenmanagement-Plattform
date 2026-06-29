@@ -31,7 +31,6 @@ public final class AdminDtos {
             BigDecimal priceEur,
             boolean licenseValid) {}
 
-    /** One plan in the catalogue, with a flag for the tenant's current plan. */
     public record PlanResponse(
             String code,
             String displayName,

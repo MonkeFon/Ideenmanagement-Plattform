@@ -16,11 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * All persistence here goes through {@link DataStore} so the service works under both
- * {@code postgres} (JPA) and {@code supabase} (PostgREST) profiles without changes.
- * Authorisation is enforced at the controller via {@code @PreAuthorize}.
- */
 @Service
 public class CampaignService {
 

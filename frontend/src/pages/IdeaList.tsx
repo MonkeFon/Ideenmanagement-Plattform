@@ -15,8 +15,6 @@ import {
 } from 'lucide-react'
 import type { Idea, Stage } from '@/types/api'
 
-// Pipeline order — used both for the status dropdown ordering and for sorting the
-// status column meaningfully (instead of alphabetically).
 const STAGE_ORDER: Stage[] = [
   'SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION',
   'APPROVED', 'IN_IMPLEMENTATION', 'DONE', 'REJECTED', 'ARCHIVED',
@@ -53,21 +51,17 @@ export default function IdeaList() {
   const ideasQ = useQuery({ queryKey: ['ideas'], queryFn: () => IdeaApi.list() })
   const ideas = useMemo(() => ideasQ.data ?? [], [ideasQ.data])
 
-  // Filters
   const [text, setText] = useState('')
   const [status, setStatus] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('all')
   const [category, setCategory] = useState<string>('all')
 
-  // Semantic search overlay: id -> similarity. When set, the table is restricted
-  // to these ideas and a similarity column appears.
   const [semantic, setSemantic] = useState<Map<string, number> | null>(null)
   const [semanticQuery, setSemanticQuery] = useState('')
   const [searching, setSearching] = useState(false)
 
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'createdAt', dir: 'desc' })
 
-  // Distinct values present in the data, for the dropdowns.
   const statusOptions = useMemo(() => {
     const present = new Set(ideas.map((i) => i.stage))
     return STAGE_ORDER.filter((s) => present.has(s))
@@ -96,8 +90,7 @@ export default function IdeaList() {
   function clearSemantic() {
     setSemantic(null)
     setSemanticQuery('')
-    // The text box held the semantic query — clear it so the browse list returns
-    // instead of the query lingering as a (usually zero-match) substring filter.
+
     setText('')
     setSort({ key: 'createdAt', dir: 'desc' })
   }
@@ -110,7 +103,7 @@ export default function IdeaList() {
   function toggleSort(key: SortKey) {
     setSort((prev) => {
       if (prev.key === key) return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-      // Text sorts ascending by default; numbers/dates/similarity descending.
+
       return { key, dir: key === 'title' || key === 'category' || key === 'author' ? 'asc' : 'desc' }
     })
   }
@@ -129,10 +122,7 @@ export default function IdeaList() {
         const t = Date.parse(i.createdAt)
         if (!isNaN(t) && t < cutoff) return false
       }
-      // Substring filter applies only in browse mode. While a semantic search is
-      // active the text box holds the *concept query* (already resolved to the
-      // `semantic` id set), so re-applying it literally would wrongly drop hits
-      // whose title doesn't contain the exact words.
+
       if (q && !semantic) {
         const hay = `${i.title} ${i.authorName} ${i.category ?? ''} ${i.campaignName ?? ''}`.toLowerCase()
         if (!hay.includes(q)) return false
@@ -193,7 +183,6 @@ export default function IdeaList() {
         <Button asChild className="gap-1.5"><Link to="/submit"><Plus size={16} strokeWidth={2} /> Idee einreichen</Link></Button>
       </header>
 
-      {/* Filter toolbar */}
       <Card asChild>
         <form onSubmit={runSemantic} className="p-2.5 flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[14rem]">
@@ -230,7 +219,6 @@ export default function IdeaList() {
         </form>
       </Card>
 
-      {/* Counter + active semantic chip */}
       <div className="flex flex-wrap items-center gap-3 text-[12px] text-muted-foreground">
         <span className="tabular-nums">{rows.length} von {ideas.length} Ideen</span>
         {semanticQuery && (
@@ -247,11 +235,9 @@ export default function IdeaList() {
         )}
       </div>
 
-      {/* Table — overflow-clip (not -auto) so the sticky thead can pin against the page scroll */}
       <div className="rounded-lg border border-border overflow-clip">
         <table className="w-full text-sm border-collapse">
-          {/* Sticky below the h-14 app bar; opaque bg + hairline shadow stand in for the
-              border-b, which would scroll away under border-collapse. */}
+
           <thead className="sticky top-14 z-10 bg-background shadow-[0_1px_0_0_rgb(var(--border))]">
             <tr className="bg-muted/40 text-left text-[12px]">
               <SortHeader k="title" label="Titel" />

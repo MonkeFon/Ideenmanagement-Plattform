@@ -29,8 +29,6 @@ import {
 } from 'lucide-react'
 import type { Idea, Stage } from '@/types/api'
 
-// Pipeline order + distinct colours for the funnel bar (the StageBadge palette reuses
-// amber for two stages, so we use a wider, distinct set here for readability).
 const FUNNEL_STAGES: Stage[] = ['SUBMITTED', 'UNDER_REVIEW', 'PRIORITIZATION', 'APPROVED', 'IN_IMPLEMENTATION', 'DONE']
 const STAGE_COLOR: Record<string, string> = {
   SUBMITTED: '#64748b',
@@ -75,7 +73,6 @@ export default function CampaignDetail() {
 
   const ideas = q.data?.ideas ?? []
 
-  // Derived analytics — all computed from the already-loaded ideas, no extra requests.
   const stats = useMemo(() => {
     const votes = ideas.reduce((s, i) => s + i.netVotes, 0)
     const comments = ideas.reduce((s, i) => s + i.commentCount, 0)
@@ -115,7 +112,6 @@ export default function CampaignDetail() {
         <ArrowLeft size={12} strokeWidth={2} /> Alle Kampagnen
       </Link>
 
-      {/* Hero header with a tinted band in the campaign colour. */}
       <Card className="overflow-hidden">
         <div className="h-1.5" style={{ backgroundColor: c.color }} aria-hidden />
         <div className="p-4 md:p-5 flex flex-col sm:flex-row sm:items-start gap-4">
@@ -170,7 +166,6 @@ export default function CampaignDetail() {
         </div>
       </Card>
 
-      {/* KPI tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 divide-border border border-border rounded">
         <Kpi icon={<Lightbulb size={15} strokeWidth={1.75} />} label="Ideen" value={ideas.length} />
         <Kpi icon={<ArrowBigUp size={15} strokeWidth={1.75} />} label="Stimmen" value={stats.votes} />
@@ -178,7 +173,6 @@ export default function CampaignDetail() {
         <Kpi icon={<Users size={14} strokeWidth={1.75} />} label="Beteiligte" value={stats.contributors} />
       </div>
 
-      {/* Pipeline funnel + timeline side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="p-4 md:p-5 lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between gap-2">
@@ -193,7 +187,7 @@ export default function CampaignDetail() {
             <p className="text-[13px] text-muted-foreground">Noch keine Ideen im Workflow.</p>
           ) : (
             <>
-              {/* Stacked distribution bar */}
+
               <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                 {FUNNEL_STAGES.map((st) => {
                   const n = stats.byStage.get(st) ?? 0
@@ -209,7 +203,6 @@ export default function CampaignDetail() {
                 })}
               </div>
 
-              {/* Legend with counts */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2">
                 {FUNNEL_STAGES.map((st) => {
                   const n = stats.byStage.get(st) ?? 0
@@ -242,7 +235,6 @@ export default function CampaignDetail() {
         </Card>
       </div>
 
-      {/* Ideas list with sort */}
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="eyebrow">Ideen in dieser Kampagne</div>
@@ -305,7 +297,6 @@ function TimeWindow({ startsAt, endsAt, status }: { startsAt: string | null; end
   const start = startsAt ? Date.parse(startsAt) : null
   const end = endsAt ? Date.parse(endsAt) : null
 
-  // Progress through the window (only meaningful when both ends are known and active).
   let pct: number | null = null
   if (start && end && end > start) {
     pct = Math.max(0, Math.min(100, Math.round(((now - start) / (end - start)) * 100)))

@@ -13,10 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
-/**
- * Free, self-hosted Ollama backend. Default in dev because it requires no API keys.
- * Expects `bge-m3` (1024d, multilingual) for embeddings and any chat-capable model for refine.
- */
 @Component
 @ConditionalOnProperty(name = "ideaplatform.embedding.provider", havingValue = "ollama", matchIfMissing = true)
 public class OllamaEmbeddingProvider implements EmbeddingProvider {
@@ -40,17 +36,11 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
     @Override public String name()    { return "ollama:" + embedModel; }
     @Override public int dimensions() { return dimensions; }
 
-    /**
-     * Translates the predictable "Ollama isn't running" failure modes into a
-     * dedicated {@link RagUnavailableException} so the global handler can
-     * answer with HTTP 503 + a friendly message. Anything else re-throws
-     * unchanged so genuine bugs still surface as 500s.
-     */
     private static <T> T orRagUnavailable(java.util.function.Supplier<T> call) {
         try {
             return call.get();
         } catch (WebClientRequestException ex) {
-            // Netty wraps java.net.ConnectException inside its own AnnotatedConnectException.
+
             Throwable cause = ex.getCause();
             if (cause instanceof ConnectException || (cause != null && cause.getClass().getName().contains("ConnectException"))) {
                 throw new RagUnavailableException(
@@ -62,7 +52,7 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
             }
             throw ex;
         } catch (IllegalStateException ex) {
-            // WebClient.block() wraps a Reactor timeout as IllegalStateException("Timeout on blocking read").
+
             if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("timeout")) {
                 throw new RagUnavailableException(
                         "Ollama hat zu lange gebraucht. Bitte den Server prüfen und erneut versuchen.", ex);
@@ -73,9 +63,7 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
 
     @Override
     public float[] embed(String text) {
-        // nomic-embed-text uses task prefixes to place query/document vectors in different
-        // regions of the space. Without them, queries match generic noise (e.g. 4-char "Test"
-        // ideas) almost as well as relevant ideas.
+
         return rawEmbed("search_document: " + text);
     }
 
@@ -93,7 +81,7 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                 .bodyToMono(Map.class)
                 .block(Duration.ofSeconds(30)));
         if (resp == null) throw new IllegalStateException("Ollama returned empty body");
-        // Newer endpoint returns {"embeddings": [[...]]}; older returns {"embedding": [...]}
+
         Object payload = resp.containsKey("embeddings") ? resp.get("embeddings") : resp.get("embedding");
         List<?> vec;
         if (payload instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof List<?> inner) {
@@ -117,11 +105,9 @@ public class OllamaEmbeddingProvider implements EmbeddingProvider {
                 .bodyValue(Map.of(
                         "model", chatModel,
                         "stream", false,
-                        // Disable Qwen-3 style reasoning mode — refine produces structured bullets,
-                        // not a chain-of-thought, and "thinking" tokens otherwise eat the num_predict budget.
+
                         "think", false,
-                        // Cap generation: 3 short suggestions + a one-line rationale fits well under 256 tokens.
-                        // Lower temperature reduces rambling on small models.
+
                         "options", Map.of(
                                 "num_predict", 256,
                                 "temperature", 0.5,

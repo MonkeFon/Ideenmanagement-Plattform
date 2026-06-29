@@ -27,22 +27,14 @@ export default function SubmitIdea() {
 
   const campaignsQ = useQuery({ queryKey: ['campaigns'], queryFn: () => CampaignApi.list() })
   const assignableQ = useQuery({ queryKey: ['assignable-users'], queryFn: () => IdeaApi.assignableUsers() })
-  // Reviewer slot: anyone who can review (reviewer/idea manager/admin). Manager slot:
-  // idea managers + admins only.
+
   const reviewerOptions = (assignableQ.data ?? []).filter((u) => ['REVIEWER', 'IDEA_MANAGER', 'ADMIN'].includes(u.role))
   const managerOptions = (assignableQ.data ?? []).filter((u) => ['IDEA_MANAGER', 'ADMIN'].includes(u.role))
 
-  /**
-   * Live duplicate detection. As the user types title + description, debounce
-   * 500 ms and hit the semantic search to surface existing ideas above a
-   * similarity threshold. Saves people from submitting near-duplicates and
-   * makes the semantic search feature visible right where it's most useful.
-   */
   const [dupQuery, setDupQuery] = useState('')
   useEffect(() => {
     const combined = `${title}\n${description}`.trim()
-    // Need at least 6 chars in the title before checking — otherwise we either
-    // hit noise or the user hasn't expressed an intent yet.
+
     if (title.trim().length < 6) {
       setDupQuery('')
       return
@@ -55,16 +47,12 @@ export default function SubmitIdea() {
     queryKey: ['dup-check', dupQuery],
     queryFn: () => SearchApi.dupCheck(dupQuery),
     enabled: dupQuery.length > 0,
-    // The query text rarely changes while the user is reviewing matches; cache
-    // for a minute so toggling between fields doesn't refire.
+
     staleTime: 60_000,
   })
-  // Threshold tuned to "strong match" — looser than the semantic search page
-  // would use because we want to err on the side of warning here.
+
   const dups = (dupsQ.data ?? []).filter((d) => d.similarity >= 0.6).slice(0, 3)
 
-  // Mirror the backend's @Size minimums so the user gets instant feedback instead
-  // of a 400 round-trip. Keeps low-signal junk out of the embedding corpus.
   const titleOk = title.trim().length >= 5
   const descOk = description.trim().length >= 30
   const canSubmit = titleOk && descOk
@@ -203,11 +191,9 @@ export default function SubmitIdea() {
             </div>
           </div>
 
-          {/* Optional up-front assignment suggestions. Non-binding — the idea manager
-              confirms or overrides them in the pipeline. */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="pref-reviewer">Gewünschte:r Prüfer:in <span className="font-normal text-muted-foreground">· optional</span></Label>
+              <Label htmlFor="pref-reviewer">Gewünschter Prüfer <span className="font-normal text-muted-foreground">· optional</span></Label>
               <select
                 id="pref-reviewer"
                 className="mt-1.5 flex h-9 w-full rounded border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -221,7 +207,7 @@ export default function SubmitIdea() {
               </select>
             </div>
             <div>
-              <Label htmlFor="pref-manager">Gewünschte:r Ideenmanager:in <span className="font-normal text-muted-foreground">· optional</span></Label>
+              <Label htmlFor="pref-manager">Gewünschter Ideenmanager <span className="font-normal text-muted-foreground">· optional</span></Label>
               <select
                 id="pref-manager"
                 className="mt-1.5 flex h-9 w-full rounded border border-input bg-background px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -262,7 +248,7 @@ export default function SubmitIdea() {
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">02</span>
-              <span>Kolleg:innen können kommentieren und abstimmen.</span>
+              <span>Kollegen können kommentieren und abstimmen.</span>
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">03</span>
@@ -270,7 +256,7 @@ export default function SubmitIdea() {
             </li>
             <li className="flex gap-2">
               <span className="font-mono text-foreground tabular-nums shrink-0">04</span>
-              <span>Ideenmanager:innen verschieben die Idee weiter durch den Workflow.</span>
+              <span>Ideenmanager verschieben die Idee weiter durch den Workflow.</span>
             </li>
           </ol>
         </Card>

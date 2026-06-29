@@ -24,7 +24,7 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest req) {
-        // No tenant context yet (user not logged in); findByEmail is global by design.
+
         User user = store.findUserByEmail(req.email())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
         if (!user.isActive()) throw new IllegalArgumentException("Account disabled");

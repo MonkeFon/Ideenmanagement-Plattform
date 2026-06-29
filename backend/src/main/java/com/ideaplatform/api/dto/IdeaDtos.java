@@ -11,9 +11,6 @@ import java.util.UUID;
 
 public final class IdeaDtos {
 
-    // Minimum lengths keep low-signal junk ("x", "Test", "Moon") out of the corpus.
-    // Embeddings are built from title + description, so trivially short text produces
-    // noisy vectors that pollute semantic search. Enforced on create and on update.
     public record CreateIdeaRequest(
             @NotBlank @Size(min = 5, max = 200, message = "Titel muss mindestens 5 Zeichen haben")
             String title,
@@ -21,7 +18,7 @@ public final class IdeaDtos {
             String description,
             @Size(max = 64) String category,
             UUID campaignId,
-            // Optional up-front assignment suggestions (non-binding).
+
             UUID preferredReviewerId,
             UUID preferredManagerId) {}
 
@@ -52,8 +49,7 @@ public final class IdeaDtos {
             UUID campaignId,
             String campaignName,
             String campaignColor,
-            // Assignment pipeline (nullable). preferred = up-front suggestion,
-            // assigned = the binding pipeline assignment.
+
             UUID preferredReviewerId,
             String preferredReviewerName,
             UUID preferredManagerId,
@@ -65,10 +61,8 @@ public final class IdeaDtos {
 
     public record StageTransitionRequest(Stage to, String reason) {}
 
-    /** Set (or clear, with null) the binding reviewer/idea-manager assignment. */
     public record AssignmentRequest(UUID reviewerId, UUID managerId) {}
 
-    /** A user who can be picked as a reviewer or idea manager for an idea. */
     public record AssignableUser(UUID id, String displayName, Role role) {}
 
     public record EvaluationRequest(

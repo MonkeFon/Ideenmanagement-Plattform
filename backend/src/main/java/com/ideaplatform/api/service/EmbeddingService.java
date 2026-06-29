@@ -13,10 +13,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Coordinates embedding generation + storage. Provider failures are logged but
- * never block the user's write — RAG is a recommendation feature, not a hard dependency.
- */
 @Service
 public class EmbeddingService {
 
@@ -38,8 +34,7 @@ public class EmbeddingService {
 
     public void indexIdeaSafe(Idea idea) {
         try {
-            // German-only platform: embed the (German) title + description so the stored
-            // vectors live in the same language region as the German queries users type.
+
             String text = idea.getTitle() + "\n\n" + idea.getDescription();
             float[] vec = provider.embed(text);
             embeddings.upsert(idea.getId(), idea.getTenantId(), vec, provider.name());
@@ -53,16 +48,9 @@ public class EmbeddingService {
         return findSimilar(tenantId, sourceIdeaId, queryText, similarityThreshold);
     }
 
-    /**
-     * Same as {@link #findSimilar(UUID, UUID, String)} but with a caller-supplied threshold.
-     * Use a low value (e.g. 0.0) for free-text search where "most similar" matters more than
-     * "highly similar" — the configured threshold is tuned for the "similar ideas" sidebar
-     * which should only surface strong matches.
-     */
     public List<SimilarIdeaResponse> findSimilar(UUID tenantId, UUID sourceIdeaId, String queryText, double threshold) {
         try {
-            // Use the query-side embedding path so it lives in the right region of the
-            // semantic space relative to the stored document vectors.
+
             float[] vec = provider.embedQuery(queryText);
             List<SimilarIdeaRow> rows = embeddings.findSimilar(tenantId, sourceIdeaId, vec, topK, threshold);
             return rows.stream().map(r -> new SimilarIdeaResponse(
@@ -76,11 +64,6 @@ public class EmbeddingService {
         }
     }
 
-    /**
-     * Hybrid free-text search: vector similarity blended with a keyword (full-text) match,
-     * so queries that contain an idea's literal words surface that idea even when the pure
-     * cosine is mediocre. Used by the ideas-list search box.
-     */
     public List<SimilarIdeaResponse> searchHybrid(UUID tenantId, UUID sourceIdeaId, String queryText, double threshold) {
         try {
             float[] vec = provider.embedQuery(queryText);

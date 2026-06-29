@@ -7,14 +7,6 @@ import {
 } from '@/lib/jira'
 import { ArrowLeft, Bookmark, Check, ChevronDown, MessageSquare } from 'lucide-react'
 
-/**
- * Mock "Jira" issue view. Implemented ideas (IN_IMPLEMENTATION / DONE) link here to
- * simulate the hand-off into a delivery tool. There is no real Jira instance — this
- * page renders an Atlassian-styled issue out of the idea's own data so the demo can
- * show the round-trip without leaving the app. Colours are hard-coded to Jira's brand
- * (not the app theme) on purpose, so it reads as a separate system.
- */
-
 const STATUS_LOZENGE: Record<string, { bg: string; fg: string }> = {
   todo:     { bg: '#DFE1E6', fg: '#42526E' },
   progress: { bg: '#DEEBFF', fg: '#0747A6' },
@@ -60,7 +52,7 @@ export default function MockJira() {
 
   return (
     <div className="min-h-screen bg-white text-[#172B4D]" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
-      {/* Top navigation — Jira wordmark + project switcher */}
+
       <header className="flex h-12 items-center gap-3 border-b border-[#DFE1E6] px-4">
         <div className="flex items-center gap-2">
           <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden>
@@ -74,7 +66,6 @@ export default function MockJira() {
         <span className="ml-auto text-[12px] text-[#6B778C]">{JIRA_BASE}</span>
       </header>
 
-      {/* Demo banner — make the mock unmistakable */}
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-[#FFE380] bg-[#FFFAE6] px-4 py-2 text-[12px] text-[#172B4D]">
         <span className="font-semibold">Demo-Mock:</span>
         <span>Simulierte Jira-Ansicht — der Vorgang wird aus der Geistesblitz-Idee erzeugt.</span>
@@ -84,7 +75,7 @@ export default function MockJira() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-5">
-        {/* Breadcrumb */}
+
         <div className="flex items-center gap-1.5 text-[12px] text-[#6B778C]">
           <span>{JIRA_PROJECT_NAME}</span>
           <span>/</span>
@@ -95,7 +86,7 @@ export default function MockJira() {
         </div>
 
         <div className="mt-2 grid gap-6 lg:grid-cols-[1fr_300px]">
-          {/* Main column */}
+
           <div className="min-w-0">
             <h1 className="text-[22px] font-semibold leading-snug text-[#172B4D]">{idea.title}</h1>
 
@@ -104,7 +95,6 @@ export default function MockJira() {
               <p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-relaxed text-[#172B4D]">{idea.description}</p>
             </div>
 
-            {/* Activity / comments */}
             <div className="mt-7">
               <div className="flex items-center gap-2 text-[13px] font-semibold text-[#172B4D]">
                 <MessageSquare size={14} strokeWidth={2} /> Aktivität
@@ -130,7 +120,6 @@ export default function MockJira() {
             </div>
           </div>
 
-          {/* Details side panel */}
           <aside>
             <button
               type="button"

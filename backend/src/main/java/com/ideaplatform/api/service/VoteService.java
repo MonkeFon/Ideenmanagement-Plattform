@@ -21,10 +21,6 @@ public class VoteService {
         this.scoring = scoring;
     }
 
-    /**
-     * Idempotent vote: same value re-applied is a no-op, flipped value updates, +-0 removes.
-     * Returns the new net score for the idea.
-     */
     @Transactional
     public int castVote(UUID ideaId, short value, AuthPrincipal me) {
         if (value != -1 && value != 0 && value != 1) {

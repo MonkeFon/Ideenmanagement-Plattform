@@ -12,7 +12,7 @@ const badgeVariants = cva(
         secondary:   'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         outline:     'border border-input text-foreground',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/80',
-        // Workflow-stage colours — keep emerald/amber/rose so stage chips remain readable.
+
         gray:        'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
         green:       'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
         amber:       'bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',

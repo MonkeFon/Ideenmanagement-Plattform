@@ -7,13 +7,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
-/**
- * Mocks a Keycloak token-introspection adapter. In production this would call
- * Keycloak's /realms/&lt;realm&gt;/protocol/openid-connect/token/introspect endpoint
- * and return claims; here we delegate to our in-process JwtService so the rest of
- * the app can stay introspection-shaped and we can swap to real Keycloak by
- * changing only this class.
- */
 @Component
 public class MockKeycloakAdapter {
 
@@ -33,10 +26,6 @@ public class MockKeycloakAdapter {
         this.enabled = enabled;
     }
 
-    /**
-     * Token-introspection response shape: {@code { active, sub, email, tenant_id, role, aud, iss, realm }}.
-     * Matches what a real Keycloak introspection response would carry for our claims.
-     */
     public Map<String, Object> introspect(String token) {
         try {
             AuthPrincipal p = jwt.parse(token);

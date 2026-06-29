@@ -44,6 +44,6 @@ public class User {
     @PrePersist
     void onCreate() {
         if (createdAt == null) createdAt = OffsetDateTime.now();
-        // active is a primitive boolean so it defaults to false; ensure true on create
+
     }
 }

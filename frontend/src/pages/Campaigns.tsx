@@ -57,7 +57,6 @@ export default function Campaigns() {
         </RoleGate>
       </header>
 
-      {/* Overview strip — quick read on the whole portfolio. */}
       {!q.isLoading && campaigns.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[12px] text-muted-foreground">
           <span><span className="text-foreground font-semibold tabular-nums">{campaigns.length}</span> Kampagnen</span>
@@ -144,7 +143,7 @@ function CampaignPreviewCard({ c }: { c: Campaign }) {
   return (
     <Card asChild className="p-0 overflow-hidden transition-colors hover:border-input">
       <Link to={`/campaigns/${c.id}`} className="block">
-        {/* Colour accent band keeps the campaign's identity visible at a glance. */}
+
         <div className="h-1.5" style={{ backgroundColor: c.color }} aria-hidden />
         <div className="p-4">
           <div className="flex items-start justify-between gap-2">
@@ -157,7 +156,6 @@ function CampaignPreviewCard({ c }: { c: Campaign }) {
 
           <p className="mt-2 text-[12px] text-muted-foreground line-clamp-2 leading-relaxed">{c.description}</p>
 
-          {/* Timeline preview */}
           <div className="mt-3.5">
             {pct !== null ? (
               <>
@@ -184,7 +182,6 @@ function CampaignPreviewCard({ c }: { c: Campaign }) {
             )}
           </div>
 
-          {/* Footer: idea count + creator */}
           <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5 text-foreground">
               <Lightbulb size={13} strokeWidth={1.75} className="text-muted-foreground" />

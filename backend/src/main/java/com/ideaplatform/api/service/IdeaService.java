@@ -21,11 +21,9 @@ import java.util.UUID;
 @Service
 public class IdeaService {
 
-    // Who may fill each assignment slot. Reviewers evaluate; idea managers/admins can
-    // do both. Mirrors the @PreAuthorize on the evaluation + workflow endpoints.
     private static final Set<Role> REVIEWER_ROLES = EnumSet.of(Role.REVIEWER, Role.IDEA_MANAGER, Role.ADMIN);
     private static final Set<Role> MANAGER_ROLES  = EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN);
-    // Who may (re)assign ideas to others.
+
     private static final Set<Role> CAN_ASSIGN     = EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN, Role.SUPERADMIN);
 
     private final DataStore store;
@@ -56,9 +54,7 @@ public class IdeaService {
                 .submittedAt(OffsetDateTime.now())
                 .sponsorBoost(false)
                 .campaignId(campaignId)
-                // Optional, non-binding up-front suggestions. Validated against the
-                // tenant + role so a submitter can't suggest someone who can't fill
-                // the slot (or someone from another tenant).
+
                 .preferredReviewerId(validateAssignee(req.preferredReviewerId(), REVIEWER_ROLES, me))
                 .preferredManagerId(validateAssignee(req.preferredManagerId(), MANAGER_ROLES, me))
                 .build();
@@ -71,7 +67,7 @@ public class IdeaService {
     public IdeaResponse update(UUID id, UpdateIdeaRequest req, AuthPrincipal me) {
         Idea idea = mustOwn(id, me);
         if (me.role() == Role.EMPLOYEE) {
-            throw new IllegalStateException("Eingereichte Ideen können von Mitarbeitenden nicht mehr bearbeitet werden");
+            throw new IllegalStateException("Eingereichte Ideen können von Mitarbeitern nicht mehr bearbeitet werden");
         }
         if (req.title() != null) idea.setTitle(req.title());
         if (req.description() != null) idea.setDescription(req.description());
@@ -82,7 +78,6 @@ public class IdeaService {
         return toResponse(idea, authorName(idea.getAuthorId()));
     }
 
-    /** Next per-tenant reference number (1-based, creation order). */
     private int nextReference(UUID tenantId) {
         return store.listIdeas(tenantId, null).stream()
                 .map(Idea::getReference)
@@ -92,7 +87,6 @@ public class IdeaService {
                 .orElse(0) + 1;
     }
 
-    /** Validates that the campaign belongs to the caller's tenant. */
     private UUID resolveCampaign(UUID campaignId, AuthPrincipal me) {
         if (campaignId == null) return null;
         return store.findCampaignByTenantAndId(me.tenantId(), campaignId)
@@ -107,7 +101,7 @@ public class IdeaService {
 
     public List<IdeaResponse> list(Stage stage, AuthPrincipal me) {
         List<Idea> all = store.listIdeas(me.tenantId(), stage);
-        // Pre-resolve author names in one shot
+
         Map<UUID, String> authorNames = new HashMap<>();
         for (Idea i : all) {
             authorNames.computeIfAbsent(i.getAuthorId(),
@@ -117,8 +111,7 @@ public class IdeaService {
     }
 
     public List<IdeaResponse> listByCampaign(UUID campaignId, AuthPrincipal me) {
-        // Reused by CampaignService — kept here so the toResponse + author resolution
-        // logic stays in one place.
+
         return store.listIdeas(me.tenantId(), null).stream()
                 .filter(i -> campaignId.equals(i.getCampaignId()))
                 .map(i -> toResponse(i, authorName(i.getAuthorId())))
@@ -137,13 +130,10 @@ public class IdeaService {
         return toResponse(idea, authorName(idea.getAuthorId()));
     }
 
-    // ── Assignment pipeline ──────────────────────────────────────────────────
-
-    /** Users in the caller's tenant who can be picked as a reviewer or idea manager. */
     public List<AssignableUser> assignableUsers(AuthPrincipal me) {
         return store.listUsersForTenant(me.tenantId()).stream()
                 .filter(User::isActive)
-                .filter(u -> REVIEWER_ROLES.contains(u.getRole())) // superset of MANAGER_ROLES
+                .filter(u -> REVIEWER_ROLES.contains(u.getRole()))
                 .sorted(java.util.Comparator
                         .comparing((User u) -> u.getRole().name())
                         .thenComparing(User::getDisplayName))
@@ -151,7 +141,6 @@ public class IdeaService {
                 .toList();
     }
 
-    /** Set or clear the binding reviewer/idea-manager assignment. Idea-manager/admin only. */
     @Transactional
     public IdeaResponse assign(UUID id, AssignmentRequest req, AuthPrincipal me) {
         if (!CAN_ASSIGN.contains(me.role())) {
@@ -164,10 +153,6 @@ public class IdeaService {
         return toResponse(idea, authorName(idea.getAuthorId()));
     }
 
-    /**
-     * The caller takes ownership of a slot themselves — used to accept a suggestion
-     * from the task board. {@code as} is "reviewer" or "manager".
-     */
     @Transactional
     public IdeaResponse claim(UUID id, String as, AuthPrincipal me) {
         Idea idea = mustSeeable(id, me);
@@ -188,11 +173,6 @@ public class IdeaService {
         return toResponse(idea, authorName(idea.getAuthorId()));
     }
 
-    /**
-     * The caller's task board: ideas assigned to them (as reviewer or idea manager),
-     * plus ideas where they're the *suggested* assignee and the slot is still open
-     * (the "accept this suggestion" queue).
-     */
     public List<IdeaResponse> myTasks(AuthPrincipal me) {
         UUID uid = me.userId();
         List<Idea> mine = store.listIdeas(me.tenantId(), null).stream()
@@ -209,10 +189,6 @@ public class IdeaService {
         return mine.stream().map(i -> toResponse(i, authorNames.get(i.getAuthorId()))).toList();
     }
 
-    /**
-     * Validates that an assignee (nullable) belongs to the caller's tenant and holds a
-     * role eligible for the slot. Returns the id unchanged, or null if none given.
-     */
     private UUID validateAssignee(UUID userId, Set<Role> eligible, AuthPrincipal me) {
         if (userId == null) return null;
         User u = store.findUserById(userId)
@@ -256,7 +232,6 @@ public class IdeaService {
         return store.findUserById(authorId).map(User::getDisplayName).orElse("Unknown");
     }
 
-    /** Display name for a user id, or null if the id is null / the user is gone. */
     private String userName(UUID id) {
         return id == null ? null : store.findUserById(id).map(User::getDisplayName).orElse(null);
     }
@@ -275,7 +250,7 @@ public class IdeaService {
         if (!idea.getTenantId().equals(me.tenantId()) && me.role() != Role.SUPERADMIN) {
             throw new EntityNotFoundException("Idea " + id);
         }
-        // Touch field to avoid lazy-loading surprises in caller
+
         @SuppressWarnings("unused") OffsetDateTime _t = idea.getCreatedAt();
         return idea;
     }

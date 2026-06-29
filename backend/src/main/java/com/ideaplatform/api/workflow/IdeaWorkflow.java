@@ -8,12 +8,6 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Declarative state machine for idea stage transitions. Each entry maps
- * {@code (from -> to)} to the set of roles allowed to perform that transition.
- * Encoding the rules here (vs. scattered if-statements in services) makes the
- * matrix easy to read, test, and override per-tenant later.
- */
 public final class IdeaWorkflow {
 
     private IdeaWorkflow() {}
@@ -29,7 +23,7 @@ public final class IdeaWorkflow {
         addRule(Stage.PRIORITIZATION,     Stage.REJECTED,          EnumSet.of(Role.SPONSOR, Role.ADMIN));
         addRule(Stage.APPROVED,           Stage.IN_IMPLEMENTATION, EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN));
         addRule(Stage.IN_IMPLEMENTATION,  Stage.DONE,              EnumSet.of(Role.IDEA_MANAGER, Role.ADMIN));
-        // Archive is reachable from any non-terminal stage by ADMIN.
+
         for (Stage s : Stage.values()) {
             if (s != Stage.ARCHIVED && s != Stage.DONE) {
                 addRule(s, Stage.ARCHIVED, EnumSet.of(Role.ADMIN));
@@ -47,7 +41,7 @@ public final class IdeaWorkflow {
     }
 
     public static boolean canTransition(Stage from, Stage to, Role role) {
-        if (role == Role.SUPERADMIN) return true;  // vendor override
+        if (role == Role.SUPERADMIN) return true;
         Set<Role> allowed = RULES.getOrDefault(from, Map.of()).get(to);
         return allowed != null && allowed.contains(role);
     }

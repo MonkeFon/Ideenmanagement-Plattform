@@ -27,12 +27,6 @@ function RequireAuth({ children }: { children: JSX.Element }) {
   return children
 }
 
-/**
- * Route-level role gate. Renders the children only if the signed-in user holds
- * one of the allowed roles; otherwise bounces to the dashboard. This is the
- * real access control for a view — hiding the nav link alone still lets users
- * reach a page by typing its URL.
- */
 function RequireRole({ roles, children }: { roles: Role[]; children: JSX.Element }) {
   const user = useAuth((s) => s.user)
   if (!user) return <Navigate to="/login" replace />
@@ -45,11 +39,10 @@ export default function App() {
     <>
       <Routes>
         <Route path="/login" element={<Login />} />
-        {/* Public legal pages — reachable without authentication */}
+
         <Route path="/impressum" element={<Impressum />} />
         <Route path="/datenschutz" element={<Datenschutz />} />
-        {/* Mock "Jira" issue view for implemented ideas — full-screen (outside the app
-            Layout) so it reads like a redirect into a separate delivery tool. */}
+
         <Route
           path="/jira/:id"
           element={
@@ -83,8 +76,7 @@ export default function App() {
             path="admin"
             element={<RequireRole roles={ADMIN_ROLES}><Admin /></RequireRole>}
           />
-          {/* Hidden dev-only data console — intentionally not in the nav. Reach it by
-              typing /dev. Backend is gated by ideaplatform.dev.data-console.enabled. */}
+
           <Route path="dev" element={<DevData />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

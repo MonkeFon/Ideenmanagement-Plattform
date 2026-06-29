@@ -66,11 +66,8 @@ public class AdminService {
         );
     }
 
-    // Display order by tier (Enterprise is €0 in the seed, so price alone would wrongly
-    // place it between Free and Pro). Unknown codes sort last.
     private static final List<String> PLAN_TIER_ORDER = List.of("FREE", "PRO", "ENTERPRISE");
 
-    /** The plan catalogue, ordered by tier, with the tenant's current plan flagged. */
     public List<PlanResponse> listPlans(AuthPrincipal me) {
         Tenant t = store.findTenant(me.tenantId()).orElseThrow();
         String currentCode = t.getPlan().getCode();
@@ -87,11 +84,6 @@ public class AdminService {
                 .toList();
     }
 
-    /**
-     * Change the tenant's subscription plan. Admin-gated at the controller. Renews the
-     * licence window so a freshly chosen plan is immediately valid. (A real billing
-     * integration would gate this on payment; for the prototype the switch is immediate.)
-     */
     @Transactional
     public TenantUsageResponse changePlan(String planCode, AuthPrincipal me) {
         Tenant t = store.findTenant(me.tenantId()).orElseThrow();

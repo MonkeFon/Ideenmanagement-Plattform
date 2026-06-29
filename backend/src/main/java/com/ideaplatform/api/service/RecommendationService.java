@@ -21,7 +21,6 @@ import java.util.UUID;
 @Service
 public class RecommendationService {
 
-    /** Hard cap on edges returned, regardless of threshold, to keep payload + render cost bounded. */
     private static final int MAX_GRAPH_EDGES = 1500;
 
     private final DataStore store;
@@ -45,12 +44,7 @@ public class RecommendationService {
 
     public List<SimilarIdeaResponse> searchByText(String query, AuthPrincipal me) {
         if (query == null || query.isBlank()) return List.of();
-        // pseudo-source id 00000000-... so the exclude filter is a no-op.
-        // Hybrid: vector + keyword. The 0.30 vector floor fits bge-m3's (lower) multilingual
-        // cosine distribution; the keyword side additionally surfaces literal-word matches
-        // (e.g. "Spesenbelege OCR" → the "Spesenbelege per OCR" idea) that pure cosine ranks
-        // poorly. A row qualifies if EITHER signal fires, so neither concept nor keyword
-        // queries come back empty.
+
         return embeddings.searchHybrid(me.tenantId(), new UUID(0, 0), query, 0.30);
     }
 

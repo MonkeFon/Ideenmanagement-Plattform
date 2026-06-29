@@ -11,8 +11,6 @@ export const AuthApi = {
   me: () => api.get<MeResponse>('/auth/me').then((r) => r.data),
 }
 
-// ── DEV / DEMO ONLY: god-mode data editor (hidden /dev page). Backend is gated
-// behind ideaplatform.dev.data-console.enabled; these calls 404 when it's off.
 export interface DevColumn {
   column_name: string
   data_type: string
@@ -50,7 +48,7 @@ export const IdeaApi = {
     preferredReviewerId?: string; preferredManagerId?: string
   }) =>
     api.post<Idea>('/ideas', payload).then((r) => r.data),
-  // Assignment pipeline
+
   assignableUsers: () => api.get<AssignableUser[]>('/ideas/assignable-users').then((r) => r.data),
   myTasks: () => api.get<Idea[]>('/ideas/my-tasks').then((r) => r.data),
   assign: (id: string, payload: { reviewerId: string | null; managerId: string | null }) =>
@@ -82,14 +80,11 @@ export const IdeaApi = {
 
 export const SearchApi = {
   semantic: (q: string) => api.get<SimilarIdea[]>('/search', { params: { q } }).then((r) => r.data),
-  // Same endpoint as `semantic` but tagged with `meta.silent` so a background
-  // duplicate-check on the Submit page doesn't spam toasts when the network
-  // hiccups while the user is still typing.
+
   dupCheck: (q: string) =>
     api.get<SimilarIdea[]>('/search', {
       params: { q },
-      // axios passes unknown config properties through; our response interceptor
-      // reads `config.meta.silent` to suppress the error toast.
+
       meta: { silent: true },
     } as any).then((r) => r.data),
 }

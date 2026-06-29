@@ -24,15 +24,12 @@ const RATING_AXES = [
   { key: 'strategicFit', label: 'Strategic Fit' },
 ] as const
 
-// Mirrors the backend ScoringService + ideaplatform.scoring.* weights so the UI can show
-// transparently how the composite priority is derived. Keep in sync if the backend weights change.
 const PRIORITY_WEIGHTS = { votes: 0.40, reviewer: 0.35, recency: 0.15, sponsor: 0.10 }
 const RECENCY_HALF_LIFE_DAYS = 30
 
 type PriorityFactor = { key: string; label: string; detail: string; weight: number; value: number; contribution: number }
 type Priority = { total: number; factors: PriorityFactor[] }
 
-/** Recomputes the composite priority client-side from the same inputs and formula the backend uses. */
 function computePriority(opts: {
   netVotes: number
   evaluations: { average: number }[]
@@ -41,12 +38,12 @@ function computePriority(opts: {
   sponsorBoost: boolean
 }): Priority {
   const { netVotes, evaluations, submittedAt, createdAt, sponsorBoost } = opts
-  const votesNorm = 1 / (1 + Math.exp(-netVotes / 5)) // logistic, [0,1]
+  const votesNorm = 1 / (1 + Math.exp(-netVotes / 5))
   const reviewerAvg = evaluations.length
     ? (evaluations.reduce((s, e) => s + e.average, 0) / evaluations.length) / 5
     : 0
   const ageDays = Math.max(0, (Date.now() - Date.parse(submittedAt ?? createdAt)) / 86_400_000)
-  const recency = Math.pow(0.5, ageDays / RECENCY_HALF_LIFE_DAYS) // 1 at submit, halves every 30 days
+  const recency = Math.pow(0.5, ageDays / RECENCY_HALF_LIFE_DAYS)
   const boost = sponsorBoost ? 1 : 0
   const round = Math.round(ageDays)
 
@@ -59,7 +56,6 @@ function computePriority(opts: {
   return { total: factors.reduce((s, f) => s + f.contribution, 0), factors }
 }
 
-/** Transparent breakdown of how the composite priority score is composed. */
 function PriorityCard({ priority }: { priority: Priority }) {
   return (
     <Card className="p-4">
@@ -100,11 +96,6 @@ function PriorityCard({ priority }: { priority: Priority }) {
 const REVIEWER_ROLES = ['REVIEWER', 'IDEA_MANAGER', 'ADMIN', 'SUPERADMIN']
 const ASSIGN_ROLES = ['IDEA_MANAGER', 'ADMIN', 'SUPERADMIN']
 
-/**
- * Assignment pipeline card. Everyone in a workflow role sees who's responsible;
- * idea managers/admins can (re)assign the reviewer and idea manager, and reviewers
- * can claim an open review themselves (e.g. to accept a suggestion).
- */
 function AssignmentCard({ idea, onChanged }: { idea: Idea; onChanged: () => void }) {
   const user = useAuth((s) => s.user)!
   const qc = useQueryClient()
@@ -151,22 +142,21 @@ function AssignmentCard({ idea, onChanged }: { idea: Idea; onChanged: () => void
       </div>
 
       {!canAssign ? (
-        // Read-only view for reviewers/sponsors: who's responsible, plus a claim
-        // action for reviewers on an open review.
+
         <div className="mt-3 space-y-2.5 text-[13px]">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground">Prüfer:in</span>
+            <span className="text-muted-foreground">Prüfer</span>
             <span className="font-medium text-foreground">{idea.assignedReviewerName ?? '—'}</span>
           </div>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-muted-foreground">Ideenmanager:in</span>
+            <span className="text-muted-foreground">Ideenmanager</span>
             <span className="font-medium text-foreground">{idea.assignedManagerName ?? '—'}</span>
           </div>
           {canReview && idea.assignedReviewerId !== user.id && (
             <div className="pt-1">
               {idea.preferredReviewerId === user.id && (
                 <div className="mb-2 text-[12px] text-foreground bg-primary/10 border border-primary/20 rounded px-2 py-1.5">
-                  Sie wurden als Prüfer:in vorgeschlagen.
+                  Sie wurden als Prüfer vorgeschlagen.
                 </div>
               )}
               <Button variant="secondary" size="sm" className="w-full" disabled={claimM.isPending} onClick={() => claimM.mutate('reviewer')}>
@@ -178,7 +168,7 @@ function AssignmentCard({ idea, onChanged }: { idea: Idea; onChanged: () => void
       ) : (
         <div className="mt-3 space-y-3">
           <div>
-            <label htmlFor="assign-reviewer" className="text-[12px] font-medium text-muted-foreground">Prüfer:in</label>
+            <label htmlFor="assign-reviewer" className="text-[12px] font-medium text-muted-foreground">Prüfer</label>
             <select id="assign-reviewer" className={selectCls} value={reviewerId} onChange={(e) => setReviewerId(e.target.value)}>
               <option value="">— nicht zugewiesen —</option>
               {reviewerOptions.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
@@ -190,7 +180,7 @@ function AssignmentCard({ idea, onChanged }: { idea: Idea; onChanged: () => void
             )}
           </div>
           <div>
-            <label htmlFor="assign-manager" className="text-[12px] font-medium text-muted-foreground">Ideenmanager:in</label>
+            <label htmlFor="assign-manager" className="text-[12px] font-medium text-muted-foreground">Ideenmanager</label>
             <select id="assign-manager" className={selectCls} value={managerId} onChange={(e) => setManagerId(e.target.value)}>
               <option value="">— nicht zugewiesen —</option>
               {managerOptions.map((u) => <option key={u.id} value={u.id}>{u.displayName}</option>)}
@@ -249,17 +239,6 @@ export default function IdeaDetail() {
     qc.invalidateQueries({ queryKey: ['ideas'] })
   }
 
-  /**
-   * Optimistic vote: bump the cached `netVotes` immediately so the click feels
-   * instant, then settle to the server's authoritative count on success or
-   * roll back on failure. The backend is idempotent per (user, idea) so a
-   * second click in the same direction is a no-op and the count snaps back.
-   *
-   * Note: we don't track the user's previous vote here (the API doesn't expose
-   * it via /api/ideas/{id}), so the optimistic update is direction-only —
-   * good enough for the demo "feel instant" experience without faking a
-   * second-vote state we can't actually compute.
-   */
   const voteM = useMutation<unknown, unknown, -1 | 1, { previous: any }>({
     mutationFn: (v) => IdeaApi.vote(id, v),
     onMutate: async (v) => {
@@ -293,7 +272,7 @@ export default function IdeaDetail() {
           createdAt: new Date().toISOString(),
         },
       ])
-      // NB: don't clear the input here — if the post fails, the user keeps what they typed.
+
       return { previous, tempId }
     },
     onSuccess: () => setComment(''),
@@ -425,8 +404,6 @@ export default function IdeaDetail() {
 
           <PriorityCard priority={priority} />
 
-          {/* Workflow (stage transitions + history) is hidden from EMPLOYEE — they can't
-              drive the state machine (backend rejects it), matching the gated Workflow board. */}
           <RoleGate allow={WORKFLOW_ROLES}>
           <Card className="p-4">
             <div className="eyebrow">Workflow</div>
@@ -461,7 +438,6 @@ export default function IdeaDetail() {
           </Card>
           </RoleGate>
 
-          {/* Discussion above Evaluation: same input position regardless of role. */}
           <Card className="p-4">
             <div className="flex items-center gap-2">
               <MessageSquare size={14} strokeWidth={1.75} className="text-muted-foreground" />
@@ -557,15 +533,11 @@ export default function IdeaDetail() {
         </div>
 
         <aside className="space-y-4">
-          {/* Assignment pipeline — internal to the workflow, so hidden from plain
-              employees (who also don't see the Workflow card). */}
+
           <RoleGate allow={WORKFLOW_ROLES}>
             <AssignmentCard idea={idea} onChanged={refresh} />
           </RoleGate>
 
-          {/* Delivery hand-off: once an idea is in implementation it lives in the
-              delivery tool. We surface a (mock) Jira issue link so the demo shows the
-              round-trip from idea to ticket. Also shown for DONE — the ticket persists. */}
           {(idea.stage === 'IN_IMPLEMENTATION' || idea.stage === 'DONE') && (
             <Card className="p-4">
               <div className="flex items-center justify-between gap-2">
@@ -684,7 +656,7 @@ export default function IdeaDetail() {
                 <a key={s.id} href={`/ideas/${s.id}`} target="_blank" rel="noopener noreferrer" className="block hover:bg-accent rounded-md px-2 py-2.5 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <span className="font-medium text-foreground text-[13px] tracking-tight leading-snug">{s.title}</span>
-                    {/* similarity strength */}
+
                     <span className="inline-flex items-center gap-1.5 shrink-0 mt-0.5" title={`${simPct(s.similarity)}% Übereinstimmung`}>
                       <span className="h-1 w-8 rounded-full bg-muted overflow-hidden" aria-hidden>
                         <span className="block h-full rounded-full bg-primary/70" style={{ width: `${simPct(s.similarity)}%` }} />
@@ -692,7 +664,7 @@ export default function IdeaDetail() {
                       <span className="font-mono text-[11px] text-muted-foreground tabular-nums">{simPct(s.similarity)}%</span>
                     </span>
                   </div>
-                  {/* metadata: stage + category */}
+
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <StageBadge stage={s.stage} />
                     {s.category && <Badge variant="gray">{s.category}</Badge>}

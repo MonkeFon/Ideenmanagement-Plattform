@@ -53,12 +53,6 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "conflict", "message", ex.getMessage()));
     }
 
-    /**
-     * Ollama (or whichever embedding provider is configured) is unreachable.
-     * 503 + a German message specifically targeted at the user, so the
-     * frontend's toast can read "AI-Dienst nicht erreichbar" instead of the
-     * useless catch-all "Unerwarteter Serverfehler".
-     */
     @ExceptionHandler(RagUnavailableException.class)
     public ResponseEntity<Map<String, Object>> ragUnavailable(RagUnavailableException ex) {
         log.warn("RAG provider unavailable: {}", ex.getMessage());
@@ -66,18 +60,12 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "rag_unavailable", "message", ex.getMessage()));
     }
 
-    /**
-     * Path/query parameter has the wrong shape (e.g. {@code /api/ideas/not-a-uuid}).
-     * Without this handler the conversion failure fell into the {@link Exception}
-     * catch-all and surfaced as a 500 — a client mistake reported as a server error.
-     */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> typeMismatch(MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.badRequest()
                 .body(Map.of("error", "bad_request", "message", "Ungültiger Parameter: " + ex.getName()));
     }
 
-    /** Missing or syntactically invalid JSON request body — a 400, not a 500. */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> unreadableBody(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()
@@ -93,16 +81,6 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "validation_failed", "message", details));
     }
 
-    /**
-     * Catch-all so unhandled server errors return 500 rather than being escalated to 403 by
-     * Spring Security's ExceptionTranslationFilter (which is what happens when an authenticated
-     * request throws an unknown exception). The full stack is logged here, not returned.
-     *
-     * Importantly: the response body does NOT include {@code ex.getMessage()} — those messages
-     * are frequently raw JDBC/Hibernate text or NPE call sites that leak internals and look
-     * terrible in toasts. The opaque "Unerwarteter Serverfehler" message plus the {@code traceId}
-     * is what the user sees; the full stack is in the server log under that id.
-     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> unhandled(Exception ex) {
         String traceId = Long.toUnsignedString(System.nanoTime(), 36);

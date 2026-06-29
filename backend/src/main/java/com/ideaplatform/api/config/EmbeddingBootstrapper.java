@@ -15,30 +15,6 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Generates embeddings on boot for any idea that doesn't have one yet, so a freshly
- * migrated database (clone → migrate → run) comes up with working semantic search and a
- * populated idea graph — without anyone having to trigger a manual reindex.
- *
- * <p>Embeddings are produced at runtime by the configured provider (Ollama by default),
- * not seeded via SQL: the vectors are large, model-specific binary data that don't belong
- * in version control, and they must match whatever embedding model the deployment runs.
- * This bootstrapper closes that gap by indexing on startup.
- *
- * <p>Behaviour notes:
- * <ul>
- *   <li>Idempotent — only indexes ideas missing from {@code idea_embeddings}, so normal
- *       restarts (where everything is already indexed) do nothing.</li>
- *   <li>Non-fatal — if the embedding provider is unreachable (e.g. Ollama not running),
- *       each failure is swallowed by {@link EmbeddingService#indexIdeaSafe} and logged;
- *       the app still starts. Search simply stays empty until the provider is available
- *       and the app is restarted.</li>
- *   <li>Runs after {@link DemoPasswordResetter} via {@link Order}.</li>
- * </ul>
- *
- * Only active under the {@code postgres} profile (the JDBC gap-query is Postgres-specific);
- * the {@code supabase} REST profile manages its own indexing.
- */
 @Component
 @Profile("postgres")
 @Order(20)
@@ -82,7 +58,7 @@ public class EmbeddingBootstrapper implements CommandLineRunner {
         for (UUID id : missing) {
             Idea idea = store.findIdea(id).orElse(null);
             if (idea == null) continue;
-            // indexIdeaSafe never throws — provider failures are logged and skipped.
+
             embeddings.indexIdeaSafe(idea);
             ok++;
         }

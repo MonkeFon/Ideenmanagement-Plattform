@@ -9,8 +9,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GitBranch, BarChart3, Sparkles } from 'lucide-react'
 
-// Ordered by organisational hierarchy, lowest privilege first:
-// Mitarbeiter → Ideenmanager → Prüfer → Sponsor → Administrator.
 const DEMO = [
     { email: 'timo@fom.de',    role: 'Mitarbeiter' },
   { email: 'lifon@fom.de',   role: 'Ideenmanager' },
@@ -19,7 +17,6 @@ const DEMO = [
   { email: 'michael@fom.de', role: 'Administrator' },
 ]
 
-// Marketing highlights on the hero panel.
 const FEATURES = [
   { icon: GitBranch, title: 'Rollenbasierter Workflow', body: 'Mitarbeiter, Sponsoren, Prüfer und Ideenmanager' },
   { icon: BarChart3, title: 'Zusammengesetzte Bewertung', body: 'Wirkung, Machbarkeit und Strategic Fit bestimmen die Priorität.' },
@@ -52,9 +49,9 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
-      {/* ───────────── Hero panel (desktop only) — permanently dark for a premium feel ───────────── */}
+
       <section className="relative hidden lg:flex lg:flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0b2521] via-[#0a1815] to-[#050e0d] text-white p-12 xl:p-16 lg:border-r border-white/10">
-        {/* Fine grid texture, faded toward the edges */}
+
         <div
           className="pointer-events-none absolute inset-0"
           style={{
@@ -67,11 +64,10 @@ export default function Login() {
           }}
           aria-hidden
         />
-        {/* Soft colour glows — restrained, the only hint of hue on a monochrome brand */}
+
         <div className="pointer-events-none absolute -top-32 -left-24 h-96 w-96 rounded-full bg-[#239F91]/30 blur-3xl" aria-hidden />
         <div className="pointer-events-none absolute -bottom-32 -right-16 h-96 w-96 rounded-full bg-[#2dd4bf]/15 blur-3xl" aria-hidden />
 
-        {/* Brand */}
         <div className="relative z-10 flex items-center gap-3">
           <div
             className="h-10 w-10 rounded-lg bg-primary grid place-items-center text-primary-foreground ring-1 ring-white/10 shrink-0"
@@ -82,7 +78,6 @@ export default function Login() {
           <span className="text-lg font-semibold tracking-tight">Geistesblitz</span>
         </div>
 
-        {/* Hero copy + features */}
         <div className="relative z-10 max-w-lg">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-[#6fd3c6]">
             Ideenmanagement für Unternehmen
@@ -109,16 +104,14 @@ export default function Login() {
           </ul>
         </div>
 
-        {/* Footer */}
         <div className="relative z-10 text-[11px] uppercase tracking-wider text-slate-500 font-mono">
           Prototyp · v0.1
         </div>
       </section>
 
-      {/* ───────────── Form panel ───────────── */}
       <section className="flex-1 flex items-center justify-center p-6 sm:p-10">
         <div className="w-full max-w-sm">
-          {/* Brand (shown only when the hero panel is hidden) */}
+
           <div className="lg:hidden flex items-center gap-2.5 mb-10">
             <div
               className="h-9 w-9 rounded bg-primary grid place-items-center text-primary-foreground shrink-0"

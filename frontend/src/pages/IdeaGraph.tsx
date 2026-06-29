@@ -9,47 +9,32 @@ import { Card } from '@/components/ui/card'
 import type { GraphEdge, GraphNode, Stage } from '@/types/api'
 import { Network, RefreshCw } from 'lucide-react'
 
-/**
- * Force-directed map of semantically related ideas with cluster overlay.
- *
- * Clusters = connected components in the similarity graph at the current threshold.
- * They're computed via union-find each time the data changes, then rendered as a soft
- * background convex hull behind the nodes. Cluster colours come from a small qualitative
- * palette and are assigned by a stable hash so the same cluster keeps the same colour
- * across re-renders as the user nudges the threshold.
- *
- * The simulation itself is intentionally tiny (no d3-force / cytoscape dependency).
- */
-
 type SimNode = GraphNode & {
   x: number; y: number; vx: number; vy: number
   degree: number; cluster: number
 }
 type SimEdge = GraphEdge & { weight: number }
 
-// Stage palette — mid-saturation so it reads on both light and dark backgrounds.
-// Distinct per-stage fills, matching the StageBadge / Kanban-board palette.
 const STAGE_FILL: Record<Stage, string> = {
-  SUBMITTED: '#3b82f6',         // blue
-  UNDER_REVIEW: '#d97706',      // amber
-  PRIORITIZATION: '#8b5cf6',    // violet
-  APPROVED: '#059669',          // emerald
-  IN_IMPLEMENTATION: '#06b6d4', // cyan
-  DONE: '#16a34a',              // green
-  REJECTED: '#e11d48',          // rose
-  ARCHIVED: '#94a3b8',          // slate
+  SUBMITTED: '#3b82f6',
+  UNDER_REVIEW: '#d97706',
+  PRIORITIZATION: '#8b5cf6',
+  APPROVED: '#059669',
+  IN_IMPLEMENTATION: '#06b6d4',
+  DONE: '#16a34a',
+  REJECTED: '#e11d48',
+  ARCHIVED: '#94a3b8',
 }
 
-// Qualitative cluster palette. Cluster -1 (singletons) is rendered with no hull.
 const CLUSTER_COLORS = [
-  '#6366f1', // indigo
-  '#10b981', // emerald
-  '#f59e0b', // amber
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#8b5cf6', // violet
-  '#84cc16', // lime
-  '#f43f5e', // rose
+  '#6366f1',
+  '#10b981',
+  '#f59e0b',
+  '#ec4899',
+  '#06b6d4',
+  '#8b5cf6',
+  '#84cc16',
+  '#f43f5e',
 ]
 
 const WIDTH = 1100
@@ -57,7 +42,6 @@ const HEIGHT = 720
 const TICKS = 400
 const TICK_DT = 0.85
 
-// Union-find for connected components.
 function unionFind(ids: string[], edges: GraphEdge[]) {
   const parent = new Map<string, string>()
   ids.forEach((id) => parent.set(id, id))
@@ -72,7 +56,6 @@ function unionFind(ids: string[], edges: GraphEdge[]) {
   }
   for (const e of edges) union(e.source, e.target)
 
-  // Group by root, assign stable cluster index ordered by smallest member id (lexicographic).
   const groups = new Map<string, string[]>()
   for (const id of ids) {
     const r = find(id)
@@ -97,7 +80,6 @@ function unionFind(ids: string[], edges: GraphEdge[]) {
   return { nodeCluster, clusterCount: sortedRoots.length }
 }
 
-// Andrew's monotone chain convex hull.
 function convexHull(points: { x: number; y: number }[]): { x: number; y: number }[] {
   if (points.length < 3) return points.slice()
   const pts = points.slice().sort((a, b) => (a.x - b.x) || (a.y - b.y))
@@ -118,7 +100,6 @@ function convexHull(points: { x: number; y: number }[]): { x: number; y: number 
   return lower.concat(upper)
 }
 
-// Expand a hull outward from its centroid by `margin` so node circles sit comfortably inside.
 function expandHull(hull: { x: number; y: number }[], margin: number) {
   if (hull.length === 0) return hull
   const cx = hull.reduce((s, p) => s + p.x, 0) / hull.length
@@ -130,11 +111,6 @@ function expandHull(hull: { x: number; y: number }[], margin: number) {
   })
 }
 
-// Uniformly scale + recenter the settled nodes so the graph fills the canvas instead of
-// clumping in the middle. Force-directed layouts produce a good *relative* arrangement, but
-// the absolute size depends on the force constants vs. node count — so we "zoom to fit" the
-// final result (preserving aspect ratio and relative structure). Padding leaves room for
-// node radii and the labels that sit above each node.
 function fitToCanvas(nodes: SimNode[], pad = 80) {
   if (nodes.length < 2) return
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
@@ -146,8 +122,7 @@ function fitToCanvas(nodes: SimNode[], pad = 80) {
   }
   const bw = x1 - x0, bh = y1 - y0
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2
-  // Guard degenerate axes (e.g. two nodes in a vertical line); cap the upscale so a tiny
-  // 2–3 node graph isn't flung into the far corners.
+
   const sx = bw > 1 ? (WIDTH - pad * 2) / bw : Infinity
   const sy = bh > 1 ? (HEIGHT - pad * 2) / bh : Infinity
   let scale = Math.min(sx, sy)
@@ -160,11 +135,6 @@ function fitToCanvas(nodes: SimNode[], pad = 80) {
   }
 }
 
-// Run the whole force simulation to convergence in one synchronous pass, mutating the
-// nodes' x/y in place. Doing this *before* the first render (instead of animating one
-// tick per requestAnimationFrame) means the graph paints already laid out — no janky
-// "fly in from random positions" on load. For the graph sizes here (tens of nodes,
-// O(n²) repulsion) this is well under a frame's budget.
 function runLayout(nodes: SimNode[], edges: SimEdge[], byId: Map<string, SimNode>) {
   const repulsion = 9000
   const cx = WIDTH / 2, cy = HEIGHT / 2
@@ -211,7 +181,7 @@ function runLayout(nodes: SimNode[], edges: SimEdge[], byId: Map<string, SimNode
       n.y = Math.max(20, Math.min(HEIGHT - 20, n.y))
     }
   }
-  // Spread the settled blob out to fill the canvas.
+
   fitToCanvas(nodes)
 }
 
@@ -254,7 +224,7 @@ export default function IdeaGraph() {
     })
     const simEdges: SimEdge[] = edges.map((e) => ({ ...e, weight: e.similarity }))
     const byId = new Map(simNodes.map((n) => [n.id, n]))
-    // Settle the layout synchronously so the first paint shows the final arrangement.
+
     runLayout(simNodes, simEdges, byId)
     return {
       nodes: simNodes,
@@ -262,10 +232,9 @@ export default function IdeaGraph() {
       byId,
       clusterCount,
     }
-    // `seed` is included so "Neu anordnen" recomputes a fresh settled layout.
+
   }, [graphQ.data, seed])
 
-  // Group nodes by cluster for hull rendering. Recomputed each tick via the wrapper render.
   const clustersForRender = useMemo(() => {
     if (!sim) return []
     const groups = new Map<number, SimNode[]>()
@@ -275,7 +244,7 @@ export default function IdeaGraph() {
       groups.get(n.cluster)!.push(n)
     }
     return [...groups.entries()].map(([id, nodes]) => ({ id, nodes }))
-  }, [sim, /* tick triggers via setTick re-renders */ ])
+  }, [sim,  ])
 
   const restart = () => setSeed((s) => s + 1)
 
@@ -365,7 +334,6 @@ export default function IdeaGraph() {
         </div>
       </header>
 
-      {/* Stage legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
         {(Object.keys(STAGE_FILL) as Stage[])
           .map((s) => (
@@ -394,13 +362,13 @@ export default function IdeaGraph() {
               onPointerUp={onPointerUp}
               onPointerLeave={onPointerUp}
             >
-              {/* cluster hulls (rendered first so they sit behind everything) */}
+
               <g>
                 {clustersForRender.map(({ id, nodes }) => {
                   if (nodes.length < 2) return null
                   const color = CLUSTER_COLORS[id % CLUSTER_COLORS.length]
                   if (nodes.length === 2) {
-                    // Two-node cluster: render a thick translucent capsule connecting them.
+
                     const [a, b] = nodes
                     return (
                       <line
@@ -429,7 +397,6 @@ export default function IdeaGraph() {
                 })}
               </g>
 
-              {/* edges */}
               <g stroke="#94a3b8" strokeOpacity={0.35}>
                 {sim.edges.map((e, idx) => {
                   const a = sim.byId.get(e.source); const b = sim.byId.get(e.target)
@@ -446,7 +413,7 @@ export default function IdeaGraph() {
                   )
                 })}
               </g>
-              {/* nodes */}
+
               <g>
                 {sim.nodes.map((n) => {
                   const r = 6 + Math.min(14, Math.sqrt(n.degree) * 4)
@@ -478,9 +445,7 @@ export default function IdeaGraph() {
                         className="fill-foreground stroke-background"
                         fontSize={11}
                         fontWeight={500}
-                        // paint-order draws the stroke first, so the background-coloured halo
-                        // sits *behind* the glyph fill — letters stay readable when labels
-                        // cross edges or other nodes.
+
                         style={{ pointerEvents: 'none', paintOrder: 'stroke', strokeWidth: 3, strokeLinejoin: 'round' }}
                         opacity={dim ? 0.3 : 1}
                       >
@@ -492,7 +457,6 @@ export default function IdeaGraph() {
               </g>
             </svg>
 
-            {/* Hover detail panel */}
             {hoveredNode && (
               <Card className="absolute top-3 left-3 p-3 max-w-xs pointer-events-none">
                 <div className="text-[13px] font-semibold text-foreground tracking-tight">{hoveredNode.title}</div>

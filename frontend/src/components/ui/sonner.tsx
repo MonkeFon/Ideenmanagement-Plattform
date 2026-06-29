@@ -1,13 +1,6 @@
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 import { useTheme } from '@/store/theme'
 
-/**
- * Toast renderer. Mounted once at the app root.
- *
- * `useTheme` returns one of light | dark | auto. We map auto → 'system' so
- * sonner reads the OS preference, matching how our own theme store behaves
- * when set to auto.
- */
 export function Toaster(props: ToasterProps) {
   const { theme } = useTheme()
   const sonnerTheme: ToasterProps['theme'] = theme === 'auto' ? 'system' : theme

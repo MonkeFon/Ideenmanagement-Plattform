@@ -37,13 +37,11 @@ public class IdeaController {
         return ideas.list(stage, SecurityUtil.current());
     }
 
-    /** Reviewers + idea managers in the tenant, for the assignment dropdowns. */
     @GetMapping("/assignable-users")
     public List<AssignableUser> assignableUsers() {
         return ideas.assignableUsers(SecurityUtil.current());
     }
 
-    /** The caller's personal task board: ideas assigned to / suggested for them. */
     @GetMapping("/my-tasks")
     public List<IdeaResponse> myTasks() {
         return ideas.myTasks(SecurityUtil.current());
@@ -52,7 +50,7 @@ public class IdeaController {
     @GetMapping("/graph")
     public IdeaGraphResponse graph(@RequestParam(required = false) Double threshold) {
         double t = threshold != null ? threshold : 0.55;
-        // Clamp to a sane range so a malformed query doesn't kill perf or yield garbage.
+
         if (t < 0.30) t = 0.30;
         if (t > 0.99) t = 0.99;
         return recs.graph(t, SecurityUtil.current());
@@ -112,14 +110,12 @@ public class IdeaController {
         return ideas.setSponsorBoost(id, on, SecurityUtil.current());
     }
 
-    /** Set/clear the binding reviewer + idea-manager assignment. */
     @PatchMapping("/{id}/assignment")
     @PreAuthorize("hasAnyRole('IDEA_MANAGER','ADMIN','SUPERADMIN')")
     public IdeaResponse assign(@PathVariable UUID id, @RequestBody AssignmentRequest req) {
         return ideas.assign(id, req, SecurityUtil.current());
     }
 
-    /** Take ownership of a slot yourself — {@code as} is "reviewer" or "manager". */
     @PostMapping("/{id}/claim")
     @PreAuthorize("hasAnyRole('REVIEWER','IDEA_MANAGER','ADMIN','SUPERADMIN')")
     public IdeaResponse claim(@PathVariable UUID id, @RequestParam String as) {

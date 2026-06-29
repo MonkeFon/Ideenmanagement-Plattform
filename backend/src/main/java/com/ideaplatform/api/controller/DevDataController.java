@@ -8,24 +8,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
-/**
- * DEV / DEMO ONLY — a god-mode data editor backend.
- *
- * <p>Lets an authenticated user browse and mutate any row in any public table,
- * intentionally bypassing tenant isolation: it talks to the DB through a raw
- * {@link JdbcTemplate}, not Hibernate, so the {@code @Filter}-based tenant
- * scoping never applies and you see/edit every tenant's rows. (In dev the DB
- * role is a superuser, so Postgres RLS is bypassed too.)
- *
- * <p><b>Hard-gated</b> behind {@code ideaplatform.dev.data-console.enabled}
- * (default {@code false}): when off, every endpoint returns 404, so a production
- * build never exposes it. This MUST stay disabled outside local demos.
- *
- * <p>SQL-injection safety: table and column identifiers are validated against
- * {@code information_schema} (only real names of the target table are accepted)
- * and then double-quoted; all values are passed as bind parameters, cast to the
- * column's own type in SQL ({@code ?::<udt>}).
- */
 @RestController
 @RequestMapping("/api/dev/data")
 public class DevDataController {
@@ -33,11 +15,6 @@ public class DevDataController {
     private final JdbcTemplate jdbc;
     private final boolean enabled;
 
-    /**
-     * Tables hidden from the editor:
-     *  - flyway_schema_history: editing it corrupts migration bookkeeping.
-     *  - idea_embeddings: 1024-dim vector rows are unusable in a grid (use psql/SQL).
-     */
     private static final Set<String> HIDDEN = Set.of("flyway_schema_history", "idea_embeddings");
 
     public DevDataController(JdbcTemplate jdbc,
@@ -49,8 +26,6 @@ public class DevDataController {
     private void ensureEnabled() {
         if (!enabled) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Data console disabled");
     }
-
-    // ---- catalog helpers -------------------------------------------------
 
     private List<String> listTables() {
         return jdbc.queryForList(
@@ -96,17 +71,13 @@ public class DevDataController {
         }
     }
 
-    /** Double-quote an identifier. Callers must validate it against the catalog first. */
     private String q(String ident) {
         return "\"" + ident.replace("\"", "\"\"") + "\"";
     }
 
-    /** Bind-arg normalizer: JSON values arrive as String/Number/Boolean; cast happens in SQL. */
     private Object arg(Object v) {
         return v == null ? null : v.toString();
     }
-
-    // ---- endpoints -------------------------------------------------------
 
     @GetMapping("/tables")
     public List<String> tables() {
@@ -155,7 +126,7 @@ public class DevDataController {
     public Map<String, Object> insert(@PathVariable String table, @RequestBody Map<String, Object> values) {
         ensureEnabled();
         validateTable(table);
-        // Drop nulls/blanks so column defaults (uuid_generate_v4(), now(), ...) apply.
+
         var clean = new LinkedHashMap<String, Object>();
         values.forEach((k, v) -> { if (v != null && !v.toString().isBlank()) clean.put(k, v); });
         if (clean.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No values to insert");
@@ -221,7 +192,6 @@ public class DevDataController {
         return Map.of("deleted", n);
     }
 
-    /** Build " WHERE k1 = ?::t1 AND ..." for a primary-key map, appending bind args. */
     private String where(Map<String, Object> key, Map<String, String> udt, List<Object> args) {
         StringBuilder w = new StringBuilder(" WHERE ");
         int i = 0;

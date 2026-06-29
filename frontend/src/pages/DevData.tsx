@@ -102,7 +102,7 @@ export default function DevData() {
 
       {!disabled && (
         <>
-          {/* Table picker */}
+
           <div className="flex flex-wrap gap-1.5">
             {tablesQ.isLoading && <Spinner size={14} />}
             {tablesQ.data?.map((t) => (
@@ -123,7 +123,7 @@ export default function DevData() {
 
           {selected && (
             <Card className="overflow-hidden">
-              {/* Toolbar */}
+
               <div className="flex items-center gap-2 border-b border-border px-3 py-2">
                 <span className="font-mono text-[13px] font-medium text-foreground">{selected}</span>
                 {data && (
@@ -141,7 +141,6 @@ export default function DevData() {
                 </div>
               </div>
 
-              {/* Grid */}
               <div className="overflow-x-auto">
                 {dataQ.isLoading && <div className="p-6"><Spinner size={16} /></div>}
                 {data && (
@@ -198,7 +197,6 @@ export default function DevData() {
                 )}
               </div>
 
-              {/* Pagination */}
               {data && data.total > PAGE && (
                 <div className="flex items-center justify-end gap-2 border-t border-border px-3 py-2">
                   <Button size="sm" variant="outline" disabled={offset === 0}
@@ -235,7 +233,6 @@ export default function DevData() {
   )
 }
 
-/** Modal form for creating or editing a single row. */
 function RowEditor({
   table, columns, primaryKey, mode, row, busy, onCancel, onSubmit,
 }: {
@@ -248,7 +245,7 @@ function RowEditor({
   onCancel: () => void
   onSubmit: (values: Record<string, unknown>) => void
 }) {
-  // value text per column + an explicit "is null" flag (only meaningful for nullable columns)
+
   const [vals, setVals] = useState<Record<string, string>>(() =>
     Object.fromEntries(columns.map((c) => [c.column_name, row && row[c.column_name] != null ? String(row[c.column_name]) : ''])),
   )
@@ -264,21 +261,21 @@ function RowEditor({
       const out: Record<string, unknown> = {}
       columns.forEach((c) => {
         const name = c.column_name
-        if (nulls[name]) return                 // leave null / default
-        if (vals[name] === '') return           // blank → let DB default apply
+        if (nulls[name]) return
+        if (vals[name] === '') return
         out[name] = vals[name]
       })
       if (Object.keys(out).length === 0) { toast.error('Keine Werte angegeben'); return }
       onSubmit(out)
       return
     }
-    // edit → send only changed columns
+
     const out: Record<string, unknown> = {}
     columns.forEach((c) => {
       const name = c.column_name
       const orig = row && row[name] != null ? String(row[name]) : null
       const cur = nulls[name] ? null : vals[name]
-      if (cur !== orig) out[name] = cur          // null or string
+      if (cur !== orig) out[name] = cur
     })
     if (Object.keys(out).length === 0) { toast('Keine Änderungen'); onCancel(); return }
     onSubmit(out)

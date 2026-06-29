@@ -54,7 +54,6 @@ export default function Layout() {
 
   useEffect(() => { setMenuOpen(false); window.scrollTo(0, 0) }, [location.pathname])
 
-  // Browser-tab title follows the active route.
   useEffect(() => {
     const t = pageTitle(location.pathname)
     document.title = t ? `${t} · Geistesblitz` : 'Geistesblitz'
@@ -68,8 +67,6 @@ export default function Layout() {
     return () => { cancelled = true }
   }, [setUser])
 
-  // Tenant-dependent colour scheme: theme --primary from the signed-in tenant's brand
-  // colour. Clears on logout (Layout unmounts) so the login page keeps the default brand.
   useEffect(() => {
     applyTenantBrand(user?.tenantBrandColor)
     return () => clearTenantBrand()
@@ -99,7 +96,6 @@ export default function Layout() {
     { to: '/admin',    label: 'Admin',    show: hasRole(user.role, ADMIN_ROLES) },
   ]
 
-  // Horizontal item for the top bar (≥xl).
   const renderTopItem = (n: NavItem) => (
     <NavLink
       key={n.to}
@@ -118,7 +114,6 @@ export default function Layout() {
     </NavLink>
   )
 
-  // Vertical item for the mobile drop-down panel (<xl).
   const renderMenuItem = (n: NavItem) => (
     <NavLink
       key={n.to}
@@ -141,7 +136,7 @@ export default function Layout() {
     <div className="min-h-screen flex flex-col bg-background">
       <header className="sticky top-0 z-40 border-b border-border bg-background">
         <div className="flex items-center gap-3 h-14 px-4 md:px-8 max-w-7xl mx-auto w-full">
-          {/* Brand */}
+
           <div className="flex items-center gap-2 shrink-0">
             <div className="h-8 w-8 rounded bg-primary grid place-items-center text-primary-foreground shrink-0">
               <GeistesblitzLogo size={22} />
@@ -155,10 +150,9 @@ export default function Layout() {
             </div>
           </div>
 
-          {/* Primary nav (desktop) */}
           <nav className="hidden xl:flex items-center gap-0.5 flex-1 min-w-0">
             {navWork.filter((n) => n.show).map(renderTopItem)}
-            {/* Einreichen as primary action, anchored after the work tabs */}
+
             <Button asChild size="sm" className="gap-1.5 ml-1.5 shrink-0">
               <Link to="/submit"><Plus size={14} strokeWidth={2} /> Einreichen</Link>
             </Button>
@@ -166,7 +160,6 @@ export default function Layout() {
             {navAdmin.filter((n) => n.show).map(renderTopItem)}
           </nav>
 
-          {/* Right cluster */}
           <div className="flex items-center gap-1.5 ml-auto shrink-0">
             <div className="hidden sm:block text-right min-w-0 mr-0.5">
               <div className="text-sm font-semibold text-foreground truncate max-w-[10rem]">{user.displayName}</div>
@@ -217,7 +210,6 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Collapsed nav (mobile / tablet) */}
         {menuOpen && (
           <div className="xl:hidden border-t border-border bg-background px-2 py-3 space-y-3 shadow-overlay">
             <div className="flex items-center justify-between gap-2 px-2.5 text-[11px]">
@@ -264,7 +256,6 @@ export default function Layout() {
         )}
       </header>
 
-      {/* Backdrop closes the mobile menu */}
       {menuOpen && (
         <div
           className="fixed inset-0 top-14 z-30 bg-slate-900/40 xl:hidden"
@@ -273,9 +264,6 @@ export default function Layout() {
         />
       )}
 
-      {/* No overflow-auto here: the page scrolls on the body. An overflow container
-          here would become the sticky context and break in-page sticky headers
-          (e.g. the Ideen table thead), since this element itself never scrolls. */}
       <main className="flex-1 bg-background">
         <Outlet />
       </main>

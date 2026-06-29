@@ -22,7 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Service-layer tests for tenant isolation and idea listing (DataStore is mocked — no DB). */
 class IdeaServiceTest {
 
     private DataStore store;
@@ -50,7 +49,6 @@ class IdeaServiceTest {
                 .build();
     }
 
-    /** Stubs the lookups toResponse() makes so a successful path can build a response. */
     private void stubResponseDeps() {
         when(store.findUserById(any())).thenReturn(Optional.of(User.builder().displayName("Name").build()));
         when(store.netVotes(any())).thenReturn(0);
