@@ -14,7 +14,7 @@ Captured from the running app against the seeded demo data (FOM tenant, teal `#2
 |-----------|-----------|
 | ![Dashboard](docs/screenshots/02-dashboard.png) | ![Idea list](docs/screenshots/03-ideas-list.png) |
 
-*The two primary views: the personal dashboard (trends, your ideas, recent activity) and the filterable, sortable idea list.*
+*The two primary views: the personal dashboard (trends, task board, own ideas) and the filterable, sortable idea list.*
 
 ---
 
@@ -42,9 +42,9 @@ Six roles, each with distinct UI surface and API permissions:
 
 | Role                 | Can do                                                                 |
 |----------------------|------------------------------------------------------------------------|
-| `EMPLOYEE`           | Submit, comment, vote                                  |
-| `REVIEWER`           | All of EMPLOYEE + score ideas on Impact / Feasibility / Strategic Fit  |
-| `IDEA_MANAGER` | Move stages (incl. approve at Prioritization), manage campaigns, run AI refine + chat                    |
+| `EMPLOYEE`           | Submit (incl. suggesting a preferred reviewer / idea manager), comment, vote |
+| `REVIEWER`           | All of EMPLOYEE + score ideas on Impact / Feasibility / Strategic Fit, claim open reviews |
+| `IDEA_MANAGER` | Move stages (incl. approve at Prioritization), assign reviewers & idea managers, manage campaigns, run AI refine + chat |
 | `SPONSOR`            | Approve/reject at PRIORITIZATION, toggle sponsor boost                 |
 | `ADMIN`              | Manage users, see license usage, all of the above within tenant        |
 | `SUPERADMIN`         | Cross-tenant (vendor staff)                                            |
@@ -141,9 +141,6 @@ Ranks the highest-priority ideas and the most active contributors in the tenant 
 ### German-only content
 - The platform is **German-only**. The UI chrome and all seed content are German; the canonical `title` / `description` / `name` columns hold the German text directly.
 - There is **no i18n layer**. The former `*_de` translation columns, the `LocaleFilter` / `LocaleContext` request plumbing, the `X-Content-Lang` header and the `Settings` language toggle were all removed. Migrations `V7`/`V10` still build the German seed; `V15` drops the now-redundant `_de` columns. Full-text search uses the Postgres `german` configuration.
-
-![German-only content](docs/screenshots/05-idea-detail.png)
-*Oberfläche und Inhalte sind durchgängig deutsch — der deutsche Seed-Content ist kanonisch (`title` / `description`).*
 
 ### Theme: dark mode
 - Class-based Tailwind dark mode (`dark` on `<html>`).
@@ -274,7 +271,7 @@ cd backend
 mvn spring-boot:run
 ```
 
-On boot, Flyway runs the migrations (`V1` schema → `V22`; highlights: `V5` campaigns, `V7`+`V10` build the German seed, `V8` Supabase RPCs, `V9` excludes private stages from search, `V12` adds tenant Row-Level Security, `V13` renames the ideamanager role, `V14` renames the demo e-mails, `V15` drops the i18n columns, `V17` curates the ten demo ideas, `V20` adds per-tenant branding (FOM teal), `V21` adds the reviewer/idea-manager assignment pipeline, `V22` adds the per-tenant idea reference key) and two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
+On boot, Flyway runs the migrations (`V1` schema → `V22`; highlights: `V5` campaigns, `V7`+`V10` build the German seed, `V8` Supabase RPCs, `V9` excludes private stages from search, `V12` adds tenant Row-Level Security, `V13` renames the ideamanager role, `V14` renames the demo e-mails, `V15` drops the i18n columns, `V17` curates the ten demo ideas, `V20` adds per-tenant branding (FOM teal), `V21` adds the reviewer/idea-manager assignment pipeline, `V22` adds the per-tenant idea reference key). Afterwards, two ordered `CommandLineRunner`s fire: one resets the seven demo passwords to `demo1234` (so the seeded BCrypt hashes never go stale), and one — the **`EmbeddingBootstrapper`** — generates embeddings for any idea that doesn't have one yet, so semantic search and the graph work on a fresh clone without a manual reindex. It's idempotent (normal restarts do nothing) and non-fatal (if the provider is down it logs and the app still starts). The API binds on `http://localhost:8080`.
 
 #### Run the backend durably (optional)
 
@@ -313,15 +310,17 @@ Vite serves on <http://localhost:5173> and proxies `/api/*` to the backend. Open
 
 All seeded users share password `demo1234`.
 
-| Email                | Tenant         | Role                 |
-|----------------------|----------------|----------------------|
-| timo@fom.de       | FOM (Pro)     | `ADMIN`              |
-| michael@fom.de    | FOM (Pro)     | `SPONSOR`            |
+| Email             | Tenant        | Role           |
+|-------------------|---------------|----------------|
 | lifon@fom.de      | FOM (Pro)     | `IDEA_MANAGER` |
-| jan@fom.de        | FOM (Pro)     | `REVIEWER`           |
-| michel@fom.de     | FOM (Pro)     | `EMPLOYEE`           |
-| hayao@fom.de      | FOM (Pro)     | `EMPLOYEE`           |
-| owner@globex.test           | Globex (Free)         | `ADMIN`              |
+| jan@fom.de        | FOM (Pro)     | `REVIEWER`     |
+| michael@fom.de    | FOM (Pro)     | `REVIEWER`     |
+| michel@fom.de     | FOM (Pro)     | `SPONSOR`      |
+| timo@fom.de       | FOM (Pro)     | `EMPLOYEE`     |
+| miyazaki@fom.de   | FOM (Pro)     | `EMPLOYEE`     |
+| owner@globex.test | Globex (Free) | `ADMIN`        |
+
+> This is the **curated demo state** — what the committed snapshot (`scripts/seeds/seed.sql`) restores and what the screenshots show. FOM has no `ADMIN` account; demo the Admin area and plan switching as `owner@globex.test`. A plain-migrations setup seeds an older role layout from `V3` — run `scripts/seed-restore.sh` (or `scripts\demo-prep.ps1 -Reset`) to get exactly the state above.
 
 Each tenant carries a **brand colour** (`tenants.brand_color`) that the frontend applies to the app's `--primary` on login, so the whole colour scheme follows the signed-in tenant — **FOM** is teal `#239F91`, **Globex** is indigo `#4f46e5`. The login page keeps the fixed FOM brand.
 
@@ -331,7 +330,7 @@ Each tenant carries a **brand colour** (`tenants.brand_color`) that the frontend
 
 *Same app, tenant-dependent colour scheme — and fully isolated data (Globex sees none of FOM's ideas).*
 
-The login page has a one-click picker for these accounts.
+The login page has a one-click picker for these accounts and defaults to `lifon@fom.de`.
 
 > **Giving a demo?** [`docs/DEMO.md`](docs/DEMO.md) is a timed ~10-minute run-of-show, and
 > `scripts\demo-prep.ps1` gets every service up and pre-warms the semantic search in one command
@@ -345,7 +344,7 @@ You don't need to do anything. On boot the **`EmbeddingBootstrapper`** (step 4) 
 
 Two ways to give every teammate the same starting dataset:
 
-- **Migrations + auto-embed (default, version-controlled).** Just clone → migrate → run, as above. `V1..V13` recreate the schema + curated German content; the bootstrapper fills in vectors. No binary blobs in git, model-agnostic.
+- **Migrations + auto-embed (default, version-controlled).** Just clone → migrate → run, as above. The migrations recreate the schema + curated German content; the bootstrapper fills in vectors. No binary blobs in git, model-agnostic.
 - **Snapshot restore (fast, no Ollama needed).** `scripts/seed-snapshot.sh` dumps the live DB — **including the embedding vectors** — to `scripts/seeds/seed.sql`; `scripts/seed-restore.sh` loads it into a fresh DB. Restores a fully working semantic-search/graph demo in seconds even without an embedding model, at the cost of baking in volatile data (votes, timestamps) and tying the vectors to the model that produced them.
 
 ### 9. (Dev) God-mode data console
@@ -370,10 +369,10 @@ There are two switchover paths. **Pick Path A unless you have a hard reason to a
 Supabase is just Postgres + pgvector under the hood, so pointing the existing JDBC datasource at Supabase's connection pooler keeps every feature working — JPA, Flyway, raw pgvector queries, transactions, the lot. **No Java changes; switching is two env vars and a profile flag.**
 
 ```bash
-# One-time bootstrap (enables pgvector + runs all V1..V13 migrations)
+# One-time bootstrap (enables pgvector + runs all Flyway migrations)
 export SUPABASE_HOST=db.<project-ref>.supabase.co
 export SUPABASE_DB_PASSWORD=...
-bash scripts/supabase-bootstrap.sh   # enables pgvector + runs all V1..V13 migrations
+bash scripts/supabase-bootstrap.sh   # enables pgvector + runs all Flyway migrations
 
 # Run the backend against Supabase
 cd backend
@@ -387,7 +386,7 @@ The profile is committed at [`backend/src/main/resources/application-supabase-jd
 Use this only when your deployment can't open a direct Postgres connection (edge runtime, hardened egress). It routes all CRUD through PostgREST (`SupabaseDataStore`) and all vector search through Postgres RPC functions (`SupabaseRpcEmbeddingStore`) defined in [`V8__supabase_rpc.sql`](backend/src/main/resources/db/migration/V8__supabase_rpc.sql).
 
 ```bash
-# Bootstrap first (same script — it applies all V1..V13 to Supabase regardless of profile)
+# Bootstrap first (same script — it applies every migration to Supabase regardless of profile)
 bash scripts/supabase-bootstrap.sh
 
 # Configure + run
@@ -461,7 +460,7 @@ Click **Authorize**, paste a token from `POST /api/auth/login`, and try any endp
 | POST   | `/api/auth/login`                          | Exchange email+password for a JWT         |
 | GET    | `/api/auth/me`                             | Current user + tenant + plan              |
 | GET    | `/api/ideas?stage=SUBMITTED`               | List ideas (optional stage filter)        |
-| POST   | `/api/ideas`                               | Create idea (SUBMITTED; accepts `campaignId`) |
+| POST   | `/api/ideas`                               | Create idea (accepts `campaignId`, `preferredReviewerId`, `preferredManagerId`) |
 | GET    | `/api/ideas/{id}`                          | Single idea                               |
 | PATCH  | `/api/ideas/{id}`                          | Edit idea (re-embeds)                     |
 | GET    | `/api/ideas/graph?threshold=0.55`          | Nodes + edges for the semantic graph      |
@@ -472,6 +471,10 @@ Click **Authorize**, paste a token from `POST /api/auth/login`, and try any endp
 | GET    | `/api/ideas/{id}/evaluations`              | List evaluations on this idea             |
 | POST   | `/api/ideas/{id}/transitions`              | `{ "to": "PRIORITIZATION", "reason": "" }` |
 | PATCH  | `/api/ideas/{id}/sponsor-boost?on=true`    | Sponsor / Admin only                      |
+| GET    | `/api/ideas/assignable-users`              | Users who can fill the reviewer / idea-manager slots |
+| GET    | `/api/ideas/my-tasks`                      | Caller's task board (assigned + suggested ideas) |
+| PATCH  | `/api/ideas/{id}/assignment`               | Set/clear reviewer + idea manager (manager / admin) |
+| POST   | `/api/ideas/{id}/claim?as=reviewer`        | Claim an open slot yourself (`reviewer` \| `manager`) |
 | GET    | `/api/ideas/{id}/similar`                  | Top-k semantic neighbours                 |
 | POST   | `/api/ideas/{id}/refine`                   | RAG + LLM refinement (requires `rag_refine`) |
 | POST   | `/api/ideas/{id}/chat`                     | Multi-turn follow-up on the same idea (requires `rag_refine`) |
@@ -501,11 +504,11 @@ geistesblitz/
 ├── backend/
 │   └── src/main/java/com/ideaplatform/api/
 │       ├── config/        Exception handler, demo password resetter, embedding bootstrapper
-│       ├── controller/    Auth, Idea, Campaign, Leaderboard, Search, Workflow, Admin, Subscription
-│       ├── domain/        JPA entities (incl. titleDe/descriptionDe) + enums
+│       ├── controller/    Auth, Idea, Campaign, Leaderboard, Search, Workflow, Admin, Subscription, DevData (flag-gated)
+│       ├── domain/        JPA entities + enums
 │       ├── dto/           Request/response records
 │       ├── license/       LicenseService, @RequiresFeature aspect
-│       ├── repo/          Spring Data repositories + raw-JDBC pgvector repo
+│       ├── repo/          Spring Data repositories
 │       ├── security/      JwtService, JwtAuthFilter, MockKeycloakAdapter
 │       ├── service/       Idea, Vote, Evaluation, Comment, Workflow, Scoring,
 │       │   │              Campaign, Leaderboard, Recommendation, Refine
@@ -518,14 +521,14 @@ geistesblitz/
 │   └── src/
 │       ├── api/           Axios client (refreshes /auth/me) + endpoint wrappers
 │       ├── components/    Layout (top nav bar), IdeaCard, StageBadge, RoleGate, Spinner, ui/ (shadcn-style primitives)
-│       ├── lib/           permissions, campaign helpers, jira mock helpers, cn()
-│       ├── pages/         Dashboard (status breakdowns), IdeaList (filterable table),
+│       ├── lib/           permissions, campaign helpers, jira/reference helpers, tenant theming, cn()
+│       ├── pages/         Dashboard (task board + own ideas), IdeaList (filterable table),
 │       │                  IdeaDetail, IdeaGraph, Leaderboard, Campaigns, CampaignDetail,
 │       │                  SubmitIdea, Workflow (Kanban board), MockJira (delivery hand-off),
-│       │                  Settings, Admin, Login
+│       │                  Settings, Admin, DevData (hidden /dev), Login, Impressum, Datenschutz
 │       ├── store/         Zustand: auth, theme (all persisted)
 │       └── types/         API DTO types
-├── docs/                  Architecture, workflow, and licensing deep-dives
+├── docs/                  Architecture/workflow/licensing deep-dives, demo run-of-show, screenshot gallery
 └── scripts/               docker-compose and dev helpers
 ```
 
@@ -571,12 +574,14 @@ The durable-jar build uses `-DskipTests` for speed; run `mvn test` (or `mvn veri
 ## Known limitations / next steps
 
 - **Integration tests** — a focused unit/service suite already exists (see [Tests](#tests)); the natural next step is Testcontainers-backed integration tests against a real Postgres, plus a frontend/E2E layer.
-- **Idea delete endpoint** — not yet exposed; `DataStore` supports it but `IdeaController` doesn't.
+- **Idea delete endpoint** — not yet exposed (neither `DataStore` nor `IdeaController` implement it).
+- **List endpoints do per-idea queries** — `GET /api/ideas` resolves votes, comment/evaluation counts, campaign and assignee names per idea (N+1). Harmless at demo scale; batching the aggregates is the next optimization.
+- **Reference numbering under concurrency** — the `MAX(reference)+1` assignment can race on simultaneous creates; the unique index rejects the loser instead of retrying.
 - **Plan upgrade has no payment step** — `PUT /api/subscription/plan` switches the tenant immediately. A production build would gate it behind a billing provider (Stripe etc.) and a webhook.
 - **Supabase datastore** — functionally complete but uses per-row sums instead of PostgREST RPCs for `netVotes`. Fine for the prototype; replace with a stored function in production.
 - **`AdminService` duplicate-email check** queries globally, which leaks "email exists" across tenants. Switch to `findByEmailAndTenantId`.
 - **Campaigns** — no UI to detach an idea from a campaign after the fact (the FE select on Submit only sets the value; `PATCH /api/ideas/{id}` with `campaignId: null` is currently a no-op because the service guards on `!= null`).
-- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a ~210 KB dump (incl. vectors) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
+- **Seed snapshot in git** — `scripts/seeds/seed.sql` is a generated dump (incl. vectors, currently ~230 KB) committed for the fast-restore path. Teams that prefer to keep large generated SQL out of version control can `.gitignore` it and regenerate via `scripts/seed-snapshot.sh`.
 - **Legal pages are templates** — the German footer links to public `/impressum` and `/datenschutz` (DSGVO) pages; contact is `lifon.chun@gmail.com`. The `[ … ]` placeholders (Name, Anschrift) and the Datenschutz wording must be completed and legally reviewed before any public deployment.
 
 | Impressum | Datenschutz |
