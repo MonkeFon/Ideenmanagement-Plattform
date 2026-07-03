@@ -211,6 +211,24 @@ powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
 
 [`scripts/setup.ps1`](scripts/setup.ps1) does the whole bootstrap: checks prerequisites, builds the backend jar, installs frontend dependencies, pulls the `bge-m3` embedding model, starts Postgres + backend + frontend, warms the semantic search, and prints the demo accounts + URLs. It's re-runnable (skips work already done; `-Rebuild` / `-Reinstall` / `-SkipModels` adjust that). When it finishes, open **http://localhost:5173** (API docs at **/swagger-ui.html** on `:8080`).
 
+**Everyday start (deps already installed):** once `setup.ps1` has run once, use the lightweight starter for the daily "bring it all back up" case:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\start.ps1
+```
+
+[`scripts/start.ps1`](scripts/start.ps1) brings up Docker/Postgres → Ollama → backend → frontend in order, **skips whatever is already running** (idempotent), and health-checks every step with a timeout so it either finishes clean or stops with a precise diagnosis instead of hanging. Flags: `-Rebuild` (rebuild the backend jar first), `-RestartDocker` (recover a wedged Docker engine), `-TimeoutSec` (per-step wait, default 150).
+
+**Everyday stop:** shut the stack back down with the counterpart script:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\stop.ps1
+```
+
+[`scripts/stop.ps1`](scripts/stop.ps1) stops frontend → backend → Postgres in reverse order (killing the supervisors first so they don't respawn), is idempotent, and **keeps the Postgres data** (`docker stop`, no volume removal). Flags: `-Ollama` (also stop the shared Ollama service, left running by default), `-RemoveContainers` (`docker compose down` instead of `docker stop`; the data volume still survives).
+
+**One-word launchers:** `scripts\start.ps1` / `scripts\stop.ps1` are also wired to the commands **`startIdea`** and **`stopIdea`**, runnable from any directory in PowerShell, cmd, or Git Bash (via small shims on `PATH` in `%USERPROFILE%\bin`). Flags pass straight through, e.g. `startIdea -RestartDocker` or `stopIdea -Ollama`.
+
 The manual, cross-platform steps are spelled out below.
 
 ### Prerequisites
